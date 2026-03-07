@@ -249,8 +249,8 @@ export default function LearnerTable({
                             behindPct > 40
                               ? "text-severity-critical"
                               : behindPct > 20
-                              ? "text-severity-overdue"
-                              : "text-foreground"
+                                ? "text-severity-overdue"
+                                : "text-foreground"
                           }
                         >
                           {behindPct}%
@@ -268,7 +268,13 @@ export default function LearnerTable({
                       <td className="p-3">
                         <Badge
                           variant="outline"
-                          className="text-[11px] border-severity-critical/30 text-severity-critical"
+                          className={
+                            l.lastSessionStatus === "Attended"
+                              ? "text-[11px] border-emerald-300 text-emerald-700 bg-emerald-50"
+                              : l.lastSessionStatus === "Missed"
+                                ? "text-[11px] border-rose-300 text-rose-700 bg-rose-50"
+                                : "text-[11px] border-slate-300 text-slate-600 bg-slate-50"
+                          }
                         >
                           {l.lastSessionStatus}
                         </Badge>

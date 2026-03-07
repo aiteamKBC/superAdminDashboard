@@ -59,11 +59,6 @@ const getStudentsFromRaw = (raw: any): any[] => {
 const pickOrganisation = (student: any) =>
   String(
     student?.OrganizationName ||
-      student?.OrganisationName ||
-      student?.Organization ||
-      student?.Organisation ||
-      student?.CompanyName ||
-      student?.company_name ||
       ""
   ).trim();
 
