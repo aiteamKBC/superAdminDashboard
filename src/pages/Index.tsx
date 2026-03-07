@@ -304,11 +304,11 @@ export default function Dashboard() {
 
   const [filters, setFilters] = useState<DashboardFilters>({
     coach: "All Coaches",
-  rating: "All Ratings",
-  programme: "All Programmes",
-  risk: "All",
-  organisation: "All Organisations",
-  status: "All Statuses"
+    rating: "All Ratings",
+    programme: "All Programmes",
+    risk: "All",
+    organisation: "All Organizations",
+    status: "All Statuses"
   });
 
   const [activeKpi, setActiveKpi] = useState<KpiCategory | null>(null);
@@ -332,27 +332,6 @@ export default function Dashboard() {
   }, [load]);
 
   const filteredRows = useMemo(() => applyDashboardFilters(rows, filters), [rows, filters]);
-
-  const globalBookedIndex = useMemo(() => {
-    const byEmail = new Set<string>();
-    const byId = new Set<string>();
-    let count = 0;
-
-    for (const coach of filteredRows) {
-      const raw = (coach as any)?.raw;
-      const booked = getBookedStudentsFromRaw(raw);
-      count += booked.length;
-
-      for (const it of booked) {
-        const e = pickBookedEmail(it);
-        const id = pickBookedId(it);
-        if (e) byEmail.add(e);
-        if (id) byId.add(id);
-      }
-    }
-
-    return { byEmail, byId, count };
-  }, [filteredRows]);
 
   const activeLearners = useMemo<Learner[]>(() => {
     const out: Learner[] = [];
@@ -425,6 +404,27 @@ export default function Dashboard() {
         const expectedOtj = toNum((s as any)?.Expected);
         const actualOtj = toNum((s as any)?.Completed);
 
+        const plannedOtj = toNum((s as any)?.Planned);
+
+        const lastProgressReviewDate = pickFirstString(s as any, [
+          "Last Progress Review",
+          "LastProgressReview",
+          "last_progress_review",
+        ]);
+
+        const learnerStatusRaw = pickFirstString(s as any, [
+          "Program-Status",
+          "Program Status",
+          "program_status",
+          "Status",
+          "status",
+        ]);
+
+        const learnerStatus: Learner["status"] =
+          learnerStatusRaw === "Break in Learning" || learnerStatusRaw === "Withdrawn"
+            ? learnerStatusRaw
+            : "Active";
+
         const otjBehindBy = progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
 
         if (otjBehindBy > 0) {
@@ -494,7 +494,7 @@ export default function Dashboard() {
           email: emailKey ? emailKey : "Unknown",
           phone: pickFirstString(s as any, ["learner_phone", "Learner_phone", "phone", "Phone"]) || "N/A",
 
-          status: "Active",
+          status: learnerStatus,
 
           absenceRatio: metrics.absenceRatio,
           missedLast10Weeks: metrics.missedLast10Weeks,
@@ -502,7 +502,7 @@ export default function Dashboard() {
           lastSessionDate: metrics.lastSessionDate,
           lastSessionStatus: metrics.lastSessionStatus,
 
-          lastProgressReviewDate: String((s as any)?.["Last Progress Review"] ?? "N/A"),
+          lastProgressReviewDate: lastProgressReviewDate || "",
           nextProgressReviewDue,
           progressReviewBooked: false,
 
@@ -510,6 +510,7 @@ export default function Dashboard() {
           // nextMonthlyMeetingDue: bookedIndex.count > 0 ? (monthlyCoachingBooked ? "Booked" : "Due") : "N/A",
           // monthlyMeetingBooked: bookedIndex.count > 0 ? monthlyCoachingBooked : false,
 
+          plannedOtjHours: plannedOtj ?? 0,
           expectedOtjHours: expectedOtj ?? 0,
           actualOtjHours: actualOtj ?? 0,
 

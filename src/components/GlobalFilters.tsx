@@ -13,7 +13,8 @@ import { RefreshCcw, Settings2 } from "lucide-react";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
 import type { DashboardFilters } from "@/lib/filters/dashboardFilters";
 
-const statuses = ["All Statuses", "Active", "Break in Learning", "Withdrawn"];
+const ALL_ORGANIZATIONS = "All Organizations";
+const ALL_STATUSES = "All Statuses";
 
 type Props = {
   rows: UiCoach[];
@@ -25,6 +26,57 @@ type Props = {
 
 const unique = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
 
+const asArray = (v: any): any[] => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+
+  if (typeof v === "string") {
+    try {
+      return asArray(JSON.parse(v));
+    } catch {
+      return [];
+    }
+  }
+
+  if (typeof v === "object") {
+    if (Array.isArray(v.students)) return v.students;
+    if (Array.isArray(v.value)) return v.value;
+  }
+
+  return [];
+};
+
+const getStudentsFromRaw = (raw: any): any[] => {
+  const fromLearnersJson = asArray(raw?.learners_json);
+  if (fromLearnersJson.length) return fromLearnersJson;
+
+  const fromNested = asArray(raw?.learners_json?.students);
+  if (fromNested.length) return fromNested;
+
+  return asArray(raw?.students);
+};
+
+const pickOrganisation = (student: any) =>
+  String(
+    student?.OrganizationName ||
+      student?.OrganisationName ||
+      student?.Organization ||
+      student?.Organisation ||
+      student?.CompanyName ||
+      student?.company_name ||
+      ""
+  ).trim();
+
+const pickStatus = (student: any) =>
+  String(
+    student?.["Program-Status"] ||
+      student?.["Program Status"] ||
+      student?.program_status ||
+      student?.Status ||
+      student?.status ||
+      ""
+  ).trim();
+
 export default function GlobalFilters({
   rows,
   loading,
@@ -35,60 +87,52 @@ export default function GlobalFilters({
   const lastRefreshed = useMemo(() => new Date(), []);
   const safeRows = Array.isArray(rows) ? rows : [];
 
-  /* ---------- Coach options ---------- */
   const coachOptions = useMemo(() => {
-  const names = safeRows
-    .map((r) => r.name?.trim())
-    .filter(
-      (n) =>
-        n &&
-        n !== "Unknown" &&
-        n !== "API Do Not Delete"
-    );
+    const names = safeRows
+      .map((r) => r.name?.trim())
+      .filter((n) => n && n !== "Unknown" && n !== "API Do Not Delete");
 
-  return unique(["All Coaches", ...names]).sort((a, b) =>
-    a.localeCompare(b)
-  );
-}, [safeRows]);
+    return unique(["All Coaches", ...names]).sort((a, b) => a.localeCompare(b));
+  }, [safeRows]);
 
-  /* ---------- Programme options ---------- */
   const programmeOptions = useMemo(() => {
     const all: string[] = [];
     safeRows.forEach((r) => (r.programmes || []).forEach((p) => all.push(p)));
 
-    return unique(["All Programmes", ...all]).sort((a, b) =>
-      a.localeCompare(b)
-    );
+    return unique(["All Programmes", ...all]).sort((a, b) => a.localeCompare(b));
   }, [safeRows]);
 
-  /* ---------- Rating options ---------- */
   const ratingOptions = useMemo(() => {
-    return unique([
-      "All Ratings",
-      ...safeRows.map((r) => r.rating || "Unknown"),
-    ]);
+    return unique(["All Ratings", ...safeRows.map((r) => r.rating || "Unknown")]);
   }, [safeRows]);
 
-  /* ---------- Organisation options ---------- */
   const organisationOptions = useMemo(() => {
     const set = new Set<string>();
 
     safeRows.forEach((r) => {
-      const learners = r.raw?.learners ?? [];
-
-      learners.forEach((l: any) => {
-        const org =
-          l?.OrganizationName ||
-          l?.OrganisationName ||
-          l?.organisation;
-
+      const students = getStudentsFromRaw(r.raw);
+      students.forEach((student: any) => {
+        const org = pickOrganisation(student);
         if (org) set.add(org);
       });
     });
 
-    return ["All Organisations", ...Array.from(set)].sort((a, b) =>
-      a.localeCompare(b)
-    );
+    return [ALL_ORGANIZATIONS, ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [safeRows]);
+
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>();
+
+    safeRows.forEach((r) => {
+      const students = getStudentsFromRaw(r.raw);
+      students.forEach((student: any) => {
+        const status = pickStatus(student);
+        if (status) set.add(status);
+      });
+    });
+
+    const dynamic = Array.from(set).sort((a, b) => a.localeCompare(b));
+    return [ALL_STATUSES, ...dynamic];
   }, [safeRows]);
 
   const riskOptions = ["All", "On track", "At risk", "Overdue", "Unknown"];
@@ -125,7 +169,6 @@ export default function GlobalFilters({
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Programme */}
         <Select
           value={filters.programme}
           onValueChange={(v) => onChange({ ...filters, programme: v })}
@@ -133,7 +176,6 @@ export default function GlobalFilters({
           <SelectTrigger className="w-[220px] h-9 text-sm">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
-
           <SelectContent>
             {programmeOptions.map((p) => (
               <SelectItem key={p} value={p}>
@@ -143,7 +185,6 @@ export default function GlobalFilters({
           </SelectContent>
         </Select>
 
-        {/* Coach */}
         <Select
           value={filters.coach}
           onValueChange={(v) => onChange({ ...filters, coach: v })}
@@ -151,7 +192,6 @@ export default function GlobalFilters({
           <SelectTrigger className="w-[190px] h-9 text-sm">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
-
           <SelectContent>
             {coachOptions.map((c) => (
               <SelectItem key={c} value={c}>
@@ -161,7 +201,6 @@ export default function GlobalFilters({
           </SelectContent>
         </Select>
 
-        {/* Rating */}
         <Select
           value={filters.rating}
           onValueChange={(v) => onChange({ ...filters, rating: v })}
@@ -169,7 +208,6 @@ export default function GlobalFilters({
           <SelectTrigger className="w-[160px] h-9 text-sm">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
-
           <SelectContent>
             {ratingOptions.map((r) => (
               <SelectItem key={r} value={r}>
@@ -179,7 +217,6 @@ export default function GlobalFilters({
           </SelectContent>
         </Select>
 
-        {/* Risk */}
         <Select
           value={filters.risk}
           onValueChange={(v) => onChange({ ...filters, risk: v })}
@@ -187,7 +224,6 @@ export default function GlobalFilters({
           <SelectTrigger className="w-[150px] h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
-
           <SelectContent>
             {riskOptions.map((r) => (
               <SelectItem key={r} value={r}>
@@ -197,15 +233,13 @@ export default function GlobalFilters({
           </SelectContent>
         </Select>
 
-        {/* Organisation */}
         <Select
           value={filters.organisation}
           onValueChange={(v) => onChange({ ...filters, organisation: v })}
         >
-          <SelectTrigger className="w-[170px] h-9 text-sm">
+          <SelectTrigger className="w-[190px] h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
-
           <SelectContent>
             {organisationOptions.map((o) => (
               <SelectItem key={o} value={o}>
@@ -215,14 +249,15 @@ export default function GlobalFilters({
           </SelectContent>
         </Select>
 
-        {/* Status */}
-        <Select defaultValue="Active">
-          <SelectTrigger className="w-[150px] h-9 text-sm">
+        <Select
+          value={filters.status}
+          onValueChange={(v) => onChange({ ...filters, status: v })}
+        >
+          <SelectTrigger className="w-[170px] h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
-
           <SelectContent>
-            {statuses.map((s) => (
+            {statusOptions.map((s) => (
               <SelectItem key={s} value={s}>
                 {s}
               </SelectItem>

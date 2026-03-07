@@ -30,6 +30,7 @@ export interface Learner {
   startDate: string;
   expectedEndDate: string;
   // OTJ
+  plannedOtjHours: number;
   expectedOtjHours: number;
   actualOtjHours: number;
   // Dates
