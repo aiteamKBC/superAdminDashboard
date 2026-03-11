@@ -17,13 +17,17 @@ type CoachesResponse =
  * USERS falls back to CORE unless VITE_USERS_API_ORIGIN (and optional VITE_USERS_API_KEY) are provided
  */
 
-const CORE_API_ORIGIN = (import.meta as any).env?.VITE_API_ORIGIN?.toString().trim() || "/api";
-const CORE_API_KEY = (import.meta as any).env?.VITE_API_KEY?.toString().trim() || "";
+const CORE_API_ORIGIN =
+  (import.meta as any).env?.VITE_API_ORIGIN?.toString().trim() || "/api";
+const CORE_API_KEY =
+  (import.meta as any).env?.VITE_API_KEY?.toString().trim() || "";
 
 const USERS_API_ORIGIN =
-  (import.meta as any).env?.VITE_USERS_API_ORIGIN?.toString().trim() || CORE_API_ORIGIN;
+  (import.meta as any).env?.VITE_USERS_API_ORIGIN?.toString().trim() ||
+  CORE_API_ORIGIN;
 const USERS_API_KEY =
-  (import.meta as any).env?.VITE_USERS_API_KEY?.toString().trim() || CORE_API_KEY;
+  (import.meta as any).env?.VITE_USERS_API_KEY?.toString().trim() ||
+  CORE_API_KEY;
 
 function joinUrl(base: string, path: string) {
   const b = String(base || "").replace(/\/+$/, "");
@@ -51,8 +55,12 @@ async function requestJson<T>(
   return (await res.json()) as T;
 }
 
-export async function fetchUiCoaches(): Promise<UiCoach[]> {
-  const payload = await requestJson<CoachesResponse>(CORE_API_ORIGIN, CORE_API_KEY, "/coaches/all");
+export async function fetchRawKbcCoaches(): Promise<KbcCoach[]> {
+  const payload = await requestJson<CoachesResponse>(
+    CORE_API_ORIGIN,
+    CORE_API_KEY,
+    "/coaches/all"
+  );
 
   const rows: KbcCoach[] = Array.isArray(payload)
     ? payload
@@ -60,5 +68,10 @@ export async function fetchUiCoaches(): Promise<UiCoach[]> {
       ? payload.rows
       : [];
 
+  return rows;
+}
+
+export async function fetchUiCoaches(): Promise<UiCoach[]> {
+  const rows = await fetchRawKbcCoaches();
   return rows.map(adaptCoach).sort((a, b) => a.name.localeCompare(b.name));
 }

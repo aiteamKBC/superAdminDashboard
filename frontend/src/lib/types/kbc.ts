@@ -70,4 +70,40 @@ export type KbcCoach = {
   booked_students_PR?: any;
   booked_students_MCM?: any;
   booked_students_StSupport?: any;
+
+  calls?: Record<
+    string,
+    {
+      call_id?: string;
+      start_time?: string | null;
+      end_time?: string | null;
+      call_result?: string | null;
+      callee_did_number?: string | null;
+    }[]
+  >;
+
+  phone_numbers?: string[];
+
+  learners_json?: any[] | string | null;
+
+  overall_progress_review?: any;
+
+  ["Today marking"]?: number | string | null;
+  ["Yesterday marking"]?: number | string | null;
+  ["-2 marking"]?: number | string | null;
+  ["-3 marking"]?: number | string | null;
+  ["-4 marking"]?: number | string | null;
+  ["-5 marking"]?: number | string | null;
+  ["-6 marking"]?: number | string | null;
+  ["-7 marking"]?: number | string | null;
+
+  ["Last Week PR"]?: number | string | null;
+  ["Second Week PR"]?: number | string | null;
+  ["Third Week PR"]?: number | string | null;
+  ["Fourth Week PR"]?: number | string | null;
+
+  ["Monthly Total PR Done"]?: number | string | null;
+  ["Actually Monthly Done"]?: number | string | null;
+  ["Monthly Total PR Required"]?: number | string | null;
+  ["Completion Rate"]?: number | string | null;
 };

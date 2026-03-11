@@ -47,7 +47,9 @@ const kpiAccentClass: Record<KpiCategory, string> = {
   "missed-session": "border-l-[var(--kpi-missed)]",
   "review-due": "border-l-[var(--kpi-review)]",
   "coaching-due": "border-l-[var(--kpi-coaching)]",
+  "coaching-booked": "border-l-sky-500",
   "otj-behind": "border-l-[var(--kpi-otj)]",
+  "coach-marking-overdue": "border-l-violet-500",
 };
 
 const parseProgrammeFromModule = (moduleStr: string) => {
@@ -219,6 +221,199 @@ const buildBookedIndex = (raw: any) => {
   return { byEmail, byId, count: booked.length };
 };
 
+const BOOKED_TYPE_LABELS = {
+  booked_students_PR: "Progress Review",
+  booked_students_MCM: "MCM",
+  booked_students_StSupport: "Support Session",
+} as const;
+
+type SessionType = (typeof BOOKED_TYPE_LABELS)[keyof typeof BOOKED_TYPE_LABELS] | "Unknown";
+
+const normText = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+const getBookedEntriesFromRaw = (
+  raw: any
+): Array<{
+  source: "booked_students_PR" | "booked_students_MCM" | "booked_students_StSupport";
+  sessionType: SessionType;
+  student: any;
+}> => {
+  const cols = [
+    "booked_students_PR",
+    "booked_students_MCM",
+    "booked_students_StSupport",
+  ] as const;
+
+  const out: Array<{
+    source: "booked_students_PR" | "booked_students_MCM" | "booked_students_StSupport";
+    sessionType: SessionType;
+    student: any;
+  }> = [];
+
+  for (const col of cols) {
+    const val = raw?.[col];
+    if (!val) continue;
+
+    let parsed = val;
+    if (typeof parsed === "string") {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        continue;
+      }
+    }
+
+    const students = Array.isArray(parsed?.students) ? parsed.students : [];
+    for (const student of students) {
+      out.push({
+        source: col,
+        sessionType: BOOKED_TYPE_LABELS[col],
+        student,
+      });
+    }
+  }
+
+  return out;
+};
+
+const getUpcomingMeetingsFromRaw = (raw: any): any[] => {
+  const meetings = raw?.upcomming_sessions?.meetings;
+  return Array.isArray(meetings) ? meetings : [];
+};
+
+/* ---------------- helper name ---------------- */
+
+const normName = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const sameLooseName = (a: string, b: string) => {
+  const x = normName(a);
+  const y = normName(b);
+  if (!x || !y) return false;
+  return x === y || x.includes(y) || y.includes(x);
+};
+
+const getLearnerBookedMeta = (
+  raw: any,
+  learner: any,
+  learnerId: string,
+  learnerEmailKey: string,
+  learnerFullName: string
+): {
+  booked: boolean;
+  hasData: boolean;
+  sessionType: SessionType;
+  sessionDate: string;
+} => {
+  const bookedEntries = getBookedEntriesFromRaw(raw);
+
+  const upcomingMeetings = getUpcomingMeetingsFromRaw(raw)
+    .filter((m) => m && m.date)
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+
+  if (!bookedEntries.length) {
+    return {
+      booked: false,
+      hasData: false,
+      sessionType: "Unknown",
+      sessionDate: "N/A",
+    };
+  }
+
+  const learnerNameNorm = normName(
+    learnerFullName ||
+    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
+  );
+
+  const learnerEmail = normEmail(
+    pickFirstString(learner, ["Email", "email", "emailAddress", "UserEmail", "LearnerEmail"])
+  );
+
+  const matchedBooking =
+    bookedEntries.find(({ student }) => {
+      const bookedId = normId(
+        pickFirstString(student, ["matched_student_id", "matchedStudentId", "ID", "Id", "id"])
+      );
+
+      const bookedEmail = normEmail(
+        pickFirstString(student, [
+          "matched_student_email",
+          "matchedStudentEmail",
+          "customerEmail",
+          "Email",
+          "email",
+        ])
+      );
+
+      const bookedName = normName(
+        pickFirstString(student, [
+          "matched_student_name",
+          "matchedStudentName",
+          "customerName",
+          "FullName",
+          "name",
+        ])
+      );
+
+      return (
+        (learnerId && bookedId && learnerId === bookedId) ||
+        (learnerEmailKey && bookedEmail && learnerEmailKey === bookedEmail) ||
+        (learnerEmail && bookedEmail && learnerEmail === bookedEmail) ||
+        (learnerNameNorm && bookedName && sameLooseName(learnerNameNorm, bookedName))
+      );
+    }) || null;
+
+  if (!matchedBooking) {
+    return {
+      booked: false,
+      hasData: true,
+      sessionType: "Unknown",
+      sessionDate: "N/A",
+    };
+  }
+
+  const sessionType = matchedBooking.sessionType;
+  const bookedStudent = matchedBooking.student;
+
+  const candidateNames = [
+    pickFirstString(bookedStudent, [
+      "matched_student_name",
+      "matchedStudentName",
+      "customerName",
+      "FullName",
+      "name",
+    ]),
+    learnerFullName,
+    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"]),
+  ]
+    .map(normName)
+    .filter(Boolean);
+
+  const matchedMeeting =
+    upcomingMeetings.find((meeting) => {
+      const meetingCustomerName = normName(meeting?.customerName);
+      if (!meetingCustomerName) return false;
+
+      return candidateNames.some((name) => sameLooseName(name, meetingCustomerName));
+    }) || null;
+
+  return {
+    booked: true,
+    hasData: true,
+    sessionType,
+    sessionDate: matchedMeeting?.date || "N/A",
+  };
+};
+
 /* ---------------- progress review helpers ---------------- */
 
 type ReviewListItem = {
@@ -296,6 +491,280 @@ const toNum = (v: any): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/* ---------------- reading helpers ---------------- */
+const normalizeLooseKey = (value: string) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const getLooseRawValue = (raw: any, aliases: string[]) => {
+  if (!raw || typeof raw !== "object") return undefined;
+
+  const keys = Object.keys(raw);
+  const wanted = new Set(aliases.map(normalizeLooseKey));
+
+  const matchedKey = keys.find((key) => wanted.has(normalizeLooseKey(key)));
+  return matchedKey ? raw[matchedKey] : undefined;
+};
+
+const getLooseNum = (raw: any, aliases: string[]) => {
+  return toNum(getLooseRawValue(raw, aliases)) ?? 0;
+};
+
+/* ---------------- Marking helpers ---------------- */
+type CoachMarkingRow = {
+  coachId: string;
+  coachName: string;
+
+  todayMarking: number;
+  yesterdayMarking: number;
+  minus2Marking: number;
+  minus3Marking: number;
+  minus4Marking: number;
+  minus5Marking: number;
+  minus6Marking: number;
+  minus7Marking: number;
+
+  lastWeekPr: number;
+  secondWeekPr: number;
+  thirdWeekPr: number;
+  fourthWeekPr: number;
+
+  monthlyTotalPrDoneOld: number;
+  actuallyMonthlyDone: number;
+  monthlyTotalPrRequired: number;
+  completionRate: number;
+
+  totalOverdue: number;
+};
+
+function getCoachMarkingSummary(raw: any): CoachMarkingRow {
+  const todayMarking = getLooseNum(raw, ["Today marking"]);
+
+  const yesterdayMarking = getLooseNum(raw, ["Yesterday marking"]);
+  const minus2Marking = getLooseNum(raw, ["-2 marking"]);
+  const minus3Marking = getLooseNum(raw, ["-3 marking"]);
+  const minus4Marking = getLooseNum(raw, ["-4 marking"]);
+  const minus5Marking = getLooseNum(raw, ["-5 marking"]);
+  const minus6Marking = getLooseNum(raw, ["-6 marking"]);
+  const minus7Marking = getLooseNum(raw, ["-7 marking"]);
+
+  const lastWeekPr = getLooseNum(raw, [
+    "Last Week PR",
+    "-Last Week PR",
+  ]);
+
+  const secondWeekPr = getLooseNum(raw, [
+    "-Second Week PR",
+    "Second Week PR",
+    "- Second Week PR",
+  ]);
+
+  const thirdWeekPr = getLooseNum(raw, [
+    "-Third Week PR",
+    "Third Week PR",
+    "- Third Week PR",
+  ]);
+
+  const fourthWeekPr = getLooseNum(raw, [
+    "-Fourth Week PR",
+    "- Fourth Week PR",
+    "Fourth Week PR",
+  ]);
+
+  const monthlyTotalPrDoneOld = getLooseNum(raw, [
+    "Monthly Total PR Done + Old",
+    "Monthly Total PR Done",
+  ]);
+
+  const actuallyMonthlyDone = getLooseNum(raw, [
+    "Actually Monthly Done",
+  ]);
+
+  const monthlyTotalPrRequired = getLooseNum(raw, [
+    "Monthly Total PR Required",
+  ]);
+
+  const completionRate = getLooseNum(raw, [
+    "Completion Rate",
+  ]);
+
+  const totalOverdue = getLooseNum(raw, [
+  "evidence_submitted",
+]);
+
+  return {
+    coachId: String(raw?.case_owner_id ?? raw?.staff_id ?? raw?.case_owner ?? ""),
+    coachName: String(raw?.case_owner ?? "Unknown"),
+
+    todayMarking,
+    yesterdayMarking,
+    minus2Marking,
+    minus3Marking,
+    minus4Marking,
+    minus5Marking,
+    minus6Marking,
+    minus7Marking,
+
+    lastWeekPr,
+    secondWeekPr,
+    thirdWeekPr,
+    fourthWeekPr,
+
+    monthlyTotalPrDoneOld,
+    actuallyMonthlyDone,
+    monthlyTotalPrRequired,
+    completionRate,
+
+    totalOverdue,
+  };
+}
+
+function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
+  const [search, setSearch] = useState("");
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => row.coachName.toLowerCase().includes(q));
+  }, [rows, search]);
+
+  const handleExport = () => {
+    const headers = [
+      "Coach Name",
+      "Today marking",
+      "Yesterday marking",
+      "-2 marking",
+      "-3 marking",
+      "-4 marking",
+      "-5 marking",
+      "-6 marking",
+      "-7 marking",
+      "Last Week PR",
+      "-Second Week PR",
+      "-Third Week PR",
+      "-Fourth Week PR",
+      "Monthly Total PR Done + Old",
+      "Actually Monthly Done",
+      "Monthly Total PR Required",
+      "Completion Rate",
+      "Total Overdue",
+    ];
+
+    const csvRows = filteredRows.map((row) => [
+      row.coachName,
+      row.todayMarking,
+      row.yesterdayMarking,
+      row.minus2Marking,
+      row.minus3Marking,
+      row.minus4Marking,
+      row.minus5Marking,
+      row.minus6Marking,
+      row.minus7Marking,
+      row.lastWeekPr,
+      row.secondWeekPr,
+      row.thirdWeekPr,
+      row.fourthWeekPr,
+      row.monthlyTotalPrDoneOld,
+      row.actuallyMonthlyDone,
+      row.monthlyTotalPrRequired,
+      `${row.completionRate}%`,
+      row.totalOverdue,
+    ]);
+
+    const csv = [headers, ...csvRows]
+      .map((r) => r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "coach-marking-overdue-raw.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search coach..."
+          className="h-10 min-w-[240px] max-w-sm rounded-md border border-input bg-background px-3 text-sm"
+        />
+
+        <button
+          onClick={handleExport}
+          className="h-10 rounded-md border border-input bg-background px-4 text-sm"
+        >
+          Export CSV
+        </button>
+      </div>
+
+      <div className="rounded-lg border bg-card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40">
+              <th className="text-left p-3 font-medium text-muted-foreground">Coach Name</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Today marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Yesterday marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-2 marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-3 marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-4 marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-5 marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-6 marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-7 marking</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Last Week PR</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-Second Week PR</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-Third Week PR</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">-Fourth Week PR</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Monthly Total PR Done + Old</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Actually Monthly Done</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Monthly Total PR Required</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Completion Rate</th>
+              <th className="text-right p-3 font-medium text-muted-foreground">Total Overdue</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredRows.map((row) => (
+              <tr key={row.coachId} className="border-b last:border-b-0">
+                <td className="p-3 font-medium text-foreground">{row.coachName}</td>
+                <td className="p-3 text-right">{row.todayMarking}</td>
+                <td className="p-3 text-right">{row.yesterdayMarking}</td>
+                <td className="p-3 text-right">{row.minus2Marking}</td>
+                <td className="p-3 text-right">{row.minus3Marking}</td>
+                <td className="p-3 text-right">{row.minus4Marking}</td>
+                <td className="p-3 text-right">{row.minus5Marking}</td>
+                <td className="p-3 text-right">{row.minus6Marking}</td>
+                <td className="p-3 text-right">{row.minus7Marking}</td>
+                <td className="p-3 text-right">{row.lastWeekPr}</td>
+                <td className="p-3 text-right">{row.secondWeekPr}</td>
+                <td className="p-3 text-right">{row.thirdWeekPr}</td>
+                <td className="p-3 text-right">{row.fourthWeekPr}</td>
+                <td className="p-3 text-right">{row.monthlyTotalPrDoneOld}</td>
+                <td className="p-3 text-right">{row.actuallyMonthlyDone}</td>
+                <td className="p-3 text-right">{row.monthlyTotalPrRequired}</td>
+                <td className="p-3 text-right">{row.completionRate}%</td>
+                <td className="p-3 text-right font-semibold">{row.totalOverdue}</td>
+              </tr>
+            ))}
+
+            {filteredRows.length === 0 && (
+              <tr>
+                <td colSpan={18} className="p-8 text-center text-muted-foreground">
+                  No coach marking data found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 /* ---------------- page ---------------- */
 
 export default function Dashboard() {
@@ -313,6 +782,9 @@ export default function Dashboard() {
 
   const [activeKpi, setActiveKpi] = useState<KpiCategory | null>(null);
   const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
+  const [bookedSessionTypeFilter, setBookedSessionTypeFilter] = useState<
+    "All Session Types" | "Progress Review" | "MCM" | "Support Session"
+  >("All Session Types");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -330,6 +802,12 @@ export default function Dashboard() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (activeKpi !== "coaching-booked") {
+      setBookedSessionTypeFilter("All Session Types");
+    }
+  }, [activeKpi]);
 
   const filteredRows = useMemo(() => applyDashboardFilters(rows, filters), [rows, filters]);
 
@@ -353,17 +831,6 @@ export default function Dashboard() {
       }
 
       const students = getStudentsFromRaw(raw);
-
-      // Bookings index per coach row
-      console.log("RAW BOOKING COLUMNS", {
-        PR: raw?.booked_students_PR,
-        MCM: raw?.booked_students_MCM,
-        StSu: raw?.booked_students_StSupport,
-      });
-
-      const bookedIndex = buildBookedIndex(raw);
-
-      console.log("BOOKED INDEX", bookedIndex);
 
       for (const s of students) {
         const id = normId((s as any)?.ID ?? (s as any)?.id);
@@ -435,12 +902,10 @@ export default function Dashboard() {
 
         // Monthly coaching booking detection
         // If booking columns are empty for that coach row, bookedIndex.count will be 0
-        const monthlyCoachingBooked =
-          (emailKey && bookedIndex.byEmail.has(emailKey)) ||
-          (id && bookedIndex.byId.has(id)) ||
-          false;
+        const bookedMeta = getLearnerBookedMeta(raw, s, id, emailKey, fullName);
 
-        const monthlyCoachingHasData = bookedIndex.count > 0;
+        const monthlyCoachingBooked = bookedMeta.booked;
+        const monthlyCoachingHasData = bookedMeta.hasData;
 
         if (monthlyCoachingHasData && !monthlyCoachingBooked) {
           if (!riskCategories.includes("coaching-due")) riskCategories.push("coaching-due");
@@ -533,6 +998,9 @@ export default function Dashboard() {
         (learner as any).monthlyCoachingBooked = monthlyCoachingBooked;
         (learner as any).monthlyCoachingHasData = monthlyCoachingHasData;
 
+        (learner as any).monthlyCoachingSessionType = bookedMeta.sessionType;
+        (learner as any).monthlyCoachingSessionDate = bookedMeta.sessionDate;
+
         (learner as any).__reviewFlag = reviewFlag;
         (learner as any).__reviewOverdue = reviewFlag === "overdue";
 
@@ -543,29 +1011,78 @@ export default function Dashboard() {
     return out.filter((l) => l.status === "Active");
   }, [filteredRows]);
 
+  const coachMarkingRows = useMemo<CoachMarkingRow[]>(() => {
+    return filteredRows
+      .map((coach) => {
+        const raw = coach.raw as any;
+        return getCoachMarkingSummary(raw);
+      })
+      .filter((row) => {
+        return (
+          row.totalOverdue > 0 ||
+          row.todayMarking > 0 ||
+          row.actuallyMonthlyDone > 0 ||
+          row.monthlyTotalPrRequired > 0
+        );
+      })
+      .sort((a, b) => b.totalOverdue - a.totalOverdue);
+  }, [filteredRows]);
+
   const kpiCards = useMemo<KpiCardData[]>(() => {
     const total = activeLearners.length;
 
-    const missed = activeLearners.filter((l) => (l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25).length;
+    const missed = activeLearners.filter(
+      (l) => (l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25
+    ).length;
 
-    const reviewDue = activeLearners.filter((l) => (l as any).__reviewFlag && (l as any).__reviewFlag !== "none").length;
+    const reviewDue = activeLearners.filter(
+      (l) => (l as any).__reviewFlag && (l as any).__reviewFlag !== "none"
+    ).length;
 
-    // Only count coaching-due when we have booking data to compare
     const coachingDue = activeLearners.filter((l) => {
       const hasData = Boolean((l as any).monthlyCoachingHasData);
       const booked = Boolean((l as any).monthlyCoachingBooked);
       return hasData && !booked;
     }).length;
 
-    const otjBehind = activeLearners.filter((l) => Number((l as any).otjBehindBy ?? 0) > 0).length;
+    const coachingBookedBase = activeLearners.filter((l) => {
+      const hasData = Boolean((l as any).monthlyCoachingHasData);
+      const booked = Boolean((l as any).monthlyCoachingBooked);
+      return hasData && booked;
+    });
 
-    const mk = (id: KpiCategory, title: string, count: number): KpiCardData =>
+    const coachingBooked =
+      activeKpi === "coaching-booked" &&
+        bookedSessionTypeFilter !== "All Session Types"
+        ? coachingBookedBase.filter(
+          (l) =>
+            String((l as any).monthlyCoachingSessionType || "Unknown") ===
+            bookedSessionTypeFilter
+        ).length
+        : coachingBookedBase.length;
+
+    const otjBehind = activeLearners.filter(
+      (l) => Number((l as any).otjBehindBy ?? 0) > 0
+    ).length;
+
+    const coachMarkingOverdue = coachMarkingRows.filter(
+      (r) => r.totalOverdue > 0
+    ).length;
+
+    const coachMarkingTotal = filteredRows.length;
+
+    const mk = (
+      id: KpiCategory,
+      title: string,
+      count: number,
+      totalValue = total
+    ): KpiCardData =>
     ({
       id,
       title,
       count,
-      total,
-      percentage: total ? Math.round((count / total) * 100) : 0,
+      total: totalValue,
+      percentage: totalValue ? Math.round((count / totalValue) * 100) : 0,
       trend: 0,
       accentClass: kpiAccentClass[id],
     } as KpiCardData);
@@ -573,10 +1090,17 @@ export default function Dashboard() {
     return [
       mk("missed-session", "Missed Session", missed),
       mk("review-due", "Review Due", reviewDue),
-      mk("coaching-due", "Monthly Coaching Due - Not Booked", coachingDue),
+      mk("coaching-due", "Monthly Meeting Due - Not Booked", coachingDue),
+      mk("coaching-booked", "Monthly Meeting - Booked", coachingBooked),
       mk("otj-behind", "OTJ Behind", otjBehind),
+      mk(
+        "coach-marking-overdue",
+        "Coach Marking - Overdue",
+        coachMarkingOverdue,
+        coachMarkingTotal
+      ),
     ];
-  }, [activeLearners]);
+  }, [activeLearners, coachMarkingRows, activeKpi, bookedSessionTypeFilter]);
 
   const filteredLearners = useMemo(() => {
     if (!activeKpi) return [];
@@ -595,6 +1119,21 @@ export default function Dashboard() {
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
     }
 
+    if (activeKpi === "coaching-booked") {
+      const base = activeLearners
+        .filter((l) => Boolean((l as any).monthlyCoachingHasData) && Boolean((l as any).monthlyCoachingBooked))
+        .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
+
+      if (bookedSessionTypeFilter === "All Session Types") {
+        return base;
+      }
+
+      return base.filter(
+        (l) =>
+          String((l as any).monthlyCoachingSessionType || "Unknown") === bookedSessionTypeFilter
+      );
+    }
+
     if (activeKpi === "otj-behind") {
       return activeLearners
         .filter((l) => Number((l as any).otjBehindBy ?? 0) > 0)
@@ -602,14 +1141,27 @@ export default function Dashboard() {
     }
 
     return [];
-  }, [activeLearners, activeKpi]);
+  }, [activeLearners, activeKpi, bookedSessionTypeFilter]);
+
+  // const coachingBookedHeaderCount = useMemo(() => {
+  //   if (activeKpi !== "coaching-booked") return filteredLearners.length;
+
+  //   if (bookedSessionTypeFilter === "All Session Types") {
+  //     return filteredLearners.length;
+  //   }
+
+  //   return filteredLearners.filter(
+  //     (l) =>
+  //       String((l as any).monthlyCoachingSessionType || "Unknown") === bookedSessionTypeFilter
+  //   ).length;
+  // }, [activeKpi, filteredLearners, bookedSessionTypeFilter]);
 
   return (
     <AppLayout>
       <GlobalFilters rows={rows} loading={loading} filters={filters} onChange={setFilters} onRefresh={load} />
 
       <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {kpiCards.map((card, i) => (
             <div key={card.id} className="animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
               <KpiCard
@@ -621,14 +1173,31 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {activeKpi && (
+        {activeKpi === "coach-marking-overdue" && (
+          <div>
+            <h3 className="text-base font-semibold text-foreground mb-3">
+              {kpiCards.find((c) => c.id === activeKpi)?.title} , {coachMarkingRows.length} coach
+              {coachMarkingRows.length !== 1 ? "es" : ""}
+            </h3>
+
+            <CoachMarkingTable rows={coachMarkingRows} />
+          </div>
+        )}
+
+        {activeKpi && activeKpi !== "coach-marking-overdue" && (
           <div>
             <h3 className="text-base font-semibold text-foreground mb-3">
               {kpiCards.find((c) => c.id === activeKpi)?.title} , {filteredLearners.length} learner
               {filteredLearners.length !== 1 ? "s" : ""}
             </h3>
 
-            <LearnerTable learners={filteredLearners} kpiCategory={activeKpi} onSelectLearner={setSelectedLearner} />
+            <LearnerTable
+              learners={filteredLearners}
+              kpiCategory={activeKpi}
+              onSelectLearner={setSelectedLearner}
+              sessionTypeFilter={bookedSessionTypeFilter}
+              onSessionTypeFilterChange={setBookedSessionTypeFilter}
+            />
           </div>
         )}
 

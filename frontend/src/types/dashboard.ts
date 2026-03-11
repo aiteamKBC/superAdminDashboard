@@ -53,8 +53,14 @@ export interface Learner {
   priority: 'normal' | 'high' | 'critical';
 }
 
-export type KpiCategory = 'missed-session' | 'review-due' | 'coaching-due' | 'otj-behind';
-
+export type KpiCategory =
+  | "missed-session"
+  | "review-due"
+  | "coaching-due"
+  | "coaching-booked"
+  | "otj-behind"
+  | "coach-marking-overdue";
+  
 export interface EngagementAction {
   id: string;
   learnerId: string;

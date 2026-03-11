@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Learner, KpiCategory } from "@/types/dashboard";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,18 @@ interface LearnerTableProps {
   learners: Learner[];
   kpiCategory: KpiCategory;
   onSelectLearner: (learner: Learner) => void;
+  sessionTypeFilter?: "All Session Types" | "Progress Review" | "MCM" | "Support Session";
+  onSessionTypeFilterChange?: (
+    value: "All Session Types" | "Progress Review" | "MCM" | "Support Session"
+  ) => void;
 }
+
+const SESSION_TYPE_OPTIONS = [
+  "All Session Types",
+  "Progress Review",
+  "MCM",
+  "Support Session",
+] as const;
 
 const priorityBadge = (priority: Learner["priority"]) => {
   switch (priority) {
@@ -42,37 +53,59 @@ export default function LearnerTable({
   learners,
   kpiCategory,
   onSelectLearner,
+  sessionTypeFilter = "All Session Types",
+  onSessionTypeFilterChange,
 }: LearnerTableProps) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<string>("lastName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const filtered = learners
-    .filter((l) => {
-      const q = search.toLowerCase();
-      return (
-        !q ||
-        `${l.firstName} ${l.lastName}`.toLowerCase().includes(q) ||
-        l.organisation.toLowerCase().includes(q) ||
-        l.email.toLowerCase().includes(q)
-      );
-    })
-    .sort((a, b) => {
-      let av: any, bv: any;
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
 
-      if (sortField === "otjBehind") {
-        av = calcBehindPct(a);
-        bv = calcBehindPct(b);
-      } else {
-        av = (a as any)[sortField] || "";
-        bv = (b as any)[sortField] || "";
-      }
+    const data = learners
+      .filter((l) => {
+        const sessionType = String((l as any).monthlyCoachingSessionType || "").toLowerCase();
+        const sessionDate = String((l as any).monthlyCoachingSessionDate || "").toLowerCase();
 
-      if (av < bv) return sortDir === "asc" ? -1 : 1;
-      if (av > bv) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
+        const matchesSearch =
+          !q ||
+          `${l.firstName} ${l.lastName}`.toLowerCase().includes(q) ||
+          l.organisation.toLowerCase().includes(q) ||
+          l.email.toLowerCase().includes(q) ||
+          l.programme.toLowerCase().includes(q) ||
+          l.coach.toLowerCase().includes(q) ||
+          sessionType.includes(q) ||
+          sessionDate.includes(q);
+
+        return matchesSearch;
+      })
+      .sort((a, b) => {
+        let av: any;
+        let bv: any;
+
+        if (sortField === "otjBehind") {
+          av = calcBehindPct(a);
+          bv = calcBehindPct(b);
+        } else if (sortField === "sessionType") {
+          av = String((a as any).monthlyCoachingSessionType || "");
+          bv = String((b as any).monthlyCoachingSessionType || "");
+        } else if (sortField === "sessionDate") {
+          av = String((a as any).monthlyCoachingSessionDate || "");
+          bv = String((b as any).monthlyCoachingSessionDate || "");
+        } else {
+          av = (a as any)[sortField] || "";
+          bv = (b as any)[sortField] || "";
+        }
+
+        if (av < bv) return sortDir === "asc" ? -1 : 1;
+        if (av > bv) return sortDir === "asc" ? 1 : -1;
+        return 0;
+      });
+
+    return data;
+  }, [learners, search, sessionTypeFilter, sortField, sortDir, kpiCategory]);
 
   const toggleSort = (field: string) => {
     if (sortField === field) {
@@ -89,42 +122,86 @@ export default function LearnerTable({
   };
 
   const handleExport = () => {
-    const headers = [
-      "Name",
-      "Organisation",
-      "Programme",
-      "Coach",
-      "Email",
-      "Phone",
-      "OTJ Planned",
-      "OTJ Expected",
-      "OTJ Actual",
-      "Behind %",
-      "Last Progress Review",
-    ];
+    let headers: string[] = [];
+    let rows: any[][] = [];
 
-    const rows = filtered.map((l) => [
-      `${l.firstName} ${l.lastName}`,
-      l.organisation,
-      l.programme,
-      l.coach,
-      l.email,
-      l.phone,
-      l.plannedOtjHours,
-      l.expectedOtjHours,
-      l.actualOtjHours,
-      `${calcBehindPct(l)}%`,
-      l.lastProgressReviewDate || "",
-    ]);
+    if (kpiCategory === "coaching-booked") {
+      headers = [
+        "Name",
+        "Organisation",
+        "Programme",
+        "Coach",
+        "Email",
+        "Session Type",
+        "Session Date",
+      ];
 
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+      rows = filtered.map((l) => [
+        `${l.firstName} ${l.lastName}`,
+        l.organisation,
+        l.programme,
+        l.coach,
+        l.email,
+        (l as any).monthlyCoachingSessionType || "Unknown",
+        (l as any).monthlyCoachingSessionDate || "N/A",
+      ]);
+    } else {
+      headers = [
+        "Name",
+        "Organisation",
+        "Programme",
+        "Coach",
+        "Email",
+        "Phone",
+        "OTJ Planned",
+        "OTJ Expected",
+        "OTJ Actual",
+        "Behind %",
+        "Last Progress Review",
+      ];
+
+      rows = filtered.map((l) => [
+        `${l.firstName} ${l.lastName}`,
+        l.organisation,
+        l.programme,
+        l.coach,
+        l.email,
+        l.phone,
+        l.plannedOtjHours,
+        l.expectedOtjHours,
+        l.actualOtjHours,
+        `${calcBehindPct(l)}%`,
+        l.lastProgressReviewDate || "",
+      ]);
+    }
+
+    const csv = [headers, ...rows]
+      .map((r) =>
+        r
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `${kpiCategory}-learners.csv`;
     a.click();
+    URL.revokeObjectURL(url);
   };
+
+  const colSpan =
+    kpiCategory === "otj-behind"
+      ? 10
+      : kpiCategory === "missed-session"
+        ? 8
+        : kpiCategory === "review-due" || kpiCategory === "coaching-due"
+          ? 7
+          : kpiCategory === "coaching-booked"
+            ? 8
+            : 6;
 
   return (
     <div className="animate-fade-in">
@@ -138,6 +215,24 @@ export default function LearnerTable({
             className="pl-9"
           />
         </div>
+
+        {kpiCategory === "coaching-booked" && (
+          <select
+            value={sessionTypeFilter}
+            onChange={(e) =>
+              onSessionTypeFilterChange?.(
+                e.target.value as "All Session Types" | "Progress Review" | "MCM" | "Support Session"
+              )
+            }
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          >
+            {SESSION_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="flex gap-2">
           {selected.size > 0 && (
@@ -204,11 +299,39 @@ export default function LearnerTable({
                 </>
               )}
 
-              {(kpiCategory === "review-due" || kpiCategory === "coaching-due") && (
+              {kpiCategory === "review-due" && (
                 <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
               )}
 
-              <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
+              {kpiCategory === "coaching-due" && (
+                <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
+              )}
+
+              {kpiCategory === "coaching-booked" && (
+                <>
+                  <th
+                    className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
+                    onClick={() => toggleSort("sessionType")}
+                  >
+                    <span className="flex items-center gap-1">
+                      Session Type <ArrowUpDown className="w-3 h-3" />
+                    </span>
+                  </th>
+
+                  <th
+                    className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
+                    onClick={() => toggleSort("sessionDate")}
+                  >
+                    <span className="flex items-center gap-1">
+                      Session Date <ArrowUpDown className="w-3 h-3" />
+                    </span>
+                  </th>
+                </>
+              )}
+
+              {kpiCategory !== "coaching-booked" && (
+                <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
+              )}
             </tr>
           </thead>
 
@@ -284,22 +407,37 @@ export default function LearnerTable({
 
                   {kpiCategory === "review-due" && (
                     <td className="p-3 text-muted-foreground">
-                      {l.lastProgressReviewDate || ""}
+                      {(l as any).nextProgressReviewDue || ""}
                     </td>
                   )}
 
                   {kpiCategory === "coaching-due" && (
-                    <td className="p-3 text-muted-foreground">{l.nextMonthlyMeetingDue || ""}</td>
+                    <td className="p-3 text-muted-foreground">
+                      {String((l as any).nextMonthlyMeetingDue || "Due")}
+                    </td>
                   )}
 
-                  <td className="p-3">{priorityBadge(l.priority)}</td>
+                  {kpiCategory === "coaching-booked" && (
+                    <>
+                      <td className="p-3 text-muted-foreground">
+                        {String((l as any).monthlyCoachingSessionType || "Unknown")}
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {String((l as any).monthlyCoachingSessionDate || "N/A")}
+                      </td>
+                    </>
+                  )}
+
+                  {kpiCategory !== "coaching-booked" && (
+                    <td className="p-3">{priorityBadge(l.priority)}</td>
+                  )}
                 </tr>
               );
             })}
 
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                <td colSpan={colSpan} className="p-8 text-center text-muted-foreground">
                   No learners found
                 </td>
               </tr>
