@@ -32,24 +32,15 @@ const splitName = (full: string) => {
   if (!s) return { firstName: "Unknown", lastName: "" };
   const parts = s.split(/\s+/);
   if (parts.length === 1) return { firstName: parts[0], lastName: "" };
-  return { firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1] };
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1],
+  };
 };
 
 const safePct = (num: number, den: number) => {
   if (!Number.isFinite(num) || !Number.isFinite(den) || den <= 0) return 0;
   return Math.round((num / den) * 100);
-};
-
-const sortDatesAsc = (dates: string[]) =>
-  dates.filter(Boolean).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-const kpiAccentClass: Record<KpiCategory, string> = {
-  "missed-session": "border-l-[var(--kpi-missed)]",
-  "review-due": "border-l-[var(--kpi-review)]",
-  "coaching-due": "border-l-[var(--kpi-coaching)]",
-  "coaching-booked": "border-l-sky-500",
-  "otj-behind": "border-l-[var(--kpi-otj)]",
-  "coach-marking-overdue": "border-l-violet-500",
 };
 
 const parseProgrammeFromModule = (moduleStr: string) => {
@@ -62,7 +53,94 @@ const parseProgrammeFromModule = (moduleStr: string) => {
   return parts.length ? parts[parts.length - 1] : "Unknown";
 };
 
-function buildAttendanceMetrics(att?: Record<string, { value?: number; module?: string }>) {
+const parseAttendanceDate = (raw: string): Date | null => {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+
+  // يدعم:
+  // 2026-03-13
+  // 2026 03 13
+  // 2026/03/13
+  // 2026-03-13_anything
+  const m = s.match(/^(\d{4})[-/\s](\d{2})[-/\s](\d{2})/);
+  if (!m) return null;
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+
+  const dt = new Date(year, month - 1, day);
+  if (Number.isNaN(dt.getTime())) return null;
+
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const formatDateKey = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const startOfDay = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const endOfDay = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+};
+
+// 1 => آخر 7 أيام
+// 2 => آخر 14 يوم
+// 4 => آخر 28 يوم
+const getExactWeekRange = (weekIndex: 0 | 1 | 2 | 3) => {
+  const today = new Date();
+
+  const end = endOfDay(new Date(today));
+  end.setDate(end.getDate() - weekIndex * 7);
+
+  const start = startOfDay(new Date(end));
+  start.setDate(start.getDate() - 6);
+
+  return { start, end };
+};
+
+const isDateInExactWeekBucket = (date: Date, weekIndex: 0 | 1 | 2 | 3) => {
+  const { start, end } = getExactWeekRange(weekIndex);
+  return date >= start && date <= end;
+};
+
+const formatUiDate = (date: Date) => {
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
+  const { start, end } = getExactWeekRange(weekIndex);
+  return `${formatUiDate(start)} → ${formatUiDate(end)}`;
+};
+
+const kpiAccentClass: Record<KpiCategory, string> = {
+  "missed-session": "border-l-[var(--kpi-missed)]",
+  "review-due": "border-l-[var(--kpi-review)]",
+  "coaching-due": "border-l-[var(--kpi-coaching)]",
+  "coaching-booked": "border-l-sky-500",
+  "otj-behind": "border-l-[var(--kpi-otj)]",
+  "coach-marking-overdue": "border-l-violet-500",
+};
+
+function buildAttendanceMetrics(
+  att?: Record<string, { value?: number; module?: string }>,
+  absenceWeeks: "all" | 0 | 1 | 2 | 3 = 0
+) {
   const entries = Object.entries(att || {});
   if (!entries.length) {
     return {
@@ -72,42 +150,104 @@ function buildAttendanceMetrics(att?: Record<string, { value?: number; module?: 
       lastSessionDate: "N/A",
       lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
       latestProgramme: "Unknown",
+      hasAttendanceInWindow: false,
     };
   }
 
-  const dates = sortDatesAsc(entries.map(([d]) => d));
-  const lastDate = dates[dates.length - 1];
-  const lastVal = att?.[lastDate]?.value ?? null;
+  const normalizedEntries = entries
+    .map(([rawKey, value]) => {
+      const parsed = parseAttendanceDate(rawKey);
+      if (!parsed) return null;
+
+      return {
+        rawKey,
+        parsed,
+        normalizedDate: formatDateKey(parsed),
+        value,
+      };
+    })
+    .filter(Boolean) as Array<{
+      rawKey: string;
+      parsed: Date;
+      normalizedDate: string;
+      value: { value?: number; module?: string };
+    }>;
+
+  if (!normalizedEntries.length) {
+    return {
+      absenceRatio: 0,
+      missedLast10Weeks: 0,
+      missedInRow: 0,
+      lastSessionDate: "N/A",
+      lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
+      latestProgramme: "Unknown",
+      hasAttendanceInWindow: false,
+    };
+  }
+
+  normalizedEntries.sort((a, b) => a.parsed.getTime() - b.parsed.getTime());
+
+  const allEntries = normalizedEntries;
+
+  const filteredEntries =
+    absenceWeeks === "all"
+      ? allEntries
+      : allEntries.filter((item) => isDateInExactWeekBucket(item.parsed, absenceWeeks));
+
+  const hasAttendanceInWindow = filteredEntries.length > 0;
+
+  const sourceEntriesForLastSession =
+    absenceWeeks === "all" ? allEntries : filteredEntries;
+
+  const lastEntry = sourceEntriesForLastSession[sourceEntriesForLastSession.length - 1] || null;
+
+  const lastVal = lastEntry?.value?.value ?? null;
 
   const lastStatus = (
     lastVal == null ? "Unknown" : lastVal === 1 ? "Attended" : "Missed"
   ) as Learner["lastSessionStatus"];
 
-  const last10 = dates.slice(-10);
-  const missedLast10 = last10.reduce((acc, d) => acc + ((att?.[d]?.value ?? 0) === 0 ? 1 : 0), 0);
+  const last10 = filteredEntries.slice(-10);
+  const missedLast10 = last10.reduce(
+    (acc, item) => acc + ((item.value?.value ?? 0) === 0 ? 1 : 0),
+    0
+  );
 
   let missedInRow = 0;
-  for (let i = dates.length - 1; i >= 0; i--) {
-    const d = dates[i];
-    const v = att?.[d]?.value;
-    if (v === 0) missedInRow++;
-    else break;
+
+  if (absenceWeeks === "all") {
+    for (let i = allEntries.length - 1; i >= 0; i--) {
+      const v = allEntries[i]?.value?.value;
+      if (v === 0) missedInRow++;
+      else break;
+    }
+  } else {
+    for (let i = filteredEntries.length - 1; i >= 0; i--) {
+      const v = filteredEntries[i]?.value?.value;
+      if (v === 0) missedInRow++;
+      else break;
+    }
   }
 
-  const total = dates.length;
-  const attended = dates.reduce((acc, d) => acc + ((att?.[d]?.value ?? 0) === 1 ? 1 : 0), 0);
+  const total = filteredEntries.length;
+  const attended = filteredEntries.reduce(
+    (acc, item) => acc + ((item.value?.value ?? 0) === 1 ? 1 : 0),
+    0
+  );
+
   const absenceRatio = safePct(total - attended, total);
 
-  const mod = att?.[lastDate]?.module;
+  const mod = lastEntry?.value?.module;
   const latestProgramme = mod ? parseProgrammeFromModule(mod) : "Unknown";
 
   return {
     absenceRatio,
     missedLast10Weeks: missedLast10,
     missedInRow,
-    lastSessionDate: lastDate,
+    lastSessionDate: lastEntry?.normalizedDate || "N/A",
     lastSessionStatus: lastStatus,
     latestProgramme,
+    hasAttendanceInWindow,
   };
 }
 
@@ -155,71 +295,7 @@ const getStudentsFromRaw = (raw: any): any[] => {
   return asArray(raw?.students);
 };
 
-/* ---------------- bookings helpers (Monthly Coaching) ---------------- */
-
-const getBookedStudentsFromRaw = (raw: any): any[] => {
-  const cols = [
-    "booked_students_PR",
-    "booked_students_MCM",
-    "booked_students_StSupport",
-  ];
-
-  const out: any[] = [];
-
-  for (const c of cols) {
-    const val = raw?.[c];
-
-    if (!val) continue;
-
-    let parsed = val;
-
-    if (typeof parsed === "string") {
-      try {
-        parsed = JSON.parse(parsed);
-      } catch {
-        continue;
-      }
-    }
-
-    if (Array.isArray(parsed?.students)) {
-      out.push(...parsed.students);
-    }
-  }
-
-  return out;
-};
-
-const pickBookedEmail = (row: any) => {
-  // keys الموجودة فعلا في booking json حسب الصورة
-  const v = pickFirstString(row, [
-    "matched_student_email",
-    "matchedStudentEmail",
-    "customerEmail", // fallback لو الطالب حجز بايميل مختلف
-    "Email",
-    "email",
-  ]);
-  return normEmail(v);
-};
-
-const pickBookedId = (row: any) => {
-  const v = pickFirstString(row, ["matched_student_id", "matchedStudentId", "ID", "Id", "id"]);
-  return normId(v);
-};
-
-const buildBookedIndex = (raw: any) => {
-  const booked = getBookedStudentsFromRaw(raw);
-  const byEmail = new Set<string>();
-  const byId = new Set<string>();
-
-  for (const it of booked) {
-    const e = pickBookedEmail(it);
-    const id = pickBookedId(it);
-    if (e) byEmail.add(e);
-    if (id) byId.add(id);
-  }
-
-  return { byEmail, byId, count: booked.length };
-};
+/* ---------------- bookings helpers ---------------- */
 
 const BOOKED_TYPE_LABELS = {
   booked_students_PR: "Progress Review",
@@ -228,12 +304,6 @@ const BOOKED_TYPE_LABELS = {
 } as const;
 
 type SessionType = (typeof BOOKED_TYPE_LABELS)[keyof typeof BOOKED_TYPE_LABELS] | "Unknown";
-
-const normText = (v: unknown) =>
-  String(v ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
 
 const getBookedEntriesFromRaw = (
   raw: any
@@ -285,7 +355,7 @@ const getUpcomingMeetingsFromRaw = (raw: any): any[] => {
   return Array.isArray(meetings) ? meetings : [];
 };
 
-/* ---------------- helper name ---------------- */
+/* ---------------- name helpers ---------------- */
 
 const normName = (v: unknown) =>
   String(v ?? "")
@@ -422,56 +492,24 @@ type ReviewListItem = {
   FullName?: string;
   overdueReviews?: number;
   earliestOverdue?: string;
-  nextDue?: string;
-  dueUpcomingReviews?: number;
 };
-
-function parseDDMMYYYY(s: string): Date | null {
-  const m = String(s || "").trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (!m) return null;
-  const dd = Number(m[1]);
-  const mm = Number(m[2]);
-  const yyyy = Number(m[3]);
-  const d = new Date(yyyy, mm - 1, dd);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function getLatestMonthKey(byMonth: Record<string, unknown> | undefined | null) {
-  if (!byMonth) return null;
-  const keys = Object.keys(byMonth).filter(Boolean);
-  if (!keys.length) return null;
-  keys.sort((a, b) => a.localeCompare(b));
-  return keys[keys.length - 1];
-}
 
 function buildProgressReviewIndex(overall: unknown) {
   const o = overall as any;
-  const byMonth = o?.byMonth;
-  const monthKey = getLatestMonthKey(byMonth);
-  const month = monthKey ? byMonth?.[monthKey] : null;
-
-  const overdue: ReviewListItem[] = month?.lists?.overdueLearners ?? [];
-  const upcoming: ReviewListItem[] = month?.lists?.dueUpcomingLearners ?? [];
+  const overdue: ReviewListItem[] = o?.overall?.lists?.overdueLearners ?? [];
 
   const overdueByEmail = new Map<string, ReviewListItem>();
   const overdueById = new Map<string, ReviewListItem>();
+
   for (const it of overdue) {
     const e = normEmail(it?.Email);
     const id = normId(it?.ID);
+
     if (e) overdueByEmail.set(e, it);
     if (id) overdueById.set(id, it);
   }
 
-  const upcomingByEmail = new Map<string, ReviewListItem>();
-  const upcomingById = new Map<string, ReviewListItem>();
-  for (const it of upcoming) {
-    const e = normEmail(it?.Email);
-    const id = normId(it?.ID);
-    if (e) upcomingByEmail.set(e, it);
-    if (id) upcomingById.set(id, it);
-  }
-
-  return { monthKey, overdueByEmail, overdueById, upcomingByEmail, upcomingById };
+  return { overdueByEmail, overdueById };
 }
 
 function priorityFromReview(overdueReviews: number | undefined): Learner["priority"] {
@@ -492,6 +530,7 @@ const toNum = (v: any): number | null => {
 };
 
 /* ---------------- reading helpers ---------------- */
+
 const normalizeLooseKey = (value: string) =>
   String(value || "")
     .toLowerCase()
@@ -512,6 +551,7 @@ const getLooseNum = (raw: any, aliases: string[]) => {
 };
 
 /* ---------------- Marking helpers ---------------- */
+
 type CoachMarkingRow = {
   coachId: string;
   coachName: string;
@@ -549,10 +589,7 @@ function getCoachMarkingSummary(raw: any): CoachMarkingRow {
   const minus6Marking = getLooseNum(raw, ["-6 marking"]);
   const minus7Marking = getLooseNum(raw, ["-7 marking"]);
 
-  const lastWeekPr = getLooseNum(raw, [
-    "Last Week PR",
-    "-Last Week PR",
-  ]);
+  const lastWeekPr = getLooseNum(raw, ["Last Week PR", "-Last Week PR"]);
 
   const secondWeekPr = getLooseNum(raw, [
     "-Second Week PR",
@@ -577,21 +614,13 @@ function getCoachMarkingSummary(raw: any): CoachMarkingRow {
     "Monthly Total PR Done",
   ]);
 
-  const actuallyMonthlyDone = getLooseNum(raw, [
-    "Actually Monthly Done",
-  ]);
+  const actuallyMonthlyDone = getLooseNum(raw, ["Actually Monthly Done"]);
 
-  const monthlyTotalPrRequired = getLooseNum(raw, [
-    "Monthly Total PR Required",
-  ]);
+  const monthlyTotalPrRequired = getLooseNum(raw, ["Monthly Total PR Required"]);
 
-  const completionRate = getLooseNum(raw, [
-    "Completion Rate",
-  ]);
+  const completionRate = getLooseNum(raw, ["Completion Rate"]);
 
-  const totalOverdue = getLooseNum(raw, [
-  "evidence_submitted",
-]);
+  const totalOverdue = toNum(raw?.evidence_submitted) ?? 0;
 
   return {
     coachId: String(raw?.case_owner_id ?? raw?.staff_id ?? raw?.case_owner ?? ""),
@@ -640,14 +669,6 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
       "-5 marking",
       "-6 marking",
       "-7 marking",
-      "Last Week PR",
-      "-Second Week PR",
-      "-Third Week PR",
-      "-Fourth Week PR",
-      "Monthly Total PR Done + Old",
-      "Actually Monthly Done",
-      "Monthly Total PR Required",
-      "Completion Rate",
       "Total Overdue",
     ];
 
@@ -661,14 +682,6 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
       row.minus5Marking,
       row.minus6Marking,
       row.minus7Marking,
-      row.lastWeekPr,
-      row.secondWeekPr,
-      row.thirdWeekPr,
-      row.fourthWeekPr,
-      row.monthlyTotalPrDoneOld,
-      row.actuallyMonthlyDone,
-      row.monthlyTotalPrRequired,
-      `${row.completionRate}%`,
       row.totalOverdue,
     ]);
 
@@ -716,14 +729,6 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
               <th className="text-right p-3 font-medium text-muted-foreground">-5 marking</th>
               <th className="text-right p-3 font-medium text-muted-foreground">-6 marking</th>
               <th className="text-right p-3 font-medium text-muted-foreground">-7 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Last Week PR</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-Second Week PR</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-Third Week PR</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-Fourth Week PR</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Monthly Total PR Done + Old</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Actually Monthly Done</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Monthly Total PR Required</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Completion Rate</th>
               <th className="text-right p-3 font-medium text-muted-foreground">Total Overdue</th>
             </tr>
           </thead>
@@ -740,21 +745,13 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
                 <td className="p-3 text-right">{row.minus5Marking}</td>
                 <td className="p-3 text-right">{row.minus6Marking}</td>
                 <td className="p-3 text-right">{row.minus7Marking}</td>
-                <td className="p-3 text-right">{row.lastWeekPr}</td>
-                <td className="p-3 text-right">{row.secondWeekPr}</td>
-                <td className="p-3 text-right">{row.thirdWeekPr}</td>
-                <td className="p-3 text-right">{row.fourthWeekPr}</td>
-                <td className="p-3 text-right">{row.monthlyTotalPrDoneOld}</td>
-                <td className="p-3 text-right">{row.actuallyMonthlyDone}</td>
-                <td className="p-3 text-right">{row.monthlyTotalPrRequired}</td>
-                <td className="p-3 text-right">{row.completionRate}%</td>
                 <td className="p-3 text-right font-semibold">{row.totalOverdue}</td>
               </tr>
             ))}
 
             {filteredRows.length === 0 && (
               <tr>
-                <td colSpan={18} className="p-8 text-center text-muted-foreground">
+                <td colSpan={10} className="p-8 text-center text-muted-foreground">
                   No coach marking data found
                 </td>
               </tr>
@@ -765,11 +762,13 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
     </div>
   );
 }
+
 /* ---------------- page ---------------- */
 
 export default function Dashboard() {
   const [rows, setRows] = useState<UiCoach[]>([]);
   const [loading, setLoading] = useState(true);
+  const [absenceWeeks, setAbsenceWeeks] = useState<"all" | 0 | 1 | 2 | 3>(0);
 
   const [filters, setFilters] = useState<DashboardFilters>({
     coach: "All Coaches",
@@ -777,7 +776,7 @@ export default function Dashboard() {
     programme: "All Programmes",
     risk: "All",
     organisation: "All Organizations",
-    status: "All Statuses"
+    status: "All Statuses",
   });
 
   const [activeKpi, setActiveKpi] = useState<KpiCategory | null>(null);
@@ -816,7 +815,6 @@ export default function Dashboard() {
 
     for (const coach of filteredRows) {
       const raw = coach.raw as any;
-
       const prIndex = buildProgressReviewIndex(raw?.overall_progress_review);
 
       const attLearners = raw?.attendance?.learners ?? [];
@@ -835,7 +833,6 @@ export default function Dashboard() {
       for (const s of students) {
         const id = normId((s as any)?.ID ?? (s as any)?.id);
 
-        // IMPORTANT: learner email keys from learners_json (Email is correct in your screenshot)
         const emailRaw = pickFirstString(s as any, [
           "Email",
           "email",
@@ -843,40 +840,62 @@ export default function Dashboard() {
           "UserEmail",
           "LearnerEmail",
         ]);
-        const email = emailRaw;
         const emailKey = normEmail(emailRaw);
 
-        const fullName = pickFirstString(s as any, ["FullName", "fullName", "DisplayName", "displayName", "name"]);
+        const fullName = pickFirstString(s as any, [
+          "FullName",
+          "fullName",
+          "DisplayName",
+          "displayName",
+          "name",
+        ]);
         const { firstName, lastName } = splitName(fullName);
 
         const attRec = (id && attById.get(id)) || (emailKey && attByEmail.get(emailKey)) || null;
-        const metrics = buildAttendanceMetrics(attRec?.Attendance);
+        const metrics = buildAttendanceMetrics(attRec?.Attendance, absenceWeeks);
 
-        let priority: Learner["priority"] = priorityFromAttendance(metrics.missedInRow, metrics.absenceRatio);
-        const riskCategories: KpiCategory[] = riskCatsFromAttendance(metrics.missedInRow, metrics.absenceRatio);
+        let priority: Learner["priority"] = priorityFromAttendance(
+          metrics.missedInRow,
+          metrics.absenceRatio
+        );
+        const riskCategories: KpiCategory[] = riskCatsFromAttendance(
+          metrics.missedInRow,
+          metrics.absenceRatio
+        );
 
         const overdueItem =
-          (emailKey && prIndex.overdueByEmail.get(emailKey)) || (id && prIndex.overdueById.get(id)) || null;
-
-        const upcomingItem = !overdueItem
-          ? (emailKey && prIndex.upcomingByEmail.get(emailKey)) || (id && prIndex.upcomingById.get(id)) || null
-          : null;
+          (emailKey && prIndex.overdueByEmail.get(emailKey)) ||
+          (id && prIndex.overdueById.get(id)) ||
+          null;
 
         let nextProgressReviewDue = "N/A";
-        const reviewFlag: "none" | "overdue" | "upcoming" =
-          overdueItem ? "overdue" : upcomingItem ? "upcoming" : "none";
+        const reviewFlag: "none" | "overdue" = overdueItem ? "overdue" : "none";
 
-        // OTJ fields
+        if (overdueItem) {
+          nextProgressReviewDue = String(overdueItem.earliestOverdue || "Overdue");
+
+          if (!riskCategories.includes("review-due")) {
+            riskCategories.push("review-due");
+          }
+
+          const prio = priorityFromReview(overdueItem.overdueReviews);
+          if (prio === "critical" || (prio === "high" && priority === "normal")) {
+            priority = prio;
+          }
+        }
+
         const progressVariance = toNum((s as any)?.ProgressVariance);
         const expectedOtj = toNum((s as any)?.Expected);
         const actualOtj = toNum((s as any)?.Completed);
-
         const plannedOtj = toNum((s as any)?.Planned);
 
         const lastProgressReviewDate = pickFirstString(s as any, [
           "Last Progress Review",
           "LastProgressReview",
           "last_progress_review",
+          "Last_PR_Date",
+          "last_pr_date",
+          "Last PR Date",
         ]);
 
         const learnerStatusRaw = pickFirstString(s as any, [
@@ -892,7 +911,8 @@ export default function Dashboard() {
             ? learnerStatusRaw
             : "Active";
 
-        const otjBehindBy = progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
+        const otjBehindBy =
+          progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
 
         if (otjBehindBy > 0) {
           if (!riskCategories.includes("otj-behind")) riskCategories.push("otj-behind");
@@ -900,8 +920,6 @@ export default function Dashboard() {
           else if (priority === "normal") priority = "high";
         }
 
-        // Monthly coaching booking detection
-        // If booking columns are empty for that coach row, bookedIndex.count will be 0
         const bookedMeta = getLearnerBookedMeta(raw, s, id, emailKey, fullName);
 
         const monthlyCoachingBooked = bookedMeta.booked;
@@ -910,23 +928,6 @@ export default function Dashboard() {
         if (monthlyCoachingHasData && !monthlyCoachingBooked) {
           if (!riskCategories.includes("coaching-due")) riskCategories.push("coaching-due");
           if (priority === "normal") priority = "high";
-        }
-
-        if (overdueItem) {
-          nextProgressReviewDue = String(overdueItem.earliestOverdue || "Overdue");
-          if (!riskCategories.includes("review-due")) riskCategories.push("review-due");
-
-          const prio = priorityFromReview(overdueItem.overdueReviews);
-          if (prio === "critical" || (prio === "high" && priority === "normal")) priority = prio;
-        } else if (upcomingItem) {
-          nextProgressReviewDue = String(upcomingItem.nextDue || "Due soon");
-          if (!riskCategories.includes("review-due")) riskCategories.push("review-due");
-
-          const d = upcomingItem.nextDue ? parseDDMMYYYY(upcomingItem.nextDue) : null;
-          if (d) {
-            const diffDays = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-            if (diffDays <= 7 && priority === "normal") priority = "high";
-          }
         }
 
         const organisation = pickFirstString(s as any, [
@@ -957,7 +958,15 @@ export default function Dashboard() {
 
           coach: coach.name,
           email: emailKey ? emailKey : "Unknown",
-          phone: pickFirstString(s as any, ["learner_phone", "Learner_phone", "phone", "Phone"]) || "N/A",
+          phone:
+            pickFirstString(s as any, [
+              "learner_phone",
+              "Learner_phone",
+              "Learner Phone",
+              "learnerPhone",
+              "phone",
+              "Phone",
+            ]) || "N/A",
 
           status: learnerStatus,
 
@@ -972,8 +981,6 @@ export default function Dashboard() {
           progressReviewBooked: false,
 
           lastMonthlyMeetingDate: "N/A",
-          // nextMonthlyMeetingDue: bookedIndex.count > 0 ? (monthlyCoachingBooked ? "Booked" : "Due") : "N/A",
-          // monthlyMeetingBooked: bookedIndex.count > 0 ? monthlyCoachingBooked : false,
 
           plannedOtjHours: plannedOtj ?? 0,
           expectedOtjHours: expectedOtj ?? 0,
@@ -990,14 +997,16 @@ export default function Dashboard() {
           priority,
           riskCategories,
         } as Learner;
+        (learner as any).hasAttendanceInWindow = (metrics as any).hasAttendanceInWindow;
 
         (learner as any).otjBehindBy = otjBehindBy;
         (learner as any).otjBehindPct =
-          expectedOtj && expectedOtj > 0 ? Math.round(((expectedOtj - (actualOtj ?? 0)) / expectedOtj) * 100) : 0;
+          expectedOtj && expectedOtj > 0
+            ? Math.round(((expectedOtj - (actualOtj ?? 0)) / expectedOtj) * 100)
+            : 0;
 
         (learner as any).monthlyCoachingBooked = monthlyCoachingBooked;
         (learner as any).monthlyCoachingHasData = monthlyCoachingHasData;
-
         (learner as any).monthlyCoachingSessionType = bookedMeta.sessionType;
         (learner as any).monthlyCoachingSessionDate = bookedMeta.sessionDate;
 
@@ -1009,7 +1018,7 @@ export default function Dashboard() {
     }
 
     return out.filter((l) => l.status === "Active");
-  }, [filteredRows]);
+  }, [filteredRows, absenceWeeks]);
 
   const coachMarkingRows = useMemo<CoachMarkingRow[]>(() => {
     return filteredRows
@@ -1035,9 +1044,7 @@ export default function Dashboard() {
       (l) => (l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25
     ).length;
 
-    const reviewDue = activeLearners.filter(
-      (l) => (l as any).__reviewFlag && (l as any).__reviewFlag !== "none"
-    ).length;
+    const reviewDue = activeLearners.filter((l) => (l as any).__reviewFlag === "overdue").length;
 
     const coachingDue = activeLearners.filter((l) => {
       const hasData = Boolean((l as any).monthlyCoachingHasData);
@@ -1052,8 +1059,7 @@ export default function Dashboard() {
     });
 
     const coachingBooked =
-      activeKpi === "coaching-booked" &&
-        bookedSessionTypeFilter !== "All Session Types"
+      activeKpi === "coaching-booked" && bookedSessionTypeFilter !== "All Session Types"
         ? coachingBookedBase.filter(
           (l) =>
             String((l as any).monthlyCoachingSessionType || "Unknown") ===
@@ -1061,14 +1067,9 @@ export default function Dashboard() {
         ).length
         : coachingBookedBase.length;
 
-    const otjBehind = activeLearners.filter(
-      (l) => Number((l as any).otjBehindBy ?? 0) > 0
-    ).length;
+    const otjBehind = activeLearners.filter((l) => Number((l as any).otjBehindBy ?? 0) > 0).length;
 
-    const coachMarkingOverdue = coachMarkingRows.filter(
-      (r) => r.totalOverdue > 0
-    ).length;
-
+    const coachMarkingOverdue = coachMarkingRows.filter((r) => r.totalOverdue > 0).length;
     const coachMarkingTotal = filteredRows.length;
 
     const mk = (
@@ -1100,28 +1101,40 @@ export default function Dashboard() {
         coachMarkingTotal
       ),
     ];
-  }, [activeLearners, coachMarkingRows, activeKpi, bookedSessionTypeFilter]);
+  }, [activeLearners, coachMarkingRows, activeKpi, bookedSessionTypeFilter, filteredRows.length]);
 
   const filteredLearners = useMemo(() => {
     if (!activeKpi) return [];
 
     if (activeKpi === "missed-session") {
-      return activeLearners.filter((l) => (l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25);
+      return activeLearners.filter(
+        (l) =>
+          Boolean((l as any).hasAttendanceInWindow) &&
+          ((l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25)
+      );
     }
 
     if (activeKpi === "review-due") {
-      return activeLearners.filter((l) => (l as any).__reviewFlag && (l as any).__reviewFlag !== "none");
+      return activeLearners.filter((l) => (l as any).__reviewFlag === "overdue");
     }
 
     if (activeKpi === "coaching-due") {
       return activeLearners
-        .filter((l) => Boolean((l as any).monthlyCoachingHasData) && !Boolean((l as any).monthlyCoachingBooked))
+        .filter(
+          (l) =>
+            Boolean((l as any).monthlyCoachingHasData) &&
+            !Boolean((l as any).monthlyCoachingBooked)
+        )
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
     }
 
     if (activeKpi === "coaching-booked") {
       const base = activeLearners
-        .filter((l) => Boolean((l as any).monthlyCoachingHasData) && Boolean((l as any).monthlyCoachingBooked))
+        .filter(
+          (l) =>
+            Boolean((l as any).monthlyCoachingHasData) &&
+            Boolean((l as any).monthlyCoachingBooked)
+        )
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
 
       if (bookedSessionTypeFilter === "All Session Types") {
@@ -1137,33 +1150,32 @@ export default function Dashboard() {
     if (activeKpi === "otj-behind") {
       return activeLearners
         .filter((l) => Number((l as any).otjBehindBy ?? 0) > 0)
-        .sort((a, b) => Number((b as any).otjBehindBy ?? 0) - Number((a as any).otjBehindBy ?? 0));
+        .sort(
+          (a, b) => Number((b as any).otjBehindBy ?? 0) - Number((a as any).otjBehindBy ?? 0)
+        );
     }
 
     return [];
   }, [activeLearners, activeKpi, bookedSessionTypeFilter]);
 
-  // const coachingBookedHeaderCount = useMemo(() => {
-  //   if (activeKpi !== "coaching-booked") return filteredLearners.length;
-
-  //   if (bookedSessionTypeFilter === "All Session Types") {
-  //     return filteredLearners.length;
-  //   }
-
-  //   return filteredLearners.filter(
-  //     (l) =>
-  //       String((l as any).monthlyCoachingSessionType || "Unknown") === bookedSessionTypeFilter
-  //   ).length;
-  // }, [activeKpi, filteredLearners, bookedSessionTypeFilter]);
-
   return (
     <AppLayout>
-      <GlobalFilters rows={rows} loading={loading} filters={filters} onChange={setFilters} onRefresh={load} />
+      <GlobalFilters
+        rows={rows}
+        loading={loading}
+        filters={filters}
+        onChange={setFilters}
+        onRefresh={load}
+      />
 
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {kpiCards.map((card, i) => (
-            <div key={card.id} className="animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+            <div
+              key={card.id}
+              className="animate-fade-in"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
               <KpiCard
                 data={card}
                 active={activeKpi === card.id}
@@ -1191,6 +1203,26 @@ export default function Dashboard() {
               {filteredLearners.length !== 1 ? "s" : ""}
             </h3>
 
+            {activeKpi === "missed-session" && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm text-muted-foreground">Absence Window</span>
+                <select
+                  value={absenceWeeks}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setAbsenceWeeks(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3));
+                  }}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="all">All</option>
+                  <option value={0}>This week , {getWeekLabel(0)}</option>
+                  <option value={1}>Previous week , {getWeekLabel(1)}</option>
+                  <option value={2}>2 weeks ago , {getWeekLabel(2)}</option>
+                  <option value={3}>3 weeks ago , {getWeekLabel(3)}</option>
+                </select>
+              </div>
+            )}
+
             <LearnerTable
               learners={filteredLearners}
               kpiCategory={activeKpi}
@@ -1209,7 +1241,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      <LearnerDrawer learner={selectedLearner} open={!!selectedLearner} onClose={() => setSelectedLearner(null)} />
+      <LearnerDrawer
+        learner={selectedLearner}
+        open={!!selectedLearner}
+        onClose={() => setSelectedLearner(null)}
+      />
     </AppLayout>
   );
 }

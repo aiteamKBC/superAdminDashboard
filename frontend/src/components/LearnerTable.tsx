@@ -68,12 +68,14 @@ export default function LearnerTable({
       .filter((l) => {
         const sessionType = String((l as any).monthlyCoachingSessionType || "").toLowerCase();
         const sessionDate = String((l as any).monthlyCoachingSessionDate || "").toLowerCase();
+        const phone = String(l.phone || "").toLowerCase();
 
         const matchesSearch =
           !q ||
           `${l.firstName} ${l.lastName}`.toLowerCase().includes(q) ||
           l.organisation.toLowerCase().includes(q) ||
           l.email.toLowerCase().includes(q) ||
+          phone.includes(q) ||
           l.programme.toLowerCase().includes(q) ||
           l.coach.toLowerCase().includes(q) ||
           sessionType.includes(q) ||
@@ -128,6 +130,7 @@ export default function LearnerTable({
     if (kpiCategory === "coaching-booked") {
       headers = [
         "Name",
+        "Phone",
         "Organisation",
         "Programme",
         "Coach",
@@ -138,6 +141,7 @@ export default function LearnerTable({
 
       rows = filtered.map((l) => [
         `${l.firstName} ${l.lastName}`,
+        l.phone || "N/A",
         l.organisation,
         l.programme,
         l.coach,
@@ -145,14 +149,36 @@ export default function LearnerTable({
         (l as any).monthlyCoachingSessionType || "Unknown",
         (l as any).monthlyCoachingSessionDate || "N/A",
       ]);
-    } else {
+    } else if (kpiCategory === "review-due") {
       headers = [
         "Name",
+        "Phone",
         "Organisation",
         "Programme",
         "Coach",
         "Email",
+        "Last Progress Review",
+        "Upcoming PR",
+      ];
+
+      rows = filtered.map((l) => [
+        `${l.firstName} ${l.lastName}`,
+        l.phone || "N/A",
+        l.organisation,
+        l.programme,
+        l.coach,
+        l.email,
+        l.lastProgressReviewDate || "N/A",
+        (l as any).nextProgressReviewDue || "N/A",
+      ]);
+    } else {
+      headers = [
+        "Name",
         "Phone",
+        "Organisation",
+        "Programme",
+        "Coach",
+        "Email",
         "OTJ Planned",
         "OTJ Expected",
         "OTJ Actual",
@@ -162,11 +188,11 @@ export default function LearnerTable({
 
       rows = filtered.map((l) => [
         `${l.firstName} ${l.lastName}`,
+        l.phone || "N/A",
         l.organisation,
         l.programme,
         l.coach,
         l.email,
-        l.phone,
         l.plannedOtjHours,
         l.expectedOtjHours,
         l.actualOtjHours,
@@ -194,14 +220,16 @@ export default function LearnerTable({
 
   const colSpan =
     kpiCategory === "otj-behind"
-      ? 10
+      ? 11
       : kpiCategory === "missed-session"
-        ? 8
-        : kpiCategory === "review-due" || kpiCategory === "coaching-due"
-          ? 7
-          : kpiCategory === "coaching-booked"
+        ? 9
+        : kpiCategory === "review-due"
+          ? 9
+          : kpiCategory === "coaching-due"
             ? 8
-            : 6;
+            : kpiCategory === "coaching-booked"
+              ? 8
+              : 7;
 
   return (
     <div className="animate-fade-in">
@@ -209,7 +237,7 @@ export default function LearnerTable({
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, employer, email..."
+            placeholder="Search by name, employer, email, phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -272,6 +300,10 @@ export default function LearnerTable({
                 </span>
               </th>
 
+              <th className="p-3 text-left font-medium text-muted-foreground">
+                Learner Phone
+              </th>
+
               <th className="p-3 text-left font-medium text-muted-foreground">Organisation</th>
               <th className="p-3 text-left font-medium text-muted-foreground">Programme</th>
               <th className="p-3 text-left font-medium text-muted-foreground">Coach</th>
@@ -300,7 +332,14 @@ export default function LearnerTable({
               )}
 
               {kpiCategory === "review-due" && (
-                <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
+                <>
+                  <th className="p-3 text-left font-medium text-muted-foreground">
+                    Last Progress Review
+                  </th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">
+                    Overdue PR Date
+                  </th>
+                </>
               )}
 
               {kpiCategory === "coaching-due" && (
@@ -360,6 +399,10 @@ export default function LearnerTable({
                     {l.firstName} {l.lastName}
                   </td>
 
+                  <td className="p-3 text-muted-foreground">
+                    {l.phone || "N/A"}
+                  </td>
+
                   <td className="p-3 text-muted-foreground">{l.organisation}</td>
                   <td className="p-3 text-muted-foreground">{l.programme}</td>
                   <td className="p-3 text-muted-foreground">{l.coach}</td>
@@ -406,9 +449,14 @@ export default function LearnerTable({
                   )}
 
                   {kpiCategory === "review-due" && (
-                    <td className="p-3 text-muted-foreground">
-                      {(l as any).nextProgressReviewDue || ""}
-                    </td>
+                    <>
+                      <td className="p-3 text-muted-foreground">
+                        {l.lastProgressReviewDate || "N/A"}
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {(l as any).nextProgressReviewDue || "N/A"}
+                      </td>
+                    </>
                   )}
 
                   {kpiCategory === "coaching-due" && (
