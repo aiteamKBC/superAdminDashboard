@@ -264,6 +264,37 @@ function riskCatsFromAttendance(missedInRow: number, absenceRatio: number): KpiC
 }
 
 /* ---------------- JSON array helpers ---------------- */
+const getLastCompletedSessionDate = (
+  attendance?: Record<string, { value?: number; module?: string }>
+) => {
+  const entries = Object.entries(attendance || {})
+    .map(([rawKey, value]) => {
+      const parsed = parseAttendanceDate(rawKey);
+      if (!parsed) return null;
+
+      return {
+        parsed,
+        normalizedDate: formatDateKey(parsed),
+        value,
+      };
+    })
+    .filter(Boolean) as Array<{
+      parsed: Date;
+      normalizedDate: string;
+      value: { value?: number; module?: string };
+    }>;
+
+  if (!entries.length) return "N/A";
+
+  entries.sort((a, b) => a.parsed.getTime() - b.parsed.getTime());
+
+  const completed = entries.filter((x) => (x.value?.value ?? 0) === 1);
+  if (!completed.length) return "N/A";
+
+  return completed[completed.length - 1].normalizedDate;
+};
+
+/* ---------------- JSON array helpers ---------------- */
 
 const asArray = (v: any): any[] => {
   if (!v) return [];
@@ -948,6 +979,14 @@ export default function Dashboard() {
           "Programme Name",
         ]);
 
+        const coachPhone = pickFirstString(raw as any, ["owner_phone"]) || "";
+        const coachEmail = pickFirstString(raw as any, ["owner_email", "case_owner_email"]) || "";
+
+        const lastMonthlyMeetingDate = getLastCompletedSessionDate(attRec?.Attendance);
+
+        const progressReviewBooked =
+          bookedMeta.booked && bookedMeta.sessionType === "Progress Review";
+
         const learner = {
           id: id || emailKey || `${coach.id}:${fullName}`,
           firstName,
@@ -1012,6 +1051,16 @@ export default function Dashboard() {
 
         (learner as any).__reviewFlag = reviewFlag;
         (learner as any).__reviewOverdue = reviewFlag === "overdue";
+
+        // Coaching notes and evidence links could be added here if available in raw data 
+        (learner as any).hasAttendanceInWindow = (metrics as any).hasAttendanceInWindow;
+
+        (learner as any).coachPhone = coachPhone;
+        (learner as any).coachEmail = coachEmail;
+
+        (learner as any).lastMonthlyMeetingDate = lastMonthlyMeetingDate;
+
+        (learner as any).progressReviewBooked = progressReviewBooked;
 
         out.push(learner);
       }
