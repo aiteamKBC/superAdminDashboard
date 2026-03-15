@@ -1,7 +1,7 @@
 export type KbcCoach = {
   case_owner: string;
   owner_phone?: string;
-  OwnerEmail?: string;
+  OwnerEmail?: string; 
 
   total_evidence?: number;
   evidence_submitted?: number;
