@@ -1,6 +1,7 @@
 export type KbcCoach = {
   case_owner: string;
   owner_phone?: string;
+  OwnerEmail?: string;
 
   total_evidence?: number;
   evidence_submitted?: number;
@@ -106,4 +107,19 @@ export type KbcCoach = {
   ["Actually Monthly Done"]?: number | string | null;
   ["Monthly Total PR Required"]?: number | string | null;
   ["Completion Rate"]?: number | string | null;
+};
+
+// EmailRecipient type for KBC email sending
+export type EmailRecipient = {
+  learnerName: string;
+  learnerEmail: string;
+  programme?: string;
+  coachName?: string;
+  coachEmail?: string;
+  lastSessionDate?: string;
+  senderName?: string;
+  lineManagerEmail?: string;
+  hrEmail?: string;
+  status?: string;
+  riskCategories: string[];
 };

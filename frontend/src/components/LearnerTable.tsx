@@ -66,8 +66,16 @@ export default function LearnerTable({
 
     const data = learners
       .filter((l) => {
-        const sessionType = String((l as any).monthlyCoachingSessionType || "").toLowerCase();
-        const sessionDate = String((l as any).monthlyCoachingSessionDate || "").toLowerCase();
+        const sessionType =
+          kpiCategory === "coaching-booked"
+            ? String((l as any).anyBookedSessionType || "Unknown")
+            : String((l as any).monthlyCoachingSessionType || "Unknown");
+
+        const sessionDate =
+          kpiCategory === "coaching-booked"
+            ? String((l as any).anyBookedSessionDate || "").toLowerCase()
+            : String((l as any).monthlyCoachingSessionDate || "").toLowerCase();
+
         const phone = String(l.phone || "").toLowerCase();
 
         const matchesSearch =
@@ -78,7 +86,7 @@ export default function LearnerTable({
           phone.includes(q) ||
           l.programme.toLowerCase().includes(q) ||
           l.coach.toLowerCase().includes(q) ||
-          sessionType.includes(q) ||
+          sessionType.toLowerCase().includes(q) ||
           sessionDate.includes(q);
 
         return matchesSearch;
@@ -91,11 +99,25 @@ export default function LearnerTable({
           av = calcBehindPct(a);
           bv = calcBehindPct(b);
         } else if (sortField === "sessionType") {
-          av = String((a as any).monthlyCoachingSessionType || "");
-          bv = String((b as any).monthlyCoachingSessionType || "");
+          av =
+            kpiCategory === "coaching-booked"
+              ? String((a as any).anyBookedSessionType || "")
+              : String((a as any).monthlyCoachingSessionType || "");
+
+          bv =
+            kpiCategory === "coaching-booked"
+              ? String((b as any).anyBookedSessionType || "")
+              : String((b as any).monthlyCoachingSessionType || "");
         } else if (sortField === "sessionDate") {
-          av = String((a as any).monthlyCoachingSessionDate || "");
-          bv = String((b as any).monthlyCoachingSessionDate || "");
+          av =
+            kpiCategory === "coaching-booked"
+              ? String((a as any).anyBookedSessionDate || "")
+              : String((a as any).monthlyCoachingSessionDate || "");
+
+          bv =
+            kpiCategory === "coaching-booked"
+              ? String((b as any).anyBookedSessionDate || "")
+              : String((b as any).monthlyCoachingSessionDate || "");
         } else {
           av = (a as any)[sortField] || "";
           bv = (b as any)[sortField] || "";
@@ -146,8 +168,8 @@ export default function LearnerTable({
         l.programme,
         l.coach,
         l.email,
-        (l as any).monthlyCoachingSessionType || "Unknown",
-        (l as any).monthlyCoachingSessionDate || "N/A",
+        (l as any).anyBookedSessionType || "Unknown",
+        (l as any).anyBookedSessionDate || "N/A",
       ]);
     } else if (kpiCategory === "review-due") {
       headers = [
@@ -468,10 +490,10 @@ export default function LearnerTable({
                   {kpiCategory === "coaching-booked" && (
                     <>
                       <td className="p-3 text-muted-foreground">
-                        {String((l as any).monthlyCoachingSessionType || "Unknown")}
+                        {String((l as any).anyBookedSessionType || "Unknown")}
                       </td>
                       <td className="p-3 text-muted-foreground">
-                        {String((l as any).monthlyCoachingSessionDate || "N/A")}
+                        {String((l as any).anyBookedSessionDate || "N/A")}
                       </td>
                     </>
                   )}
