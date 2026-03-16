@@ -27,13 +27,13 @@ const priorityBadge = (priority: Learner["priority"]) => {
   switch (priority) {
     case "critical":
       return (
-        <Badge className="bg-severity-critical-bg text-severity-critical-foreground border-0 text-[11px]">
+        <Badge   className="pointer-events-none bg-severity-critical-bg text-severity-critical-foreground border-0 text-[11px]">
           Critical
         </Badge>
       );
     case "high":
       return (
-        <Badge className="bg-severity-overdue-bg text-severity-overdue-foreground border-0 text-[11px]">
+        <Badge   className="pointer-events-none bg-severity-overdue-bg text-severity-overdue-foreground border-0 text-[11px]">
           High
         </Badge>
       );
@@ -42,12 +42,45 @@ const priorityBadge = (priority: Learner["priority"]) => {
   }
 };
 
+const otjPriorityBadge = (priority: string) => {
+  switch (priority) {
+    case "at-risk":
+      return (
+        <Badge className="bg-severity-critical-bg text-severity-critical-foreground border-0 text-[11px]">
+          At Risk
+        </Badge>
+      );
+
+    case "need-attention":
+      return (
+        <Badge className="bg-severity-overdue-bg text-severity-overdue-foreground border-0 text-[11px]">
+          Need Attention
+        </Badge>
+      );
+
+    default:
+      return (
+        <Badge variant="outline" className="text-[11px]">
+          Normal
+        </Badge>
+      );
+  }
+};
+
 const calcBehindPct = (learner: Learner) => {
+  const stored = Number((learner as any).otjBehindPct);
+  if (Number.isFinite(stored)) return Math.abs(stored);
+
   const expected = Number(learner.expectedOtjHours || 0);
   const actual = Number(learner.actualOtjHours || 0);
   if (expected <= 0) return 0;
-  return Math.round(((expected - actual) / expected) * 100);
+
+  return Math.abs(Math.round(((expected - actual) / expected) * 100));
 };
+
+// helper to get required hours to submit for coaching-due KPI, which may not be present on all learners
+const getRequiredHoursToSubmit = (learner: Learner) =>
+  String((learner as any).requiredHoursToSubmit || "N/A");
 
 export default function LearnerTable({
   learners,
@@ -78,6 +111,8 @@ export default function LearnerTable({
 
         const phone = String(l.phone || "").toLowerCase();
 
+        const requiredHoursToSubmit = getRequiredHoursToSubmit(l).toLowerCase();
+
         const matchesSearch =
           !q ||
           `${l.firstName} ${l.lastName}`.toLowerCase().includes(q) ||
@@ -87,7 +122,9 @@ export default function LearnerTable({
           l.programme.toLowerCase().includes(q) ||
           l.coach.toLowerCase().includes(q) ||
           sessionType.toLowerCase().includes(q) ||
-          sessionDate.includes(q);
+          sessionDate.includes(q) ||
+          requiredHoursToSubmit.includes(q);
+
 
         return matchesSearch;
       })
@@ -180,7 +217,7 @@ export default function LearnerTable({
         "Coach",
         "Email",
         "Last Progress Review",
-        "Upcoming PR",
+        "Overdue PR Date",
       ];
 
       rows = filtered.map((l) => [
@@ -193,7 +230,7 @@ export default function LearnerTable({
         l.lastProgressReviewDate || "N/A",
         (l as any).nextProgressReviewDue || "N/A",
       ]);
-    } else {
+    } else if (kpiCategory === "otj-behind") {
       headers = [
         "Name",
         "Phone",
@@ -201,10 +238,10 @@ export default function LearnerTable({
         "Programme",
         "Coach",
         "Email",
-        "OTJ Planned",
-        "OTJ Expected",
-        "OTJ Actual",
         "Behind %",
+        "Planned",
+        "Completed",
+        "Required Hours to submit",
         "Last Progress Review",
       ];
 
@@ -215,11 +252,53 @@ export default function LearnerTable({
         l.programme,
         l.coach,
         l.email,
-        l.plannedOtjHours,
-        l.expectedOtjHours,
-        l.actualOtjHours,
         `${calcBehindPct(l)}%`,
+        l.plannedOtjHours,
+        l.actualOtjHours,
+        getRequiredHoursToSubmit(l),
         l.lastProgressReviewDate || "",
+      ]);
+    } else if (kpiCategory === "missed-session") {
+      headers = [
+        "Name",
+        "Phone",
+        "Organisation",
+        "Programme",
+        "Coach",
+        "Email",
+        "Last Session",
+        "Status",
+      ];
+
+      rows = filtered.map((l) => [
+        `${l.firstName} ${l.lastName}`,
+        l.phone || "N/A",
+        l.organisation,
+        l.programme,
+        l.coach,
+        l.email,
+        l.lastSessionDate || "N/A",
+        l.lastSessionStatus || "Unknown",
+      ]);
+    } else if (kpiCategory === "coaching-due") {
+      headers = [
+        "Name",
+        "Phone",
+        "Organisation",
+        "Programme",
+        "Coach",
+        "Email",
+        "Due Date",
+      ];
+
+      rows = filtered.map((l) => [
+        `${l.firstName} ${l.lastName}`,
+        l.phone || "N/A",
+        l.organisation,
+        l.programme,
+        l.coach,
+        l.email,
+        String((l as any).nextMonthlyMeetingDue || "Due"),
       ]);
     }
 
@@ -341,8 +420,10 @@ export default function LearnerTable({
                     </span>
                   </th>
                   <th className="p-3 text-right font-medium text-muted-foreground">Planned</th>
-                  <th className="p-3 text-right font-medium text-muted-foreground">Expected</th>
-                  <th className="p-3 text-right font-medium text-muted-foreground">Actual</th>
+                  <th className="p-3 text-right font-medium text-muted-foreground">Completed</th>
+                  <th className="p-3 text-right font-medium text-muted-foreground">
+                    Required Hours to submit
+                  </th>
                 </>
               )}
 
@@ -431,7 +512,7 @@ export default function LearnerTable({
 
                   {kpiCategory === "otj-behind" && (
                     <>
-                      <td className="p-3 text-right font-semibold">
+                      <td className="p-3 text-center font-semibold">
                         <span
                           className={
                             behindPct > 40
@@ -444,9 +525,11 @@ export default function LearnerTable({
                           {behindPct}%
                         </span>
                       </td>
-                      <td className="p-3 text-right text-muted-foreground">{l.plannedOtjHours}h</td>
-                      <td className="p-3 text-right text-muted-foreground">{l.expectedOtjHours}h</td>
-                      <td className="p-3 text-right text-muted-foreground">{l.actualOtjHours}h</td>
+                      <td className="p-3 text-center text-muted-foreground">{l.plannedOtjHours}h</td>
+                      <td className="p-3 text-center text-muted-foreground">{l.actualOtjHours}h</td>
+                      <td className="p-3 text-center text-muted-foreground">
+                        {getRequiredHoursToSubmit(l)}
+                      </td>
                     </>
                   )}
 
@@ -499,7 +582,11 @@ export default function LearnerTable({
                   )}
 
                   {kpiCategory !== "coaching-booked" && (
-                    <td className="p-3">{priorityBadge(l.priority)}</td>
+                    <td className="p-3">
+                      {kpiCategory === "otj-behind"
+                        ? otjPriorityBadge(String((l as any).otjPriority || "normal"))
+                        : priorityBadge(l.priority)}
+                    </td>
                   )}
                 </tr>
               );

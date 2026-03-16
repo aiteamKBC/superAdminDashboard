@@ -58,13 +58,38 @@ const formatDateValue = (v: unknown, fallback = "N/A") => {
 
 const yesNoText = (v: unknown) => (v ? "Yes" : "No");
 
+const getOtjStatusMeta = (priority: string) => {
+  switch (priority) {
+    case "at-risk":
+      return {
+        label: "At Risk",
+        textClass: "text-severity-critical",
+        badgeClass: "bg-severity-critical-bg text-severity-critical-foreground",
+      };
+
+    case "need-attention":
+      return {
+        label: "Need Attention",
+        textClass: "text-severity-overdue",
+        badgeClass: "bg-severity-overdue-bg text-severity-overdue-foreground",
+      };
+
+    default:
+      return {
+        label: "Normal",
+        textClass: "text-foreground",
+        badgeClass: "bg-muted text-foreground",
+      };
+  }
+};
+
 export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerProps) {
   const [showCallLog, setShowCallLog] = useState(false);
   const [callOutcome, setCallOutcome] = useState<CallOutcome | "">("");
   const [callNotes, setCallNotes] = useState("");
- // go to send email center page 
+  // go to send email center page 
   const navigate = useNavigate();
-  
+
   if (!learner) return null;
 
   const learnerAny = learner as any;
@@ -73,9 +98,36 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
     .filter((a) => a.learnerId === learner.id)
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
 
-  const expected = learner.expectedOtjHours || 0;
-  const actual = learner.actualOtjHours || 0;
-  const behindPct = expected > 0 ? Math.round(((expected - actual) / expected) * 100) : 0;
+  const planned = Number(learner.plannedOtjHours || 0);
+  const targetNow = Number(learnerAny.targetNow || 0);
+  const completed = Number(learner.actualOtjHours || 0);
+
+  const requiredHoursToSubmit = safeText(
+    learnerAny.requiredHoursToSubmit,
+    "N/A"
+  );
+
+  const behindPct = Number.isFinite(Number(learnerAny.otjBehindPct))
+  ? Math.abs(Number(learnerAny.otjBehindPct))
+  : targetNow > 0
+    ? Math.abs(Math.round(((targetNow - completed) / targetNow) * 100))
+    : 0;
+
+  const otjPriority = String(
+    learnerAny.otjPriority ||
+    (behindPct > 40
+      ? "at-risk"
+      : behindPct > 20
+        ? "need-attention"
+        : "normal")
+  );
+
+  const otjStatus = getOtjStatusMeta(otjPriority);
+
+  const progressTarget = targetNow > 0 ? targetNow : planned;
+
+  const progressWidth =
+    progressTarget > 0 ? Math.min(100, (completed / progressTarget) * 100) : 0;
 
   const organisation = safeText(learner.organisation, "Unknown");
   const programme = safeText(learner.programme, "Unknown");
@@ -112,7 +164,7 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
   const hrManagerPhone = safeText(learner.hrManagerPhone, "No phone on file");
   const hrManagerEmail = safeText(learner.hrManagerEmail, "No email on file");
 
- 
+
 
   const iconForType = (type: EngagementAction["type"]) => {
     switch (type) {
@@ -133,36 +185,36 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
 
   // navigate to email center with pre-filled recipient
   const toEmailRecipient = (learner: Learner) => {
-  const learnerAny = learner as any;
+    const learnerAny = learner as any;
 
-  return {
-    learnerName: `${learner.firstName || ""} ${learner.lastName || ""}`.trim(),
-    learnerEmail: learner.email || "",
-    programme: learner.programme || "",
-    coachName: learner.coach || "",
-    coachEmail: learnerAny.coachEmail || "",
-    lastSessionDate:
-      learnerAny.lastMonthlyMeetingDate ||
-      learner.lastProgressReviewDate ||
-      "",
-    senderName: "Progress Coordinator",
-    lineManagerEmail: learner.lineManagerEmail || "",
-    hrEmail: learner.hrManagerEmail || "",
-    status: learner.status || "Active",
-    riskCategories: Array.isArray(learner.riskCategories)
-      ? learner.riskCategories
-      : [],
+    return {
+      learnerName: `${learner.firstName || ""} ${learner.lastName || ""}`.trim(),
+      learnerEmail: learner.email || "",
+      programme: learner.programme || "",
+      coachName: learner.coach || "",
+      coachEmail: learnerAny.coachEmail || "",
+      lastSessionDate:
+        learnerAny.lastMonthlyMeetingDate ||
+        learner.lastProgressReviewDate ||
+        "",
+      senderName: "Progress Coordinator",
+      lineManagerEmail: learner.lineManagerEmail || "",
+      hrEmail: learner.hrManagerEmail || "",
+      status: learner.status || "Active",
+      riskCategories: Array.isArray(learner.riskCategories)
+        ? learner.riskCategories
+        : [],
+    };
   };
-};
 
-const handleSendEmail = () => {
-  navigate("/email-centre", {
-    state: {
-      selectedRecipient: toEmailRecipient(learner),
-      source: "learner-drawer",
-    },
-  });
-};
+  const handleSendEmail = () => {
+    navigate("/email-centre", {
+      state: {
+        selectedRecipient: toEmailRecipient(learner),
+        source: "learner-drawer",
+      },
+    });
+  };
 
   return (
     <Sheet
@@ -269,25 +321,24 @@ const handleSendEmail = () => {
             </div>
           </div>
 
-          <div className="bg-muted/50 rounded-lg p-3">
-            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-              <Clock className="w-3 h-3" /> OTJ Hours
-            </p>
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" /> OTJ Hours
+              </p>
 
-            <div className="flex items-center gap-4 text-sm">
-              <div>
-                <span className="font-semibold text-foreground">{actual}</span>
-                <span className="text-muted-foreground">/{expected}h</span>
+              <Badge className={`border-0 text-[11px] ${otjStatus.badgeClass}`}>
+                {otjStatus.label}
+              </Badge>
+            </div>
+
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <div className="text-sm">
+                <span className="font-semibold text-foreground">{completed}h</span>
+                <span className="text-muted-foreground"> completed / {targetNow}h target now</span>
               </div>
 
-              <div
-                className={`font-semibold ${behindPct > 40
-                  ? "text-severity-critical"
-                  : behindPct > 20
-                    ? "text-severity-overdue"
-                    : "text-severity-normal"
-                  }`}
-              >
+              <div className={`text-sm font-semibold ${otjStatus.textClass}`}>
                 {behindPct > 0 ? `${behindPct}% behind` : "On track"}
               </div>
             </div>
@@ -295,10 +346,32 @@ const handleSendEmail = () => {
             <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary transition-all"
-                style={{
-                  width: `${expected > 0 ? Math.min(100, (actual / expected) * 100) : 0}%`,
-                }}
+                style={{ width: `${progressWidth}%` }}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Planned total</p>
+                <p className="font-semibold text-foreground">{planned}h</p>
+              </div>
+
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Target now</p>
+                <p className="font-semibold text-foreground">{targetNow}h</p>
+              </div>
+
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Completed</p>
+                <p className="font-semibold text-foreground">{completed}h</p>
+              </div>
+
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Required to submit</p>
+                <p className={`font-semibold ${otjStatus.textClass}`}>
+                  {requiredHoursToSubmit}
+                </p>
+              </div>
             </div>
           </div>
 

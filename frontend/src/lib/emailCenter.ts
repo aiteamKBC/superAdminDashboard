@@ -31,6 +31,14 @@ function safeArray<T = any>(value: any): T[] {
   return [];
 }
 
+function cleanEmail(email?: string) {
+  if (!email) return "";
+  return String(email)
+    .replace(/[\u202A-\u202E]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 function pickFirst(obj: AnyObj, keys: string[], fallback = ""): string {
   for (const key of keys) {
     const value = obj?.[key];
@@ -44,39 +52,23 @@ function pickFirst(obj: AnyObj, keys: string[], fallback = ""): string {
 function getRiskCategories(student: AnyObj): string[] {
   const risks: string[] = [];
 
-  if (Array.isArray(student?.riskCategories)) {
-    return student.riskCategories.filter(Boolean).map(String);
-  }
+  const missedInRow =
+    Number(student?.MissedInRow) ||
+    Number(student?.missedInRow) ||
+    Number(student?.missed_sessions) ||
+    0;
 
-  if (
-    student?.missedSession === true ||
-    student?.attendanceRisk === "missed-session" ||
-    student?.kpiCategory === "missed-session"
-  ) {
-    risks.push("missed-session");
-  }
+  if (missedInRow >= 1) risks.push("missed-session");
 
-  if (
-    student?.reviewDue === true ||
-    student?.progressReviewDue === true ||
-    student?.kpiCategory === "review-due"
-  ) {
+  if (student?.reviewDue === true || student?.progressReviewDue === true) {
     risks.push("review-due");
   }
 
-  if (
-    student?.coachingDue === true ||
-    student?.monthlyCoachingDue === true ||
-    student?.kpiCategory === "coaching-due"
-  ) {
+  if (student?.coachingDue === true || student?.monthlyCoachingDue === true) {
     risks.push("coaching-due");
   }
 
-  if (
-    student?.otjBehind === true ||
-    student?.otjStatus === "Behind" ||
-    student?.kpiCategory === "otj-behind"
-  ) {
+  if (student?.otjBehind === true || student?.otjStatus === "Behind") {
     risks.push("otj-behind");
   }
 
@@ -89,13 +81,13 @@ function buildFromStudents(coach: UiCoach): EmailRecipient[] {
 
   return students.map((s) => ({
     learnerName: pickFirst(s, ["FullName", "fullName", "customerName", "name"]),
-    learnerEmail: pickFirst(s, ["Email", "email", "matched_student_email"]),
+    learnerEmail: cleanEmail(pickFirst(s, ["Email", "email", "matched_student_email"])),
     programme: pickFirst(s, ["programme", "Program", "module", "Group"]),
     coachName: pickFirst(c, ["case_owner", "coachName", "name"]),
-    coachEmail: pickFirst(c, ["OwnerEmail", "coachEmail", "email"]),
+    coachEmail: cleanEmail(pickFirst(c, ["OwnerEmail", "coachEmail", "email"])),
     lastSessionDate: pickFirst(s, ["lastSessionDate"], pickFirst(c, ["last_sub_date"])),
-    lineManagerEmail: pickFirst(s, ["lineManagerEmail", "managerEmail"]),
-    hrEmail: pickFirst(s, ["hrEmail", "HRManagerEmail"]),
+    lineManagerEmail: cleanEmail(pickFirst(s, ["lineManagerEmail", "managerEmail"])),
+    hrEmail: cleanEmail(pickFirst(s, ["hrEmail", "HRManagerEmail"])),
     status: pickFirst(s, ["status"], "Active"),
     riskCategories: getRiskCategories(s),
   }));
@@ -107,13 +99,13 @@ function buildFromLearnersJson(coach: UiCoach): EmailRecipient[] {
 
   return learners.map((l) => ({
     learnerName: pickFirst(l, ["FullName", "fullName", "customerName", "name"]),
-    learnerEmail: pickFirst(l, ["Email", "email", "matched_student_email"]),
+    learnerEmail: cleanEmail(pickFirst(l, ["Email", "email", "matched_student_email"])),
     programme: pickFirst(l, ["programme", "Program", "module", "Group"]),
     coachName: pickFirst(c, ["case_owner", "coachName", "name"]),
-    coachEmail: pickFirst(c, ["OwnerEmail", "coachEmail", "email"]),
+    coachEmail: cleanEmail(pickFirst(c, ["OwnerEmail", "coachEmail", "email"])),
     lastSessionDate: pickFirst(l, ["lastSessionDate"], pickFirst(c, ["last_sub_date"])),
-    lineManagerEmail: pickFirst(l, ["lineManagerEmail", "managerEmail"]),
-    hrEmail: pickFirst(l, ["hrEmail", "HRManagerEmail"]),
+    lineManagerEmail: cleanEmail(pickFirst(l, ["lineManagerEmail", "managerEmail"])),
+    hrEmail: cleanEmail(pickFirst(l, ["hrEmail", "HRManagerEmail"])),
     status: pickFirst(l, ["status"], "Active"),
     riskCategories: getRiskCategories(l),
   }));
@@ -123,40 +115,47 @@ function buildFromAttendance(coach: UiCoach): EmailRecipient[] {
   const c = coach as AnyObj;
   const learners = safeArray<AnyObj>(c?.attendance?.learners);
 
-  return learners.map((l) => ({
-    learnerName: pickFirst(l, ["FullName", "fullName", "customerName", "name"]),
-    learnerEmail: pickFirst(l, ["Email", "email"]),
-    programme: pickFirst(l, ["programme", "Program", "module", "Group"]),
-    coachName: pickFirst(c, ["case_owner", "coachName", "name"]),
-    coachEmail: pickFirst(c, ["OwnerEmail", "coachEmail", "email"]),
-    lastSessionDate: pickFirst(c, ["last_sub_date"]),
-    lineManagerEmail: pickFirst(l, ["lineManagerEmail", "managerEmail"]),
-    hrEmail: pickFirst(l, ["hrEmail", "HRManagerEmail"]),
-    status: "Active",
-    riskCategories: getRiskCategories(l),
-  }));
+  return learners.map((l) => {
+    const attendance = l?.Attendance || {};
+    const sessions = Object.values(attendance);
+
+    const missedCount = sessions.filter(
+      (s: any) => Number(s?.value) === 0
+    ).length;
+
+    const risks: string[] = [];
+    if (missedCount > 0) risks.push("missed-session");
+
+    return {
+      learnerName: pickFirst(l, ["FullName", "fullName", "customerName", "name"]),
+      learnerEmail: cleanEmail(pickFirst(l, ["Email", "email"])),
+      programme: pickFirst(l, ["programme", "Program", "module", "Group"]),
+      coachName: pickFirst(c, ["case_owner", "coachName", "name"]),
+      coachEmail: cleanEmail(pickFirst(c, ["OwnerEmail", "coachEmail", "email"])),
+      lastSessionDate: pickFirst(c, ["last_sub_date"]),
+      lineManagerEmail: cleanEmail(pickFirst(l, ["lineManagerEmail", "managerEmail"])),
+      hrEmail: cleanEmail(pickFirst(l, ["hrEmail", "HRManagerEmail"])),
+      status: "Active",
+      riskCategories: risks,
+    };
+  });
 }
 
 export function buildEmailRecipients(coaches: UiCoach[]): EmailRecipient[] {
-  const all = coaches.flatMap((coach) => {
-    const fromStudents = buildFromStudents(coach);
-    const fromLearnersJson = buildFromLearnersJson(coach);
-    const fromAttendance = buildFromAttendance(coach);
-
-    return [...fromStudents, ...fromLearnersJson, ...fromAttendance];
-  });
+  const all = coaches.flatMap((coach) => [
+    ...buildFromStudents(coach),
+    ...buildFromLearnersJson(coach),
+    ...buildFromAttendance(coach),
+  ]);
 
   const map = new Map<string, EmailRecipient>();
 
   for (const item of all) {
-    const email = String(item.learnerEmail || "").trim().toLowerCase();
+    const email = cleanEmail(item.learnerEmail);
     if (!email) continue;
 
     if (!map.has(email)) {
-      map.set(email, {
-        ...item,
-        learnerEmail: email,
-      });
+      map.set(email, { ...item, learnerEmail: email });
       continue;
     }
 
@@ -175,7 +174,9 @@ export function buildEmailRecipients(coaches: UiCoach[]): EmailRecipient[] {
     });
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).filter(
+    (r) => r.riskCategories && r.riskCategories.length > 0
+  );
 }
 
 export function renderTemplate(template: string, data: Record<string, any>) {

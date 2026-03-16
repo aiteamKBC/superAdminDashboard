@@ -251,9 +251,9 @@ function buildAttendanceMetrics(
   };
 }
 
-function priorityFromAttendance(missedInRow: number, absenceRatio: number): Learner["priority"] {
-  if (missedInRow >= 3 || absenceRatio >= 35) return "critical";
-  if (missedInRow >= 2 || absenceRatio >= 25) return "high";
+function priorityFromAttendance(missedInRow: number): Learner["priority"] {
+  if (missedInRow > 2) return "critical";
+  if (missedInRow >= 1) return "high";
   return "normal";
 }
 
@@ -673,6 +673,36 @@ const toNum = (v: any): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+type OtjPriority = "normal" | "need-attention" | "at-risk";
+
+const getOtjPriority = (behindPct: number): OtjPriority => {
+  const pct = Math.max(0, Math.abs(Number(behindPct) || 0));
+
+  if (pct > 40) return "at-risk";
+  if (pct > 20) return "need-attention";
+  return "normal";
+};
+
+const getOtjPriorityLabel = (priority: OtjPriority) => {
+  switch (priority) {
+    case "at-risk":
+      return "At Risk";
+    case "need-attention":
+      return "Need Attention";
+    default:
+      return "Normal";
+  }
+};
+
+/* ---------------- (-) filter from Progress Hours ---------------- */
+const stripLeadingMinus = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .replace(/^\s*-\s*/, "")
+    .trim();
+
+const hasLeadingMinus = (v: unknown) => /^\s*-/.test(String(v ?? "").trim());
+
 /* ---------------- reading helpers ---------------- */
 
 const normalizeLooseKey = (value: string) =>
@@ -999,8 +1029,7 @@ export default function Dashboard() {
         const metrics = buildAttendanceMetrics(attRec?.Attendance, absenceWeeks);
 
         let priority: Learner["priority"] = priorityFromAttendance(
-          metrics.missedInRow,
-          metrics.absenceRatio
+          metrics.missedInRow
         );
         const riskCategories: KpiCategory[] = riskCatsFromAttendance(
           metrics.missedInRow,
@@ -1029,9 +1058,40 @@ export default function Dashboard() {
         }
 
         const progressVariance = toNum((s as any)?.ProgressVariance);
+
+        const progressHoursRaw =
+          pickFirstString(s as any, [
+            "Progress_Hours",
+          ]) || "";
+
+        const requiredHoursToSubmit = progressHoursRaw
+          ? stripLeadingMinus(progressHoursRaw)
+          : "N/A";
+
         const expectedOtj = toNum((s as any)?.Expected);
         const actualOtj = toNum((s as any)?.Completed);
         const plannedOtj = toNum((s as any)?.Planned);
+
+        // Calculate target hours based on elapsed time and planned hours, to see if learner is on track to complete planned hours
+        const totalDays = toNum(
+          getLooseRawValue(s as any, ["Total Days", "TotalDays", "total_days"])
+        );
+
+        const elapsedDays = toNum(
+          getLooseRawValue(s as any, ["Elapsed-Days", "Elapsed Days", "elapsed_days"])
+        );
+
+        const targetNow =
+          plannedOtj && totalDays && elapsedDays
+            ? Math.round((elapsedDays / totalDays) * plannedOtj)
+            : 0;
+
+        const otjBehindPct =
+          progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
+
+        const hasOtjBehind = otjBehindPct > 0 || hasLeadingMinus(progressHoursRaw);
+
+        const otjPriority = getOtjPriority(otjBehindPct);
 
         const lastProgressReviewDate = pickFirstString(s as any, [
           "Last Progress Review",
@@ -1055,13 +1115,18 @@ export default function Dashboard() {
             ? learnerStatusRaw
             : "Active";
 
-        const otjBehindBy =
-          progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
+        const otjBehindBy = otjBehindPct;
 
-        if (otjBehindBy > 0) {
-          if (!riskCategories.includes("otj-behind")) riskCategories.push("otj-behind");
-          if (otjBehindBy >= 20) priority = "critical";
-          else if (priority === "normal") priority = "high";
+        if (hasOtjBehind) {
+          if (!riskCategories.includes("otj-behind")) {
+            riskCategories.push("otj-behind");
+          }
+
+          if (otjPriority === "at-risk") {
+            priority = "critical";
+          } else if (otjPriority === "need-attention" && priority === "normal") {
+            priority = "high";
+          }
         }
 
         const anyBookedMeta = getLearnerBookedMeta(
@@ -1183,12 +1248,18 @@ export default function Dashboard() {
         } as Learner;
         (learner as any).hasAttendanceInWindow = (metrics as any).hasAttendanceInWindow;
 
+        // OTJ behind metrics
+        (learner as any).hasOtjBehind = hasOtjBehind;
         (learner as any).otjBehindBy = otjBehindBy;
-        (learner as any).otjBehindPct =
-          expectedOtj && expectedOtj > 0
-            ? Math.round(((expectedOtj - (actualOtj ?? 0)) / expectedOtj) * 100)
-            : 0;
+        (learner as any).otjBehindPct = otjBehindPct;
+        (learner as any).requiredHoursToSubmit = requiredHoursToSubmit;
+        (learner as any).otjPriority = otjPriority;
+        (learner as any).otjPriorityLabel = getOtjPriorityLabel(otjPriority);
 
+        // otj target hours
+        (learner as any).targetNow = targetNow;
+
+        // Booking meta
         (learner as any).monthlyCoachingBooked = monthlyCoachingBooked;
         (learner as any).monthlyCoachingHasData = monthlyCoachingHasData;
         (learner as any).anyBookedSessionType = anyBookedMeta.sessionType; (learner as any).monthlyCoachingSessionDate = mcmBookedMeta.sessionDate;
@@ -1280,7 +1351,7 @@ export default function Dashboard() {
         ).length
         : coachingBookedBase.length;
 
-    const otjBehind = activeLearners.filter((l) => Number((l as any).otjBehindBy ?? 0) > 0).length;
+    const otjBehind = activeLearners.filter((l) => Boolean((l as any).hasOtjBehind)).length;
 
     const coachMarkingOverdue = coachMarkingRows.filter((r) => r.totalOverdue > 0).length;
     const coachMarkingTotal = filteredRows.length;
@@ -1362,9 +1433,9 @@ export default function Dashboard() {
 
     if (activeKpi === "otj-behind") {
       return activeLearners
-        .filter((l) => Number((l as any).otjBehindBy ?? 0) > 0)
+        .filter((l) => Boolean((l as any).hasOtjBehind))
         .sort(
-          (a, b) => Number((b as any).otjBehindBy ?? 0) - Number((a as any).otjBehindBy ?? 0)
+          (a, b) => Number((b as any).otjBehindPct ?? 0) - Number((a as any).otjBehindPct ?? 0)
         );
     }
 

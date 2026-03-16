@@ -77,8 +77,8 @@ export default function EmailCentre() {
   }, [preselectedRecipient]);
 
   const allRecipients = useMemo(() => {
-    return buildEmailRecipients(coaches);
-  }, [coaches]);
+  return buildEmailRecipients(coaches);
+}, [coaches]);
 
   const bulkRecipients = useMemo(() => {
     return allRecipients.filter(
