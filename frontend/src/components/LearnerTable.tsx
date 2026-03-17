@@ -27,13 +27,13 @@ const priorityBadge = (priority: Learner["priority"]) => {
   switch (priority) {
     case "critical":
       return (
-        <Badge   className="pointer-events-none bg-severity-critical-bg text-severity-critical-foreground border-0 text-[11px]">
+        <Badge className="pointer-events-none bg-severity-critical-bg text-severity-critical-foreground border-0 text-[11px]">
           Critical
         </Badge>
       );
     case "high":
       return (
-        <Badge   className="pointer-events-none bg-severity-overdue-bg text-severity-overdue-foreground border-0 text-[11px]">
+        <Badge className="pointer-events-none bg-severity-overdue-bg text-severity-overdue-foreground border-0 text-[11px]">
           High
         </Badge>
       );
@@ -498,8 +498,14 @@ export default function LearnerTable({
                     />
                   </td>
 
-                  <td className="p-3 font-medium text-foreground">
+                  <td className="p-3 font-medium text-foreground flex items-center gap-2">
                     {l.firstName} {l.lastName}
+
+                    {l.isResolved && (
+                      <Badge className="bg-green-100 text-green-700 border-0 text-[11px]">
+                        Resolved
+                      </Badge>
+                    )}
                   </td>
 
                   <td className="p-3 text-muted-foreground">

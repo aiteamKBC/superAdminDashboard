@@ -51,6 +51,7 @@ export interface Learner {
   // KPI flags
   riskCategories: KpiCategory[];
   priority: 'normal' | 'high' | 'critical';
+  isResolved?: boolean;
 }
 
 export type KpiCategory =

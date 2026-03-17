@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -14,6 +15,8 @@ import { Mail, Send, Users, Edit, Eye, Clock } from "lucide-react";
 import { fetchUiCoaches } from "@/lib/services/kbcDashboard";
 import { buildEmailRecipients, renderTemplate, type EmailRecipient } from "@/lib/emailCenter";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
+import { getMissedLearnersFromCoaches } from "@/lib/dashboard/getMissedLearners";
+
 
 const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
@@ -43,6 +46,11 @@ export default function EmailCentre() {
   const [sending, setSending] = useState(false);
 
   const [manualRecipients, setManualRecipients] = useState<EmailRecipient[]>([]);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const subjectRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -76,9 +84,15 @@ export default function EmailCentre() {
     setBody(matchedTemplate.body);
   }, [preselectedRecipient]);
 
+  useEffect(() => {
+    if (isEditing) {
+      subjectRef.current?.focus();
+    }
+  }, [isEditing]);
+
   const allRecipients = useMemo(() => {
-  return buildEmailRecipients(coaches);
-}, [coaches]);
+    return getMissedLearnersFromCoaches(coaches);
+  }, [coaches]);
 
   const bulkRecipients = useMemo(() => {
     return allRecipients.filter(
@@ -89,9 +103,18 @@ export default function EmailCentre() {
     );
   }, [allRecipients, selectedTemplate]);
 
-  const effectiveRecipients = manualRecipients.length > 0 ? manualRecipients : bulkRecipients;
+  const effectiveRecipients = manualRecipients.length > 0
+    ? manualRecipients
+    : bulkRecipients;
 
-  const recipientCount = effectiveRecipients.length;
+  const finalRecipients =
+    selectedIds.length > 0
+      ? effectiveRecipients.filter((r) =>
+        selectedIds.includes(r.learnerEmail)
+      )
+      : effectiveRecipients;
+
+  const recipientCount = finalRecipients.length;
 
   const previewRecipient: EmailRecipient | null = effectiveRecipients[0] || null;
 
@@ -110,73 +133,73 @@ export default function EmailCentre() {
     : body;
 
   const handleSendNow = async () => {
-  if (!effectiveRecipients.length) return;
+    if (!finalRecipients.length) return;
 
-  const ok = window.confirm(
-    `You are about to send ${effectiveRecipients.length} email${effectiveRecipients.length !== 1 ? "s" : ""}. Continue?`
-  );
-  if (!ok) return;
+    const ok = window.confirm(
+      `You are about to send ${finalRecipients.length} email${finalRecipients.length !== 1 ? "s" : ""}. Continue?`
+    );
+    if (!ok) return;
 
-  try {
-    setSending(true);
+    try {
+      setSending(true);
 
-    const senderName = "Progress Coordinator";
+      const senderName = "Progress Coordinator";
 
-    const renderedRecipients = effectiveRecipients.map((recipient) => {
-      const mergedData = {
-        ...recipient,
-        senderName,
-      };
+      const renderedRecipients = finalRecipients.map((recipient) => {
+        const mergedData = {
+          ...recipient,
+          senderName,
+        };
 
-      return {
-        ...recipient,
-        renderedSubject: renderTemplate(subject, mergedData),
-        renderedBody: renderTemplate(body, mergedData),
-      };
-    });
+        return {
+          ...recipient,
+          renderedSubject: renderTemplate(subject, mergedData),
+          renderedBody: renderTemplate(body, mergedData),
+        };
+      });
 
-    const res = await fetch("https://n8n.srv943390.hstgr.cloud/webhook/email_sender", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        subject,
-        body,
-        copyLM,
-        copyHR,
-        senderName,
-        kpiCategory: selectedTemplate.kpiCategory,
-        recipients: renderedRecipients,
-        preview: renderedRecipients[0]
-          ? {
+      const res = await fetch("https://n8n.srv943390.hstgr.cloud/webhook/email_sender", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subject,
+          body,
+          copyLM,
+          copyHR,
+          senderName,
+          kpiCategory: selectedTemplate.kpiCategory,
+          recipients: renderedRecipients,
+          preview: renderedRecipients[0]
+            ? {
               subject: renderedRecipients[0].renderedSubject,
               body: renderedRecipients[0].renderedBody,
             }
-          : null,
-      }),
-    });
+            : null,
+        }),
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (!res.ok) {
-      throw new Error(result?.detail || "Failed to send emails");
+      if (!res.ok) {
+        throw new Error(result?.detail || "Failed to send emails");
+      }
+
+      const sentCount = Number(result?.sentCount ?? 0);
+      const failedCount = Number(result?.failedCount ?? 0);
+      const responseBody = result?.preview?.body ?? "No preview body returned";
+
+      alert(
+        `Sent successfully: ${sentCount}, Failed: ${failedCount}\n\nResponse Body:\n\n${responseBody}`
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to send");
+    } finally {
+      setSending(false);
     }
-
-    const sentCount = Number(result?.sentCount ?? 0);
-    const failedCount = Number(result?.failedCount ?? 0);
-    const responseBody = result?.preview?.body ?? "No preview body returned";
-
-    alert(
-      `Sent successfully: ${sentCount}, Failed: ${failedCount}\n\nResponse Body:\n\n${responseBody}`
-    );
-  } catch (err: any) {
-    console.error(err);
-    alert(err?.message || "Failed to send");
-  } finally {
-    setSending(false);
-  }
-};
+  };
 
   return (
     <AppLayout>
@@ -238,28 +261,44 @@ export default function EmailCentre() {
 
             <Card className="p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Edit className="w-4 h-4" /> Edit Template
-                </p>
+                <div className="flex items-center gap-2">
+                  <Edit className="w-4 h-4" />
+                  <p className="text-sm font-medium text-foreground">Template</p>
+                </div>
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1.5 text-muted-foreground"
-                  onClick={() => {
-                    alert(`Preview Subject:\n\n${previewSubject}\n\nPreview Body:\n\n${previewBody}`);
-                  }}
-                >
-                  <Eye className="w-3.5 h-3.5" /> Preview
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={isEditing ? "secondary" : "outline"}
+                    onClick={() => setIsEditing((prev) => !prev)}
+                  >
+                    {isEditing ? "Done" : "Customize Template"}
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1.5 text-muted-foreground"
+                    onClick={() => setShowPreview(true)}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Preview
+                  </Button>
+                </div>
               </div>
+
+              <p className="text-xs text-muted-foreground">
+                Changes will apply to all selected learners.
+              </p>
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Subject</label>
                 <Input
+                  ref={subjectRef}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="mt-1"
+                  className={`mt-1 ${!isEditing ? "bg-muted cursor-not-allowed opacity-70" : ""
+                    }`}
+                  disabled={!isEditing}
                 />
               </div>
 
@@ -269,7 +308,9 @@ export default function EmailCentre() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   rows={12}
-                  className="mt-1 font-mono text-xs"
+                  className={`mt-1 font-mono text-xs ${!isEditing ? "bg-muted cursor-not-allowed opacity-70" : ""
+                    }`}
+                  disabled={!isEditing}
                 />
               </div>
 
@@ -282,6 +323,30 @@ export default function EmailCentre() {
                 ))}
               </div>
             </Card>
+
+            {showPreview && (
+              <Card className="p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-sm font-medium">Email Preview</p>
+
+                  <Button size="sm" variant="ghost" onClick={() => setShowPreview(false)}>
+                    Close
+                  </Button>
+                </div>
+
+                <iframe
+                  className="w-full h-64 border rounded-md"
+                  srcDoc={`
+        <html>
+          <body style="font-family: Arial; padding: 16px;">
+            <h3>${previewSubject}</h3>
+            <p style="white-space: pre-line;">${previewBody}</p>
+          </body>
+        </html>
+      `}
+                />
+              </Card>
+            )}
 
             <Card className="p-5 space-y-4">
               <p className="text-sm font-medium text-foreground">Send Options</p>
@@ -298,6 +363,54 @@ export default function EmailCentre() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Select Learners<span className="text-gray-500">"Multiple selection is available"</span>  ({selectedIds.length})</p>
+
+                <div className="border rounded-md p-2">
+                  <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+                    {effectiveRecipients.map((r) => {
+                      const selected = selectedIds.includes(r.learnerEmail);
+
+                      return (
+                        <div
+                          key={r.learnerEmail}
+                          onClick={() => {
+                            setSelectedIds((prev) =>
+                              selected
+                                ? prev.filter((id) => id !== r.learnerEmail)
+                                : [...prev, r.learnerEmail]
+                            );
+                          }}
+                          className={`px-2 py-1 text-sm rounded cursor-pointer ${selected ? "bg-primary text-white" : "hover:bg-muted"
+                            }`}
+                        >
+                          {r.learnerName}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setSelectedIds(effectiveRecipients.map((r) => r.learnerEmail))
+                    }
+                  >
+                    Select All
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedIds([])}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox checked={copyLM} onCheckedChange={(v) => setCopyLM(!!v)} />

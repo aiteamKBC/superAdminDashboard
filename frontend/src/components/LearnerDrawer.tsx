@@ -27,6 +27,7 @@ interface LearnerDrawerProps {
   learner: Learner | null;
   open: boolean;
   onClose: () => void;
+  onResolve?: (id: string) => void;
 }
 
 const kpiLabels: Record<string, string> = {
@@ -83,12 +84,13 @@ const getOtjStatusMeta = (priority: string) => {
   }
 };
 
-export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerProps) {
+export default function LearnerDrawer({ learner, open, onClose, onResolve }: LearnerDrawerProps) {
   const [showCallLog, setShowCallLog] = useState(false);
   const [callOutcome, setCallOutcome] = useState<CallOutcome | "">("");
   const [callNotes, setCallNotes] = useState("");
   // go to send email center page 
   const navigate = useNavigate();
+  const isResolved = !!learner?.isResolved;
 
   if (!learner) return null;
 
@@ -108,10 +110,10 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
   );
 
   const behindPct = Number.isFinite(Number(learnerAny.otjBehindPct))
-  ? Math.abs(Number(learnerAny.otjBehindPct))
-  : targetNow > 0
-    ? Math.abs(Math.round(((targetNow - completed) / targetNow) * 100))
-    : 0;
+    ? Math.abs(Number(learnerAny.otjBehindPct))
+    : targetNow > 0
+      ? Math.abs(Math.round(((targetNow - completed) / targetNow) * 100))
+      : 0;
 
   const otjPriority = String(
     learnerAny.otjPriority ||
@@ -163,6 +165,8 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
   const hrManagerName = safeText(learner.hrManagerName, "N/A");
   const hrManagerPhone = safeText(learner.hrManagerPhone, "No phone on file");
   const hrManagerEmail = safeText(learner.hrManagerEmail, "No email on file");
+
+
 
 
 
@@ -230,6 +234,11 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
           </SheetTitle>
 
           <div className="flex gap-2 flex-wrap">
+            {isResolved && (
+              <Badge className="bg-green-100 text-green-700 border-0 text-[11px]">
+                Resolved
+              </Badge>
+            )}
             {(learner.riskCategories || []).map((c) => (
               <Badge key={c} variant="outline" className="text-[11px]">
                 {kpiLabels[c] || String(c)}
@@ -491,7 +500,14 @@ export default function LearnerDrawer({ learner, open, onClose }: LearnerDrawerP
             <Button size="sm" variant="outline" className="gap-1.5">
               <Calendar className="w-3.5 h-3.5" /> Book Appointment
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                onResolve?.(learner.id);
+              }}
+            >
               <CheckCircle2 className="w-3.5 h-3.5" /> Mark Resolved
             </Button>
           </div>

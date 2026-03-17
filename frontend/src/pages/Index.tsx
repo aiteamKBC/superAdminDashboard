@@ -955,6 +955,7 @@ export default function Dashboard() {
 
   const [activeKpi, setActiveKpi] = useState<KpiCategory | null>(null);
   const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
+  const [resolvedLearners, setResolvedLearners] = useState<Set<string>>(new Set());
   const [bookedSessionTypeFilter, setBookedSessionTypeFilter] = useState<
     "All Session Types" | "Progress Review" | "MCM" | "Support Session"
   >("All Session Types");
@@ -1390,20 +1391,22 @@ export default function Dashboard() {
   const filteredLearners = useMemo(() => {
     if (!activeKpi) return [];
 
+    let result: Learner[] = [];
+
     if (activeKpi === "missed-session") {
-      return activeLearners.filter(
+      result = activeLearners.filter(
         (l) =>
           Boolean((l as any).hasAttendanceInWindow) &&
           ((l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25)
       );
     }
 
-    if (activeKpi === "review-due") {
-      return activeLearners.filter((l) => (l as any).__reviewFlag === "overdue");
+    else if (activeKpi === "review-due") {
+      result = activeLearners.filter((l) => (l as any).__reviewFlag === "overdue");
     }
 
-    if (activeKpi === "coaching-due") {
-      return activeLearners
+    else if (activeKpi === "coaching-due") {
+      result = activeLearners
         .filter(
           (l) =>
             Boolean((l as any).monthlyCoachingHasData) &&
@@ -1412,7 +1415,7 @@ export default function Dashboard() {
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
     }
 
-    if (activeKpi === "coaching-booked") {
+    else if (activeKpi === "coaching-booked") {
       const base = activeLearners
         .filter(
           (l) =>
@@ -1422,25 +1425,32 @@ export default function Dashboard() {
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
 
       if (bookedSessionTypeFilter === "All Session Types") {
-        return base;
+        result = base;
+      } else {
+        result = base.filter(
+          (l) =>
+            String((l as any).anyBookedSessionType || "Unknown") ===
+            bookedSessionTypeFilter
+        );
       }
-
-      return base.filter(
-        (l) =>
-          String((l as any).anyBookedSessionType || "Unknown") === bookedSessionTypeFilter
-      );
     }
 
-    if (activeKpi === "otj-behind") {
-      return activeLearners
+    else if (activeKpi === "otj-behind") {
+      result = activeLearners
         .filter((l) => Boolean((l as any).hasOtjBehind))
         .sort(
-          (a, b) => Number((b as any).otjBehindPct ?? 0) - Number((a as any).otjBehindPct ?? 0)
+          (a, b) =>
+            Number((b as any).otjBehindPct ?? 0) -
+            Number((a as any).otjBehindPct ?? 0)
         );
     }
 
-    return [];
-  }, [activeLearners, activeKpi, bookedSessionTypeFilter]);
+    return result.map((l) => ({
+      ...l,
+      isResolved: resolvedLearners.has(l.id),
+    }));
+
+  }, [activeLearners, activeKpi, bookedSessionTypeFilter, resolvedLearners]);
 
   return (
     <AppLayout>
@@ -1529,6 +1539,9 @@ export default function Dashboard() {
         learner={selectedLearner}
         open={!!selectedLearner}
         onClose={() => setSelectedLearner(null)}
+        onResolve={(id) => {
+          setResolvedLearners(prev => new Set(prev).add(id));
+        }}
       />
     </AppLayout>
   );
