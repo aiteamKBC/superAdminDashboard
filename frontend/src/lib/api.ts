@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://api.kentbusinesscollege.net/api";
+const API_BASE_URL = "/api";
 const API_KEY = String((import.meta as any).env?.VITE_API_KEY || "").trim();
 
 export async function fetchAllCoachesAnalytics() {
