@@ -2,18 +2,26 @@ import type { UiCoach } from "@/lib/adapters/kbcToUi";
 
 type AnyObj = Record<string, any>;
 
-export type EmailRecipient = {
+export interface EmailRecipient {
   learnerName: string;
   learnerEmail: string;
-  programme?: string;
-  coachName?: string;
-  coachEmail?: string;
+  programme: string;
+  coachName: string;
+  coachEmail: string;
   lastSessionDate?: string;
-  senderName?: string;
+  status?: string;
+  riskCategories?: string[];
+
+  hasAttendanceInWindow?: boolean;
+  lastSessionStatus?: "Attended" | "Missed" | "Unknown";
+
   lineManagerEmail?: string;
   hrEmail?: string;
-  status?: string;
-  riskCategories: string[];
+}
+
+type AttendanceSession = {
+  value?: number;
+  module?: string;
 };
 
 function safeArray<T = any>(value: any): T[] {
@@ -75,6 +83,21 @@ function getRiskCategories(student: AnyObj): string[] {
   return [...new Set(risks)];
 }
 
+function normalizeAttendanceEntries(attendance: Record<string, AttendanceSession | AttendanceSession[]>) {
+  return Object.entries(attendance || {}).flatMap(([date, rawValue]) => {
+    const values = Array.isArray(rawValue)
+      ? rawValue
+      : rawValue && typeof rawValue === "object"
+        ? [rawValue]
+        : [];
+
+    return values.map((value) => ({
+      date,
+      value: value || {},
+    }));
+  });
+}
+
 function buildFromStudents(coach: UiCoach): EmailRecipient[] {
   const c = coach as AnyObj;
   const students = safeArray<AnyObj>(c?.students);
@@ -117,11 +140,17 @@ function buildFromAttendance(coach: UiCoach): EmailRecipient[] {
 
   return learners.map((l) => {
     const attendance = l?.Attendance || {};
-    const sessions = Object.values(attendance);
+    const sessions = normalizeAttendanceEntries(attendance);
 
-    const missedCount = sessions.filter(
-      (s: any) => Number(s?.value) === 0
-    ).length;
+    const missedCount = sessions.filter((s) => Number(s?.value?.value) === 0).length;
+
+    const lastEntry = sessions.length ? sessions[sessions.length - 1] : null;
+    const lastSessionStatus =
+      lastEntry?.value?.value == null
+        ? "Unknown"
+        : Number(lastEntry.value.value) === 1
+          ? "Attended"
+          : "Missed";
 
     const risks: string[] = [];
     if (missedCount > 0) risks.push("missed-session");
@@ -132,11 +161,13 @@ function buildFromAttendance(coach: UiCoach): EmailRecipient[] {
       programme: pickFirst(l, ["programme", "Program", "module", "Group"]),
       coachName: pickFirst(c, ["case_owner", "coachName", "name"]),
       coachEmail: cleanEmail(pickFirst(c, ["OwnerEmail", "coachEmail", "email"])),
-      lastSessionDate: pickFirst(c, ["last_sub_date"]),
+      lastSessionDate: lastEntry?.date || pickFirst(c, ["last_sub_date"]),
       lineManagerEmail: cleanEmail(pickFirst(l, ["lineManagerEmail", "managerEmail"])),
       hrEmail: cleanEmail(pickFirst(l, ["hrEmail", "HRManagerEmail"])),
       status: "Active",
       riskCategories: risks,
+      hasAttendanceInWindow: sessions.length > 0,
+      lastSessionStatus,
     };
   });
 }

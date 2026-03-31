@@ -15,6 +15,22 @@ import type { KpiCategory, Learner } from "@/types/dashboard";
 import type { KpiCardData } from "@/types/dashboard";
 
 /* ---------------- helpers ---------------- */
+const getLatestAttendanceModule = (attendance?: AttendanceInput) => {
+  const entries = normalizeAttendanceEntries(attendance)
+    .map((entry) => ({
+      parsed: entry.parsed,
+      sortIndex: entry.sortIndex,
+      module: getModuleLabel(entry.value?.module),
+    }))
+    .filter((x) => x.module)
+    .sort((a, b) => {
+      const diff = a.parsed.getTime() - b.parsed.getTime();
+      if (diff !== 0) return diff;
+      return a.sortIndex - b.sortIndex;
+    });
+
+  return entries.length ? entries[entries.length - 1].module : "";
+};
 
 const pickFirstString = (obj: any, keys: string[]) => {
   for (const k of keys) {
@@ -128,66 +144,69 @@ const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
   return `${formatUiDate(start)} → ${formatUiDate(end)}`;
 };
 
+// Attendance KPIs that are red-flagged based on missed sessions
 const kpiAccentClass: Record<KpiCategory, string> = {
-  "missed-session": "border-l-[var(--kpi-missed)]",
-  "review-due": "border-l-[var(--kpi-review)]",
-  "coaching-due": "border-l-[var(--kpi-coaching)]",
-  "coaching-booked": "border-l-sky-500",
-  "otj-behind": "border-l-[var(--kpi-otj)]",
-  "coach-marking-overdue": "border-l-violet-500",
+  "missed-session": "border-l-4 border-l-[#80560F]",
+  "review-due": "border-l-4 border-l-[#866CB6]",
+  "coaching-due": "border-l-4 border-l-[#644D93]",
+  "coaching-booked": "border-l-4 border-l-[#A88CD9]",
+  "otj-behind": "border-l-4 border-l-[#B27715]",
+  "coach-marking-overdue": "border-l-4 border-l-[#866CB6]",
 };
 
-function buildAttendanceMetrics(
-  att?: Record<string, { value?: number; module?: string }>,
-  absenceWeeks: "all" | 0 | 1 | 2 | 3 = 0
-) {
+type AttendanceDayEntry = { value?: number; module?: string };
+type AttendanceInput =
+  | Record<string, AttendanceDayEntry | AttendanceDayEntry[]>
+  | undefined;
+
+function normalizeAttendanceEntries(att?: AttendanceInput) {
   const entries = Object.entries(att || {});
-  if (!entries.length) {
-    return {
-      absenceRatio: 0,
-      missedLast10Weeks: 0,
-      missedInRow: 0,
-      lastSessionDate: "N/A",
-      lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
-      latestProgramme: "Unknown",
-      hasAttendanceInWindow: false,
-    };
-  }
+  if (!entries.length) return [];
 
-  const normalizedEntries = entries
-    .map(([rawKey, value]) => {
+  return entries
+    .flatMap(([rawKey, rawValue]) => {
       const parsed = parseAttendanceDate(rawKey);
-      if (!parsed) return null;
+      if (!parsed) return [];
 
-      return {
+      const values = Array.isArray(rawValue)
+        ? rawValue
+        : rawValue && typeof rawValue === "object"
+          ? [rawValue]
+          : [];
+
+      return values.map((value, index) => ({
         rawKey,
         parsed,
         normalizedDate: formatDateKey(parsed),
-        value,
-      };
+        value: value || {},
+        sortIndex: index,
+      }));
     })
-    .filter(Boolean) as Array<{
-      rawKey: string;
-      parsed: Date;
-      normalizedDate: string;
-      value: { value?: number; module?: string };
-    }>;
+    .sort((a, b) => {
+      const diff = a.parsed.getTime() - b.parsed.getTime();
+      if (diff !== 0) return diff;
+      return a.sortIndex - b.sortIndex;
+    });
+}
 
-  if (!normalizedEntries.length) {
+function buildAttendanceMetrics(
+  att?: AttendanceInput,
+  absenceWeeks: "all" | 0 | 1 | 2 | 3 = 0
+) {
+  const allEntries = normalizeAttendanceEntries(att);
+
+  if (!allEntries.length) {
     return {
       absenceRatio: 0,
       missedLast10Weeks: 0,
       missedInRow: 0,
+      missedCountInWindow: 0,
       lastSessionDate: "N/A",
       lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
       latestProgramme: "Unknown",
       hasAttendanceInWindow: false,
     };
   }
-
-  normalizedEntries.sort((a, b) => a.parsed.getTime() - b.parsed.getTime());
-
-  const allEntries = normalizedEntries;
 
   const filteredEntries =
     absenceWeeks === "all"
@@ -197,10 +216,9 @@ function buildAttendanceMetrics(
   const hasAttendanceInWindow = filteredEntries.length > 0;
 
   const sourceEntriesForLastSession =
-    absenceWeeks === "all" ? allEntries : filteredEntries;
+    filteredEntries.length > 0 ? filteredEntries : allEntries;
 
   const lastEntry = sourceEntriesForLastSession[sourceEntriesForLastSession.length - 1] || null;
-
   const lastVal = lastEntry?.value?.value ?? null;
 
   const lastStatus = (
@@ -214,24 +232,22 @@ function buildAttendanceMetrics(
   );
 
   let missedInRow = 0;
+  const streakSource = filteredEntries.length > 0 ? filteredEntries : allEntries;
 
-  if (absenceWeeks === "all") {
-    for (let i = allEntries.length - 1; i >= 0; i--) {
-      const v = allEntries[i]?.value?.value;
-      if (v === 0) missedInRow++;
-      else break;
-    }
-  } else {
-    for (let i = filteredEntries.length - 1; i >= 0; i--) {
-      const v = filteredEntries[i]?.value?.value;
-      if (v === 0) missedInRow++;
-      else break;
-    }
+  for (let i = streakSource.length - 1; i >= 0; i--) {
+    const v = streakSource[i]?.value?.value;
+    if (v === 0) missedInRow++;
+    else break;
   }
 
   const total = filteredEntries.length;
   const attended = filteredEntries.reduce(
     (acc, item) => acc + ((item.value?.value ?? 0) === 1 ? 1 : 0),
+    0
+  );
+
+  const missedCountInWindow = filteredEntries.reduce(
+    (acc, item) => acc + ((item.value?.value ?? 0) === 0 ? 1 : 0),
     0
   );
 
@@ -244,6 +260,7 @@ function buildAttendanceMetrics(
     absenceRatio,
     missedLast10Weeks: missedLast10,
     missedInRow,
+    missedCountInWindow,
     lastSessionDate: lastEntry?.normalizedDate || "N/A",
     lastSessionStatus: lastStatus,
     latestProgramme,
@@ -264,29 +281,10 @@ function riskCatsFromAttendance(missedInRow: number, absenceRatio: number): KpiC
 }
 
 /* ---------------- JSON array helpers ---------------- */
-const getLastCompletedSessionDate = (
-  attendance?: Record<string, { value?: number; module?: string }>
-) => {
-  const entries = Object.entries(attendance || {})
-    .map(([rawKey, value]) => {
-      const parsed = parseAttendanceDate(rawKey);
-      if (!parsed) return null;
-
-      return {
-        parsed,
-        normalizedDate: formatDateKey(parsed),
-        value,
-      };
-    })
-    .filter(Boolean) as Array<{
-      parsed: Date;
-      normalizedDate: string;
-      value: { value?: number; module?: string };
-    }>;
+const getLastCompletedSessionDate = (attendance?: AttendanceInput) => {
+  const entries = normalizeAttendanceEntries(attendance);
 
   if (!entries.length) return "N/A";
-
-  entries.sort((a, b) => a.parsed.getTime() - b.parsed.getTime());
 
   const completed = entries.filter((x) => (x.value?.value ?? 0) === 1);
   if (!completed.length) return "N/A";
@@ -325,6 +323,31 @@ const getStudentsFromRaw = (raw: any): any[] => {
 
   return asArray(raw?.students);
 };
+
+const lowerText = (v: unknown) => String(v ?? "").trim().toLowerCase();
+
+const uniqueStrings = (arr: string[]) =>
+  Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
+
+const matchesLooseFilterValue = (candidate: unknown, selected: string) => {
+  const a = lowerText(candidate);
+  const b = lowerText(selected);
+
+  if (!b) return true;
+  if (!a) return false;
+
+  return a === b || a.includes(b) || b.includes(a);
+};
+
+const matchesAnyFilterValue = (candidates: unknown[], selected: string) =>
+  candidates.some((candidate) => matchesLooseFilterValue(candidate, selected));
+
+const matchesExactFilterValue = (candidate: unknown, selected: string) => {
+  return lowerText(candidate) === lowerText(selected);
+};
+
+const matchesAnyExactFilterValue = (candidates: unknown[], selected: string) =>
+  candidates.some((candidate) => matchesExactFilterValue(candidate, selected));
 
 /* ---------------- bookings helpers ---------------- */
 
@@ -396,12 +419,21 @@ const normName = (v: unknown) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const sameLooseName = (a: string, b: string) => {
+const sameLooseName = (a: unknown, b: unknown) => {
   const x = normName(a);
   const y = normName(b);
   if (!x || !y) return false;
   return x === y || x.includes(y) || y.includes(x);
 };
+
+const getModuleLabel = (moduleStr: unknown) => String(moduleStr ?? "").trim();
+
+const getAttendanceModules = (attendance?: AttendanceInput) =>
+  uniqueStrings(
+    normalizeAttendanceEntries(attendance)
+      .map((entry) => getModuleLabel(entry.value?.module))
+      .filter(Boolean)
+  );
 
 const getLearnerBookedMetaByType = (
   raw: any,
@@ -823,6 +855,25 @@ function getCoachMarkingSummary(raw: any): CoachMarkingRow {
   };
 }
 
+const getWeeklyMarkedTotal = (row: CoachMarkingRow) =>
+  row.todayMarking +
+  row.yesterdayMarking +
+  row.minus2Marking +
+  row.minus3Marking +
+  row.minus4Marking +
+  row.minus5Marking +
+  row.minus6Marking +
+  row.minus7Marking;
+
+const getWeeklyCorrectionRate = (row: CoachMarkingRow) => {
+  const weeklyMarked = getWeeklyMarkedTotal(row);
+  const overdue = Math.max(0, Number(row.totalOverdue || 0));
+  const denominator = weeklyMarked + overdue;
+
+  if (denominator <= 0) return 0;
+  return Math.round((weeklyMarked / denominator) * 100);
+};
+
 function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
   const [search, setSearch] = useState("");
 
@@ -832,9 +883,81 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
     return rows.filter((row) => row.coachName.toLowerCase().includes(q));
   }, [rows, search]);
 
+  const totals = useMemo(() => {
+    const base = {
+      totalEvidence: 0,
+      todayMarking: 0,
+      yesterdayMarking: 0,
+      minus2Marking: 0,
+      minus3Marking: 0,
+      minus4Marking: 0,
+      minus5Marking: 0,
+      minus6Marking: 0,
+      minus7Marking: 0,
+      weeklyMarkedTotal: 0,
+      avgWeeklyCorrectionRate: 0,
+    };
+
+    if (!filteredRows.length) return base;
+
+    const summed = filteredRows.reduce(
+      (acc, row) => {
+        acc.totalEvidence += row.totalOverdue;
+        acc.todayMarking += row.todayMarking;
+        acc.yesterdayMarking += row.yesterdayMarking;
+        acc.minus2Marking += row.minus2Marking;
+        acc.minus3Marking += row.minus3Marking;
+        acc.minus4Marking += row.minus4Marking;
+        acc.minus5Marking += row.minus5Marking;
+        acc.minus6Marking += row.minus6Marking;
+        acc.minus7Marking += row.minus7Marking;
+        acc.weeklyMarkedTotal += getWeeklyMarkedTotal(row);
+        return acc;
+      },
+      { ...base }
+    );
+
+    const denominator = summed.weeklyMarkedTotal + summed.totalEvidence;
+    const avgWeeklyCorrectionRate =
+      denominator > 0
+        ? Math.round((summed.weeklyMarkedTotal / denominator) * 100)
+        : 0;
+
+    return {
+      ...summed,
+      avgWeeklyCorrectionRate,
+    };
+  }, [filteredRows]);
+
+  const progressRows = useMemo(() => {
+    return filteredRows
+      .map((row) => {
+        const weeklyMarked = getWeeklyMarkedTotal(row);
+        const correctionRate = getWeeklyCorrectionRate(row);
+
+        return {
+          coachId: row.coachId,
+          coachName: row.coachName,
+          totalEvidence: row.totalOverdue,
+          weeklyMarked,
+          correctionRate,
+        };
+      })
+      .sort((a, b) => {
+        if (b.correctionRate !== a.correctionRate) {
+          return b.correctionRate - a.correctionRate;
+        }
+        if (b.weeklyMarked !== a.weeklyMarked) {
+          return b.weeklyMarked - a.weeklyMarked;
+        }
+        return b.totalEvidence - a.totalEvidence;
+      });
+  }, [filteredRows]);
+
   const handleExport = () => {
     const headers = [
       "Coach Name",
+      "Total Evidence",
       "Today marking",
       "Yesterday marking",
       "-2 marking",
@@ -843,20 +966,43 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
       "-5 marking",
       "-6 marking",
       "-7 marking",
-      "Total Overdue",
+      "Weekly Marked Total",
+      "Weekly Correction Rate %",
     ];
 
-    const csvRows = filteredRows.map((row) => [
-      row.coachName,
-      row.todayMarking,
-      row.yesterdayMarking,
-      row.minus2Marking,
-      row.minus3Marking,
-      row.minus4Marking,
-      row.minus5Marking,
-      row.minus6Marking,
-      row.minus7Marking,
-      row.totalOverdue,
+    const csvRows = filteredRows.map((row) => {
+      const weeklyMarked = getWeeklyMarkedTotal(row);
+      const correctionRate = getWeeklyCorrectionRate(row);
+
+      return [
+        row.coachName,
+        row.totalOverdue,
+        row.todayMarking,
+        row.yesterdayMarking,
+        row.minus2Marking,
+        row.minus3Marking,
+        row.minus4Marking,
+        row.minus5Marking,
+        row.minus6Marking,
+        row.minus7Marking,
+        weeklyMarked,
+        `${correctionRate}%`,
+      ];
+    });
+
+    csvRows.push([
+      "TOTAL",
+      totals.totalEvidence,
+      totals.todayMarking,
+      totals.yesterdayMarking,
+      totals.minus2Marking,
+      totals.minus3Marking,
+      totals.minus4Marking,
+      totals.minus5Marking,
+      totals.minus6Marking,
+      totals.minus7Marking,
+      totals.weeklyMarkedTotal,
+      `${totals.avgWeeklyCorrectionRate}%`,
     ]);
 
     const csv = [headers, ...csvRows]
@@ -873,65 +1019,151 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search coach..."
-          className="h-10 min-w-[240px] max-w-sm rounded-md border border-input bg-background px-3 text-sm"
+          className="h-11 w-full sm:max-w-sm rounded-xl border border-[#E4E4E4] bg-white px-3 text-sm text-[#4C4C4C] outline-none"
         />
 
         <button
           onClick={handleExport}
-          className="h-10 rounded-md border border-input bg-background px-4 text-sm"
+          className="h-11 w-full sm:w-auto rounded-xl border border-[#E4E4E4] bg-[#FCF3FF] px-4 text-sm font-medium text-[#866CB6]"
         >
           Export CSV
         </button>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="text-left p-3 font-medium text-muted-foreground">Coach Name</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Today marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Yesterday marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-2 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-3 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-4 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-5 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-6 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">-7 marking</th>
-              <th className="text-right p-3 font-medium text-muted-foreground">Total Overdue</th>
-            </tr>
-          </thead>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-[#808080]">Total Evidence</p>
+          <p className="mt-2 text-2xl font-bold text-[#4C4C4C]">{totals.totalEvidence}</p>
+        </div>
 
-          <tbody>
-            {filteredRows.map((row) => (
-              <tr key={row.coachId} className="border-b last:border-b-0">
-                <td className="p-3 font-medium text-foreground">{row.coachName}</td>
-                <td className="p-3 text-right">{row.todayMarking}</td>
-                <td className="p-3 text-right">{row.yesterdayMarking}</td>
-                <td className="p-3 text-right">{row.minus2Marking}</td>
-                <td className="p-3 text-right">{row.minus3Marking}</td>
-                <td className="p-3 text-right">{row.minus4Marking}</td>
-                <td className="p-3 text-right">{row.minus5Marking}</td>
-                <td className="p-3 text-right">{row.minus6Marking}</td>
-                <td className="p-3 text-right">{row.minus7Marking}</td>
-                <td className="p-3 text-right font-semibold">{row.totalOverdue}</td>
-              </tr>
-            ))}
+        <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-[#808080]">Weekly Marked Total</p>
+          <p className="mt-2 text-2xl font-bold text-[#4C4C4C]">{totals.weeklyMarkedTotal}</p>
+        </div>
 
-            {filteredRows.length === 0 && (
-              <tr>
-                <td colSpan={10} className="p-8 text-center text-muted-foreground">
-                  No coach marking data found
-                </td>
+        <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-[#808080]">Weekly Correction Rate</p>
+          <p className="mt-2 text-2xl font-bold text-[#644D93]">
+            {totals.avgWeeklyCorrectionRate}%
+          </p>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-[#E4E4E4] bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1350px] w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#EDEDED] bg-[#FCF3FF]">
+                <th className="text-left p-3 font-medium text-[#808080]">Coach Name</th>
+                <th className="text-right p-3 font-medium text-[#808080]">Total Evidence</th>
+                <th className="text-right p-3 font-medium text-[#808080]">Today marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">Yesterday marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">-2 marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">-3 marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">-4 marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">-5 marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">-6 marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">-7 marking</th>
+                <th className="text-right p-3 font-medium text-[#808080]">Weekly Marked</th>
+                <th className="text-right p-3 font-medium text-[#808080]">Correction Rate</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {filteredRows.map((row) => {
+                const weeklyMarked = getWeeklyMarkedTotal(row);
+                const correctionRate = getWeeklyCorrectionRate(row);
+
+                return (
+                  <tr key={row.coachId} className="border-b border-[#F1F1F1] last:border-b-0">
+                    <td className="p-3 font-medium text-[#4C4C4C]">{row.coachName}</td>
+                    <td className="p-3 text-right font-semibold text-[#644D93]">{row.totalOverdue}</td>
+                    <td className="p-3 text-right">{row.todayMarking}</td>
+                    <td className="p-3 text-right">{row.yesterdayMarking}</td>
+                    <td className="p-3 text-right">{row.minus2Marking}</td>
+                    <td className="p-3 text-right">{row.minus3Marking}</td>
+                    <td className="p-3 text-right">{row.minus4Marking}</td>
+                    <td className="p-3 text-right">{row.minus5Marking}</td>
+                    <td className="p-3 text-right">{row.minus6Marking}</td>
+                    <td className="p-3 text-right">{row.minus7Marking}</td>
+                    <td className="p-3 text-right font-semibold text-[#4C4C4C]">{weeklyMarked}</td>
+                    <td className="p-3 text-right font-semibold text-[#B27715]">
+                      {correctionRate}%
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {filteredRows.length > 0 && (
+                <tr className="border-t-2 border-[#E4E4E4] bg-[#FFF8EE]">
+                  <td className="p-3 font-bold text-[#4C4C4C]">TOTAL</td>
+                  <td className="p-3 text-right font-bold text-[#644D93]">{totals.totalEvidence}</td>
+                  <td className="p-3 text-right font-bold">{totals.todayMarking}</td>
+                  <td className="p-3 text-right font-bold">{totals.yesterdayMarking}</td>
+                  <td className="p-3 text-right font-bold">{totals.minus2Marking}</td>
+                  <td className="p-3 text-right font-bold">{totals.minus3Marking}</td>
+                  <td className="p-3 text-right font-bold">{totals.minus4Marking}</td>
+                  <td className="p-3 text-right font-bold">{totals.minus5Marking}</td>
+                  <td className="p-3 text-right font-bold">{totals.minus6Marking}</td>
+                  <td className="p-3 text-right font-bold">{totals.minus7Marking}</td>
+                  <td className="p-3 text-right font-bold">{totals.weeklyMarkedTotal}</td>
+                  <td className="p-3 text-right font-bold text-[#B27715]">
+                    {totals.avgWeeklyCorrectionRate}%
+                  </td>
+                </tr>
+              )}
+
+              {filteredRows.length === 0 && (
+                <tr>
+                  <td colSpan={12} className="p-8 text-center text-[#808080]">
+                    No coach marking data found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 shadow-sm">
+        <div className="mb-4">
+          <h4 className="text-sm font-semibold text-[#4C4C4C]">Coach Progress Overview</h4>
+          <p className="text-xs text-[#808080]">
+            Weekly correction rate based on the last 7 days marking versus current overdue evidence
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {progressRows.map((row) => (
+            <div
+              key={row.coachId}
+              className="grid grid-cols-1 gap-2 md:grid-cols-[220px_1fr_70px_180px] md:items-center"
+            >
+              <div className="text-sm font-medium text-[#4C4C4C]">{row.coachName}</div>
+
+              <div className="h-3 overflow-hidden rounded-full bg-[#EFEFEF]">
+                <div
+                  className="h-full rounded-full bg-[#866CB6]"
+                  style={{ width: `${row.correctionRate}%` }}
+                />
+              </div>
+
+              <div className="text-sm font-semibold text-[#644D93] md:text-right">
+                {row.correctionRate}%
+              </div>
+
+              <div className="text-xs text-[#808080] md:text-right">
+                Weekly Marked {row.weeklyMarked} , Evidence {row.totalEvidence}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -959,6 +1191,9 @@ export default function Dashboard() {
   const [bookedSessionTypeFilter, setBookedSessionTypeFilter] = useState<
     "All Session Types" | "Progress Review" | "MCM" | "Support Session"
   >("All Session Types");
+  const [contactActions, setContactActions] = useState<
+    Record<string, { called: boolean; emailed: boolean; resolved: boolean }>
+  >({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -982,6 +1217,81 @@ export default function Dashboard() {
       setBookedSessionTypeFilter("All Session Types");
     }
   }, [activeKpi]);
+
+  const loadContactActions = useCallback(async () => {
+    try {
+      const res = await fetch("/local-api/learner-contact-actions");
+      if (!res.ok) throw new Error("Failed to load contact actions");
+
+      const data = await res.json();
+
+      const mapped: Record<string, { called: boolean; emailed: boolean }> = {};
+      for (const item of data || []) {
+        const key =
+          item.contact_key ||
+          `${String(item.email || "").trim().toLowerCase()}||${item.date || ""}||${item.module || ""}`;
+
+        mapped[key] = {
+          called: Boolean(item.called),
+          emailed: Boolean(item.emailed),
+          resolved: Boolean(item.resolved),
+        };
+      }
+
+      setContactActions(mapped);
+    } catch (error) {
+      console.error(error);
+      setContactActions({});
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadContactActions();
+  }, [loadContactActions]);
+
+  const updateContactAction = useCallback(
+    async (payload: {
+      contactKey: string;
+      email: string;
+      date: string;
+      module: string;
+      called: boolean;
+      emailed: boolean;
+      resolved: boolean;
+    }) => {
+      setContactActions((prev) => ({
+        ...prev,
+        [payload.contactKey]: {
+          called: payload.called,
+          emailed: payload.emailed,
+        },
+      }));
+
+      try {
+        const res = await fetch("/local-api/learner-contact-actions", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: payload.email,
+            date: payload.date,
+            module: payload.module,
+            called: payload.called,
+            emailed: payload.emailed,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to update contact action");
+        }
+      } catch (error) {
+        console.error(error);
+        await loadContactActions();
+      }
+    },
+    [loadContactActions]
+  );
 
   const filteredRows = useMemo(() => applyDashboardFilters(rows, filters), [rows, filters]);
 
@@ -1026,7 +1336,17 @@ export default function Dashboard() {
         ]);
         const { firstName, lastName } = splitName(fullName);
 
-        const attRec = (id && attById.get(id)) || (emailKey && attByEmail.get(emailKey)) || null;
+        const attRec =
+          (id && attById.get(id)) ||
+          (emailKey && attByEmail.get(emailKey)) ||
+          attLearners.find((a: any) =>
+            sameLooseName(
+              a?.FullName || a?.fullName || a?.name,
+              fullName
+            )
+          ) ||
+          null;
+
         const metrics = buildAttendanceMetrics(attRec?.Attendance, absenceWeeks);
 
         let priority: Learner["priority"] = priorityFromAttendance(
@@ -1173,6 +1493,8 @@ export default function Dashboard() {
           if (priority === "normal") priority = "high";
         }
 
+        const latestAttendanceModule = getLatestAttendanceModule(attRec?.Attendance);
+
         const organisation = pickFirstString(s as any, [
           "OrganizationName",
           "OrganisationName",
@@ -1180,16 +1502,27 @@ export default function Dashboard() {
           "Organisation",
           "CompanyName",
           "company_name",
+          "Employer",
+          "EmployerName",
+          "employer_name",
         ]);
 
-        const programme = pickFirstString(s as any, [
+        const programmeFromStudent = pickFirstString(s as any, [
           "Program Name",
           "Programme",
           "programme",
           "ProgramName",
           "program_name",
           "Programme Name",
+          "CourseName",
+          "course_name",
         ]);
+
+        const programme =
+          latestAttendanceModule ||
+          programmeFromStudent ||
+          metrics.latestProgramme ||
+          "Unknown";
 
         const coachPhone = pickFirstString(raw as any, ["owner_phone"]) || "";
         const coachEmail = pickFirstString(s as any, ["OwnerEmail", "case_owner_email"]) || "";
@@ -1197,6 +1530,11 @@ export default function Dashboard() {
         const lastMonthlyMeetingDate = getLastCompletedSessionDate(attRec?.Attendance);
 
         const progressReviewBooked = prBookedMeta.booked;
+
+        const attendanceEmail = normEmail(attRec?.Email || emailKey);
+        const attendanceDate = metrics.lastSessionDate || "";
+        const attendanceModule = latestAttendanceModule || "";
+        const attendanceContactKey = `${attendanceEmail}||${attendanceDate}||${attendanceModule}`;
 
         const learner = {
           id: id || emailKey || `${coach.id}:${fullName}`,
@@ -1299,12 +1637,37 @@ export default function Dashboard() {
         (learner as any).lastMonthlyMeetingDate =
           lastMonthlyMeetingDate;
 
+        // filters
+        // (learner as any).attendanceModules = attendanceModules;
+        (learner as any).latestAttendanceModule = latestAttendanceModule;
+
+        (learner as any).attendanceEmail = attendanceEmail;
+        (learner as any).attendanceDate = attendanceDate;
+        (learner as any).attendanceModule = attendanceModule;
+        (learner as any).attendanceContactKey = attendanceContactKey;
+
+        const matchesLearnerProgramme =
+          filters.programme === "All Programmes" ||
+          matchesAnyExactFilterValue([latestAttendanceModule], filters.programme);
+
+        const matchesLearnerOrganisation =
+          filters.organisation === "All Organizations" ||
+          matchesAnyExactFilterValue([organisation], filters.organisation);
+
+        const matchesLearnerStatus =
+          filters.status === "All Statuses" ||
+          matchesAnyExactFilterValue([learnerStatus], filters.status);
+
+        if (!matchesLearnerProgramme || !matchesLearnerOrganisation || !matchesLearnerStatus) {
+          continue;
+        }
+
         out.push(learner);
       }
     }
 
     return out.filter((l) => l.status === "Active");
-  }, [filteredRows, absenceWeeks]);
+  }, [filteredRows, absenceWeeks, filters]);
 
   const coachMarkingRows = useMemo<CoachMarkingRow[]>(() => {
     return filteredRows
@@ -1327,7 +1690,9 @@ export default function Dashboard() {
     const total = activeLearners.length;
 
     const missed = activeLearners.filter(
-      (l) => (l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25
+      (l) =>
+        Boolean((l as any).hasAttendanceInWindow) &&
+        l.lastSessionStatus === "Missed"
     ).length;
 
     const reviewDue = activeLearners.filter((l) => (l as any).__reviewFlag === "overdue").length;
@@ -1397,7 +1762,7 @@ export default function Dashboard() {
       result = activeLearners.filter(
         (l) =>
           Boolean((l as any).hasAttendanceInWindow) &&
-          ((l.missedInRow ?? 0) >= 2 || (l.absenceRatio ?? 0) >= 25)
+          l.lastSessionStatus === "Missed"
       );
     }
 
@@ -1445,104 +1810,124 @@ export default function Dashboard() {
         );
     }
 
-    return result.map((l) => ({
-      ...l,
-      isResolved: resolvedLearners.has(l.id),
-    }));
+    return result.map((l) => {
+      const contactKey = (l as any).attendanceContactKey;
 
-  }, [activeLearners, activeKpi, bookedSessionTypeFilter, resolvedLearners]);
+      return {
+        ...l,
+        isResolved: resolvedLearners.has(l.id),
+        called: contactActions[contactKey]?.called ?? false,
+        emailed: contactActions[contactKey]?.emailed ?? false,
+      };
+    });
+
+  }, [activeLearners, activeKpi, bookedSessionTypeFilter, resolvedLearners, contactActions]);
 
   return (
     <AppLayout>
-      <GlobalFilters
-        rows={rows}
-        loading={loading}
-        filters={filters}
-        onChange={setFilters}
-        onRefresh={load}
-      />
-
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {kpiCards.map((card, i) => (
-            <div
-              key={card.id}
-              className="animate-fade-in"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <KpiCard
-                data={card}
-                active={activeKpi === card.id}
-                onClick={() => setActiveKpi(activeKpi === card.id ? null : (card.id as KpiCategory))}
-              />
-            </div>
-          ))}
+      <div className="min-h-screen bg-[#F8F8F8] text-[#4C4C4C]">
+        <div className="border-b border-[#E4E4E4] bg-white">
+          <GlobalFilters
+            rows={rows}
+            loading={loading}
+            filters={filters}
+            onChange={setFilters}
+            onRefresh={load}
+          />
         </div>
 
-        {activeKpi === "coach-marking-overdue" && (
-          <div>
-            <h3 className="text-base font-semibold text-foreground mb-3">
-              {kpiCards.find((c) => c.id === activeKpi)?.title} , {coachMarkingRows.length} coach
-              {coachMarkingRows.length !== 1 ? "es" : ""}
-            </h3>
-
-            <CoachMarkingTable rows={coachMarkingRows} />
-          </div>
-        )}
-
-        {activeKpi && activeKpi !== "coach-marking-overdue" && (
-          <div>
-            <h3 className="text-base font-semibold text-foreground mb-3">
-              {kpiCards.find((c) => c.id === activeKpi)?.title} , {filteredLearners.length} learner
-              {filteredLearners.length !== 1 ? "s" : ""}
-            </h3>
-
-            {activeKpi === "missed-session" && (
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm text-muted-foreground">Absence Window</span>
-                <select
-                  value={absenceWeeks}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setAbsenceWeeks(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3));
-                  }}
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                >
-                  <option value="all">All</option>
-                  <option value={0}>This week , {getWeekLabel(0)}</option>
-                  <option value={1}>Previous week , {getWeekLabel(1)}</option>
-                  <option value={2}>2 weeks ago , {getWeekLabel(2)}</option>
-                  <option value={3}>3 weeks ago , {getWeekLabel(3)}</option>
-                </select>
+        <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4 items-stretch">
+            {kpiCards.map((card, i) => (
+              <div
+                key={card.id}
+                className="min-w-0 animate-fade-in"
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
+                <KpiCard
+                  data={card}
+                  active={activeKpi === card.id}
+                  onClick={() => setActiveKpi(activeKpi === card.id ? null : (card.id as KpiCategory))}
+                />
               </div>
-            )}
-
-            <LearnerTable
-              learners={filteredLearners}
-              kpiCategory={activeKpi}
-              onSelectLearner={setSelectedLearner}
-              sessionTypeFilter={bookedSessionTypeFilter}
-              onSessionTypeFilterChange={setBookedSessionTypeFilter}
-            />
+            ))}
           </div>
-        )}
 
-        {!activeKpi && (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-lg">Click a KPI card above to view learners requiring action</p>
-            <p className="text-sm mt-1">Select a risk category to see the detailed learner list</p>
-          </div>
-        )}
+          {activeKpi === "coach-marking-overdue" && (
+            <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 sm:p-5 shadow-sm">
+              <h3 className="mb-4 text-base sm:text-lg font-semibold text-[#4C4C4C]">
+                {kpiCards.find((c) => c.id === activeKpi)?.title} , {coachMarkingRows.length} coach
+                {coachMarkingRows.length !== 1 ? "es" : ""}
+              </h3>
+
+              <CoachMarkingTable rows={coachMarkingRows} />
+            </div>
+          )}
+
+          {activeKpi && activeKpi !== "coach-marking-overdue" && (
+            <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 sm:p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-[#4C4C4C]">
+                  {kpiCards.find((c) => c.id === activeKpi)?.title} , {filteredLearners.length} learner
+                  {filteredLearners.length !== 1 ? "s" : ""}
+                </h3>
+
+                {activeKpi === "missed-session" && (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="text-sm text-[#808080]">Absence Window</span>
+                    <select
+                      value={absenceWeeks}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setAbsenceWeeks(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3));
+                      }}
+                      className="h-10 w-full sm:w-auto rounded-xl border border-[#E4E4E4] bg-white px-3 text-sm text-[#4C4C4C]"
+                    >
+                      <option value="all">All</option>
+                      <option value={0}>This week , {getWeekLabel(0)}</option>
+                      <option value={1}>Previous week , {getWeekLabel(1)}</option>
+                      <option value={2}>2 weeks ago , {getWeekLabel(2)}</option>
+                      <option value={3}>3 weeks ago , {getWeekLabel(3)}</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-[#E4E4E4] bg-white">
+                <LearnerTable
+                  learners={filteredLearners}
+                  kpiCategory={activeKpi}
+                  onSelectLearner={setSelectedLearner}
+                  sessionTypeFilter={bookedSessionTypeFilter}
+                  onSessionTypeFilterChange={setBookedSessionTypeFilter}
+                  onUpdateContactAction={updateContactAction}
+                />
+              </div>
+            </div>
+          )}
+
+          {!activeKpi && (
+            <div className="rounded-2xl border border-dashed border-[#E4E4E4] bg-white px-4 py-12 sm:px-6 sm:py-16 text-center shadow-sm">
+              <p className="text-base sm:text-lg font-medium text-[#4C4C4C]">
+                Click a KPI card above to view learners requiring action
+              </p>
+              <p className="mt-1 text-sm text-[#808080]">
+                Select a risk category to see the detailed learner list
+              </p>
+            </div>
+          )}
+        </div>
+
+        <LearnerDrawer
+          learner={selectedLearner}
+          open={!!selectedLearner}
+          onClose={() => setSelectedLearner(null)}
+          onResolve={(id) => {
+            setResolvedLearners((prev) => new Set(prev).add(id));
+          }}
+        />
       </div>
-
-      <LearnerDrawer
-        learner={selectedLearner}
-        open={!!selectedLearner}
-        onClose={() => setSelectedLearner(null)}
-        onResolve={(id) => {
-          setResolvedLearners(prev => new Set(prev).add(id));
-        }}
-      />
     </AppLayout>
   );
+
 }

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Download, Phone, Mail, ArrowUpDown } from "lucide-react";
+import { Search, Download, Phone, Mail, ArrowUpDown, X } from "lucide-react";
 
 interface LearnerTableProps {
   learners: Learner[];
@@ -14,6 +14,14 @@ interface LearnerTableProps {
   onSessionTypeFilterChange?: (
     value: "All Session Types" | "Progress Review" | "MCM" | "Support Session"
   ) => void;
+  onUpdateContactAction?: (payload: {
+    contactKey: string;
+    email: string;
+    date: string;
+    module: string;
+    called: boolean;
+    emailed: boolean;
+  }) => void;
 }
 
 const SESSION_TYPE_OPTIONS = [
@@ -88,6 +96,7 @@ export default function LearnerTable({
   onSelectLearner,
   sessionTypeFilter = "All Session Types",
   onSessionTypeFilterChange,
+  onUpdateContactAction,
 }: LearnerTableProps) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -323,7 +332,7 @@ export default function LearnerTable({
     kpiCategory === "otj-behind"
       ? 11
       : kpiCategory === "missed-session"
-        ? 9
+        ? 11
         : kpiCategory === "review-due"
           ? 9
           : kpiCategory === "coaching-due"
@@ -333,285 +342,368 @@ export default function LearnerTable({
               : 7;
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, employer, email, phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+    <div className="animate-fade-in rounded-2xl border border-[#E8E8E8] bg-white p-3 sm:p-4 shadow-sm">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-[360px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
+            <Input
+              type="search"
+              name="learner_lookup"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="Search by name, employer, email, phone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-11 rounded-xl border-[#E4E4E4] bg-[#FFFFFF] pl-10 pr-4 text-sm text-[#4C4C4C] placeholder:text-[#A0A0A0] focus-visible:ring-2 focus-visible:ring-[#B27715]/20 focus-visible:border-[#B27715]"
+            />
+          </div>
+
+          {kpiCategory === "coaching-booked" && (
+            <select
+              value={sessionTypeFilter}
+              onChange={(e) =>
+                onSessionTypeFilterChange?.(
+                  e.target.value as "All Session Types" | "Progress Review" | "MCM" | "Support Session"
+                )
+              }
+              className="h-11 w-full rounded-xl border border-[#E4E4E4] bg-white px-3 text-sm text-[#4C4C4C] outline-none sm:w-auto sm:min-w-[220px]"
+            >
+              {SESSION_TYPE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        {kpiCategory === "coaching-booked" && (
-          <select
-            value={sessionTypeFilter}
-            onChange={(e) =>
-              onSessionTypeFilterChange?.(
-                e.target.value as "All Session Types" | "Progress Review" | "MCM" | "Support Session"
-              )
-            }
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          >
-            {SESSION_TYPE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        )}
-
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
           {selected.size > 0 && (
             <>
-              <Button size="sm" variant="outline" className="gap-1.5">
-                <Mail className="w-3.5 h-3.5" /> Email {selected.size}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#644D93] hover:bg-[#FCF3FF] hover:text-[#644D93]"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Email {selected.size}
               </Button>
-              <Button size="sm" variant="outline" className="gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> Call {selected.size}
+
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#B27715] hover:bg-[#FFF8EE] hover:text-[#B27715]"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Call {selected.size}
               </Button>
             </>
           )}
 
-          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
-            <Download className="w-3.5 h-3.5" /> Export CSV
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExport}
+            className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-[#FCF3FF] text-[#866CB6] hover:bg-[#F7ECFF] hover:text-[#644D93]"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
           </Button>
         </div>
       </div>
 
-      <div className="bg-card rounded-lg border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="p-3 w-10">
-                <Checkbox
-                  checked={selected.size === filtered.length && filtered.length > 0}
-                  onCheckedChange={toggleAll}
-                />
-              </th>
+      <div className="overflow-hidden rounded-2xl border border-[#ECECEC] bg-white">
+        <div className="overflow-x-auto">
+          <table className="min-w-[980px] w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#F0F0F0] bg-[#FAF7FC]">
+                <th className="p-3 w-10">
+                  <Checkbox
+                    checked={selected.size === filtered.length && filtered.length > 0}
+                    onCheckedChange={toggleAll}
+                  />
+                </th>
 
-              <th
-                className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
-                onClick={() => toggleSort("lastName")}
-              >
-                <span className="flex items-center gap-1">
-                  Learner <ArrowUpDown className="w-3 h-3" />
-                </span>
-              </th>
-
-              <th className="p-3 text-left font-medium text-muted-foreground">
-                Learner Phone
-              </th>
-
-              <th className="p-3 text-left font-medium text-muted-foreground">Organisation</th>
-              <th className="p-3 text-left font-medium text-muted-foreground">Programme</th>
-              <th className="p-3 text-left font-medium text-muted-foreground">Coach</th>
-
-              {kpiCategory === "otj-behind" && (
-                <>
-                  <th
-                    className="p-3 text-right font-medium text-muted-foreground cursor-pointer"
-                    onClick={() => toggleSort("otjBehind")}
-                  >
-                    <span className="flex items-center gap-1 justify-end">
-                      Behind % <ArrowUpDown className="w-3 h-3" />
-                    </span>
-                  </th>
-                  <th className="p-3 text-right font-medium text-muted-foreground">Planned</th>
-                  <th className="p-3 text-right font-medium text-muted-foreground">Completed</th>
-                  <th className="p-3 text-right font-medium text-muted-foreground">
-                    Required Hours to submit
-                  </th>
-                </>
-              )}
-
-              {kpiCategory === "missed-session" && (
-                <>
-                  <th className="p-3 text-left font-medium text-muted-foreground">Last Session</th>
-                  <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
-                </>
-              )}
-
-              {kpiCategory === "review-due" && (
-                <>
-                  <th className="p-3 text-left font-medium text-muted-foreground">
-                    Last Progress Review
-                  </th>
-                  <th className="p-3 text-left font-medium text-muted-foreground">
-                    Overdue PR Date
-                  </th>
-                </>
-              )}
-
-              {kpiCategory === "coaching-due" && (
-                <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
-              )}
-
-              {kpiCategory === "coaching-booked" && (
-                <>
-                  <th
-                    className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
-                    onClick={() => toggleSort("sessionType")}
-                  >
-                    <span className="flex items-center gap-1">
-                      Session Type <ArrowUpDown className="w-3 h-3" />
-                    </span>
-                  </th>
-
-                  <th
-                    className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
-                    onClick={() => toggleSort("sessionDate")}
-                  >
-                    <span className="flex items-center gap-1">
-                      Session Date <ArrowUpDown className="w-3 h-3" />
-                    </span>
-                  </th>
-                </>
-              )}
-
-              {kpiCategory !== "coaching-booked" && (
-                <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
-              )}
-            </tr>
-          </thead>
-
-          <tbody>
-            {filtered.map((l) => {
-              const behindPct = calcBehindPct(l);
-
-              return (
-                <tr
-                  key={l.id}
-                  className="border-b hover:bg-muted/30 cursor-pointer transition-colors"
-                  onClick={() => onSelectLearner(l)}
+                <th
+                  className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
+                  onClick={() => toggleSort("lastName")}
                 >
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selected.has(l.id)}
-                      onCheckedChange={() => {
-                        const next = new Set(selected);
-                        next.has(l.id) ? next.delete(l.id) : next.add(l.id);
-                        setSelected(next);
-                      }}
-                    />
-                  </td>
+                  <span className="flex items-center gap-1">
+                    Learner <ArrowUpDown className="w-3 h-3" />
+                  </span>
+                </th>
 
-                  <td className="p-3 font-medium text-foreground flex items-center gap-2">
-                    {l.firstName} {l.lastName}
+                <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                  Learner Phone
+                </th>
 
-                    {l.isResolved && (
-                      <Badge className="bg-green-100 text-green-700 border-0 text-[11px]">
-                        Resolved
-                      </Badge>
+                {kpiCategory === "missed-session" && (
+                  <>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                      Called
+                    </th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                      Emailed
+                    </th>
+                  </>
+                )}
+
+                <th className="p-3 text-left font-medium text-muted-foreground">Organisation</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Programme</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Coach</th>
+
+                {kpiCategory === "otj-behind" && (
+                  <>
+                    <th
+                      className="p-3 text-right font-medium text-muted-foreground cursor-pointer"
+                      onClick={() => toggleSort("otjBehind")}
+                    >
+                      <span className="flex items-center gap-1 justify-end">
+                        Behind % <ArrowUpDown className="w-3 h-3" />
+                      </span>
+                    </th>
+                    <th className="p-3 text-right font-medium text-muted-foreground">Planned</th>
+                    <th className="p-3 text-right font-medium text-muted-foreground">Completed</th>
+                    <th className="p-3 text-right font-medium text-muted-foreground">
+                      Required Hours to submit
+                    </th>
+                  </>
+                )}
+
+                {kpiCategory === "missed-session" && (
+                  <>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Last Session</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
+                  </>
+                )}
+
+                {kpiCategory === "review-due" && (
+                  <>
+                    <th className="p-3 text-left font-medium text-muted-foreground">
+                      Last Progress Review
+                    </th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">
+                      Overdue PR Date
+                    </th>
+                  </>
+                )}
+
+                {kpiCategory === "coaching-due" && (
+                  <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
+                )}
+
+                {kpiCategory === "coaching-booked" && (
+                  <>
+                    <th
+                      className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
+                      onClick={() => toggleSort("sessionType")}
+                    >
+                      <span className="flex items-center gap-1">
+                        Session Type <ArrowUpDown className="w-3 h-3" />
+                      </span>
+                    </th>
+
+                    <th
+                      className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
+                      onClick={() => toggleSort("sessionDate")}
+                    >
+                      <span className="flex items-center gap-1">
+                        Session Date <ArrowUpDown className="w-3 h-3" />
+                      </span>
+                    </th>
+                  </>
+                )}
+
+                {kpiCategory !== "coaching-booked" && (
+                  <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
+                )}
+              </tr>
+            </thead>
+
+            <tbody>
+              {filtered.map((l) => {
+                const behindPct = calcBehindPct(l);
+
+                return (
+                  <tr
+                    key={l.id}
+                    className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                    onClick={() => onSelectLearner(l)}
+                  >
+                    <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(l.id)}
+                        onCheckedChange={() => {
+                          const next = new Set(selected);
+                          next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                          setSelected(next);
+                        }}
+                      />
+                    </td>
+
+                    <td className="px-4 py-3.5 font-medium text-[#505050]">
+                      <div className="flex items-center gap-2">
+                        {l.firstName} {l.lastName}
+                        {l.isResolved && (
+                          <Badge className="border-0 bg-green-100 text-green-700 text-[11px]">
+                            Resolved
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="p-3 text-muted-foreground">
+                      {l.phone || "N/A"}
+                    </td>
+
+                    {kpiCategory === "missed-session" && (
+                      <>
+                        <td
+                          className="p-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={Boolean((l as any).called)}
+                            onCheckedChange={(checked) => {
+                              onUpdateContactAction?.({
+                                contactKey: String((l as any).attendanceContactKey || ""),
+                                email: String((l as any).attendanceEmail || ""),
+                                date: String((l as any).attendanceDate || ""),
+                                module: String((l as any).attendanceModule || ""),
+                                called: Boolean(checked),
+                                emailed: Boolean((l as any).emailed),
+                              });
+                            }}
+                          />
+                        </td>
+
+                        <td
+                          className="p-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={Boolean((l as any).emailed)}
+                            onCheckedChange={(checked) => {
+                              onUpdateContactAction?.({
+                                contactKey: String((l as any).attendanceContactKey || ""),
+                                email: String((l as any).attendanceEmail || ""),
+                                date: String((l as any).attendanceDate || ""),
+                                module: String((l as any).attendanceModule || ""),
+                                called: Boolean((l as any).called),
+                                emailed: Boolean(checked),
+                              });
+                            }}
+                          />
+                        </td>
+                      </>
                     )}
-                  </td>
 
-                  <td className="p-3 text-muted-foreground">
-                    {l.phone || "N/A"}
-                  </td>
+                    <td className="px-4 py-3.5 text-[#7C7C7C]">{l.organisation}</td>
+                    <td className="p-3 text-muted-foreground">{l.programme}</td>
+                    <td className="p-3 text-muted-foreground">{l.coach}</td>
 
-                  <td className="p-3 text-muted-foreground">{l.organisation}</td>
-                  <td className="p-3 text-muted-foreground">{l.programme}</td>
-                  <td className="p-3 text-muted-foreground">{l.coach}</td>
+                    {kpiCategory === "otj-behind" && (
+                      <>
+                        <td className="p-3 text-center font-semibold">
+                          <span
+                            className={
+                              behindPct > 40
+                                ? "text-severity-critical"
+                                : behindPct > 20
+                                  ? "text-severity-overdue"
+                                  : "text-foreground"
+                            }
+                          >
+                            {behindPct}%
+                          </span>
+                        </td>
+                        <td className="p-3 text-center text-muted-foreground">{l.plannedOtjHours}h</td>
+                        <td className="p-3 text-center text-muted-foreground">{l.actualOtjHours}h</td>
+                        <td className="p-3 text-center text-muted-foreground">
+                          {getRequiredHoursToSubmit(l)}
+                        </td>
+                      </>
+                    )}
 
-                  {kpiCategory === "otj-behind" && (
-                    <>
-                      <td className="p-3 text-center font-semibold">
-                        <span
-                          className={
-                            behindPct > 40
-                              ? "text-severity-critical"
-                              : behindPct > 20
-                                ? "text-severity-overdue"
-                                : "text-foreground"
-                          }
-                        >
-                          {behindPct}%
-                        </span>
-                      </td>
-                      <td className="p-3 text-center text-muted-foreground">{l.plannedOtjHours}h</td>
-                      <td className="p-3 text-center text-muted-foreground">{l.actualOtjHours}h</td>
-                      <td className="p-3 text-center text-muted-foreground">
-                        {getRequiredHoursToSubmit(l)}
-                      </td>
-                    </>
-                  )}
+                    {kpiCategory === "missed-session" && (
+                      <>
+                        <td className="p-3 text-muted-foreground">{l.lastSessionDate}</td>
+                        <td className="p-3">
+                          <Badge
+                            variant="outline"
+                            className={
+                              l.lastSessionStatus === "Attended"
+                                ? "text-[11px] border-emerald-300 text-emerald-700 bg-emerald-50"
+                                : l.lastSessionStatus === "Missed"
+                                  ? "text-[11px] border-rose-300 text-rose-700 bg-rose-50"
+                                  : "text-[11px] border-slate-300 text-slate-600 bg-slate-50"
+                            }
+                          >
+                            {l.lastSessionStatus}
+                          </Badge>
+                        </td>
+                      </>
+                    )}
 
-                  {kpiCategory === "missed-session" && (
-                    <>
-                      <td className="p-3 text-muted-foreground">{l.lastSessionDate}</td>
-                      <td className="p-3">
-                        <Badge
-                          variant="outline"
-                          className={
-                            l.lastSessionStatus === "Attended"
-                              ? "text-[11px] border-emerald-300 text-emerald-700 bg-emerald-50"
-                              : l.lastSessionStatus === "Missed"
-                                ? "text-[11px] border-rose-300 text-rose-700 bg-rose-50"
-                                : "text-[11px] border-slate-300 text-slate-600 bg-slate-50"
-                          }
-                        >
-                          {l.lastSessionStatus}
+                    {kpiCategory === "review-due" && (
+                      <>
+                        <td className="p-3 text-muted-foreground">
+                          {l.lastProgressReviewDate || "N/A"}
+                        </td>
+                        <td className="p-3 text-muted-foreground">
+                          {(l as any).nextProgressReviewDue || "N/A"}
+                        </td>
+                      </>
+                    )}
+
+                    {kpiCategory === "coaching-due" && (
+                      <td className="px-4 py-3.5">
+                        <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#B27715]">
+                          {String((l as any).nextMonthlyMeetingDue || "Due")}
                         </Badge>
                       </td>
-                    </>
-                  )}
+                    )}
 
-                  {kpiCategory === "review-due" && (
-                    <>
-                      <td className="p-3 text-muted-foreground">
-                        {l.lastProgressReviewDate || "N/A"}
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {(l as any).nextProgressReviewDue || "N/A"}
-                      </td>
-                    </>
-                  )}
+                    {kpiCategory === "coaching-booked" && (
+                      <>
+                        <td className="p-3 text-muted-foreground">
+                          {String((l as any).anyBookedSessionType || "Unknown")}
+                        </td>
+                        <td className="p-3 text-muted-foreground">
+                          {String((l as any).anyBookedSessionDate || "N/A")}
+                        </td>
+                      </>
+                    )}
 
-                  {kpiCategory === "coaching-due" && (
-                    <td className="p-3 text-muted-foreground">
-                      {String((l as any).nextMonthlyMeetingDue || "Due")}
-                    </td>
-                  )}
-
-                  {kpiCategory === "coaching-booked" && (
-                    <>
-                      <td className="p-3 text-muted-foreground">
-                        {String((l as any).anyBookedSessionType || "Unknown")}
+                    {kpiCategory !== "coaching-booked" && (
+                      <td className="p-3">
+                        {kpiCategory === "otj-behind"
+                          ? otjPriorityBadge(String((l as any).otjPriority || "normal"))
+                          : priorityBadge(l.priority)}
                       </td>
-                      <td className="p-3 text-muted-foreground">
-                        {String((l as any).anyBookedSessionDate || "N/A")}
-                      </td>
-                    </>
-                  )}
+                    )}
+                  </tr>
+                );
+              })}
 
-                  {kpiCategory !== "coaching-booked" && (
-                    <td className="p-3">
-                      {kpiCategory === "otj-behind"
-                        ? otjPriorityBadge(String((l as any).otjPriority || "normal"))
-                        : priorityBadge(l.priority)}
-                    </td>
-                  )}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={colSpan} className="p-8 text-center text-muted-foreground">
+                    No learners found
+                  </td>
                 </tr>
-              );
-            })}
+              )}
+            </tbody>
+          </table>
+        </div>
 
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={colSpan} className="p-8 text-center text-muted-foreground">
-                  No learners found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <p className="mt-3 text-xs text-[#8C8C8C]">
+          {filtered.length} learner{filtered.length !== 1 ? "s" : ""} • {selected.size} selected
+        </p>
       </div>
-
-      <p className="text-xs text-muted-foreground mt-2">
-        {filtered.length} learner{filtered.length !== 1 ? "s" : ""} • {selected.size} selected
-      </p>
     </div>
   );
 }

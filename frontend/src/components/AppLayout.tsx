@@ -21,52 +21,50 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col shrink-0">
-        <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-accent flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-sidebar-primary" />
+    <div className="flex h-screen overflow-hidden bg-[#F8F8F8]">
+      <aside className="w-64 shrink-0 flex flex-col bg-gradient-to-b from-[#24105A] via-[#30156E] to-[#4A2F81] text-white border-r border-white/10 shadow-xl">
+        <div className="px-5 py-5 flex items-center gap-3 border-b border-white/10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/12 backdrop-blur-sm">
+            <GraduationCap className="h-5 w-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-sidebar-primary leading-tight">Kent Business College</h1>
-            <p className="text-[11px] text-sidebar-foreground/60">Engagement Coordinator</p>
+
+          <div className="min-w-0">
+            <h1 className="text-[15px] font-bold leading-tight text-white">
+              Kent Business College
+            </h1>
+            <p className="text-[11px] text-white/65">
+              Engagement Coordinator
+            </p>
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map(item => {
+
+        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
+          {navItems.map((item) => {
             const active = location.pathname === item.path;
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all duration-200 ${
                   active
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                    ? 'bg-[#A88CD9] text-white shadow-sm'
+                    : 'text-white/88 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <item.icon className="w-4 h-4" />
-                {item.label}
+                <item.icon
+                  className={`h-4 w-4 shrink-0 ${
+                    active ? 'text-white' : 'text-white/90'
+                  }`}
+                />
+                <span className="truncate font-medium">{item.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-primary">
-              JC
-            </div>
-            <div>
-              <p className="text-sm font-medium text-sidebar-primary">Jane Cooper</p>
-              <p className="text-[11px] text-sidebar-foreground/50">Engagement Coordinator</p>
-            </div>
-          </div>
-        </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto bg-background">
+      <main className="flex-1 overflow-auto bg-[#F8F8F8]">
         {children}
       </main>
     </div>

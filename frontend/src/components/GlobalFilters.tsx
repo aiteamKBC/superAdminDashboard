@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo,useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -13,6 +13,9 @@ import { RefreshCcw, Settings2 } from "lucide-react";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
 import type { DashboardFilters } from "@/lib/filters/dashboardFilters";
 
+const ALL_PROGRAMMES = "All Programmes";
+const ALL_COACHES = "All Coaches";
+const ALL_RATINGS = "All Ratings";
 const ALL_ORGANIZATIONS = "All Organizations";
 const ALL_STATUSES = "All Statuses";
 
@@ -24,7 +27,71 @@ type Props = {
   onRefresh?: () => void;
 };
 
-const unique = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
+/********************************** Helpers ***************************/
+
+// TODO: dedupe with Index.tsx
+const parseAttendanceDate = (raw: string): Date | null => {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+
+  const m = s.match(/^(\d{4})[-/\s](\d{2})[-/\s](\d{2})/);
+  if (!m) return null;
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+
+  const dt = new Date(year, month - 1, day);
+  if (Number.isNaN(dt.getTime())) return null;
+
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const getLatestAttendanceModule = (
+  attendance:
+    | Record<
+      string,
+      { value?: number; module?: string } | Array<{ value?: number; module?: string }>
+    >
+    | undefined
+) => {
+  const entries = Object.entries(attendance || {})
+    .flatMap(([rawKey, rawValue]) => {
+      const parsed = parseAttendanceDate(rawKey);
+      if (!parsed) return [];
+
+      const values = Array.isArray(rawValue)
+        ? rawValue
+        : rawValue && typeof rawValue === "object"
+          ? [rawValue]
+          : [];
+
+      return values.map((value, index) => ({
+        parsed,
+        sortIndex: index,
+        module: getModuleLabel(value?.module),
+      }));
+    })
+    .filter((x) => x.module)
+    .sort((a, b) => {
+      const diff = a.parsed.getTime() - b.parsed.getTime();
+      if (diff !== 0) return diff;
+      return a.sortIndex - b.sortIndex;
+    });
+
+  return entries.length ? entries[entries.length - 1].module : "";
+};
+
+const unique = (arr: string[]) =>
+  Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
+
+const sortAlpha = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b));
+
+const withAllFirst = (allLabel: string, values: string[]) => [
+  allLabel,
+  ...sortAlpha(unique(values).filter((v) => v !== allLabel)),
+];
 
 const asArray = (v: any): any[] => {
   if (!v) return [];
@@ -46,30 +113,65 @@ const asArray = (v: any): any[] => {
   return [];
 };
 
-const getStudentsFromRaw = (raw: any): any[] => {
+const getLearnersJsonStudentsFromRaw = (raw: any): any[] => {
   const fromLearnersJson = asArray(raw?.learners_json);
   if (fromLearnersJson.length) return fromLearnersJson;
 
   const fromNested = asArray(raw?.learners_json?.students);
   if (fromNested.length) return fromNested;
 
-  return asArray(raw?.students);
+  return [];
+};
+
+const getAttendanceLearnersFromRaw = (raw: any): any[] => {
+  const learners = raw?.attendance?.learners;
+  return Array.isArray(learners) ? learners : [];
+};
+
+const getModuleLabel = (moduleStr: unknown) => {
+  return String(moduleStr || "").trim();
+};
+
+const getAttendanceEntries = (
+  attendance:
+    | Record<
+      string,
+      { value?: number; module?: string } | Array<{ value?: number; module?: string }>
+    >
+    | undefined
+) => {
+  const entries = Object.entries(attendance || {});
+  if (!entries.length) return [];
+
+  return entries.flatMap(([, rawValue]) => {
+    if (Array.isArray(rawValue)) return rawValue;
+    if (rawValue && typeof rawValue === "object") return [rawValue];
+    return [];
+  });
 };
 
 const pickOrganisation = (student: any) =>
   String(
     student?.OrganizationName ||
-      ""
+    student?.OrganisationName ||
+    student?.Organization ||
+    student?.Organisation ||
+    student?.CompanyName ||
+    student?.company_name ||
+    student?.Employer ||
+    student?.EmployerName ||
+    student?.employer_name ||
+    ""
   ).trim();
 
 const pickStatus = (student: any) =>
   String(
     student?.["Program-Status"] ||
-      student?.["Program Status"] ||
-      student?.program_status ||
-      student?.Status ||
-      student?.status ||
-      ""
+    student?.["Program Status"] ||
+    student?.program_status ||
+    student?.Status ||
+    student?.status ||
+    ""
   ).trim();
 
 export default function GlobalFilters({
@@ -84,57 +186,101 @@ export default function GlobalFilters({
 
   const coachOptions = useMemo(() => {
     const names = safeRows
-      .map((r) => r.name?.trim())
+      .map((r) => String(r.name || "").trim())
       .filter((n) => n && n !== "Unknown" && n !== "API Do Not Delete");
 
-    return unique(["All Coaches", ...names]).sort((a, b) => a.localeCompare(b));
+    return withAllFirst(ALL_COACHES, names);
   }, [safeRows]);
 
   const programmeOptions = useMemo(() => {
     const all: string[] = [];
-    safeRows.forEach((r) => (r.programmes || []).forEach((p) => all.push(p)));
 
-    return unique(["All Programmes", ...all]).sort((a, b) => a.localeCompare(b));
+    safeRows.forEach((row) => {
+      const attendanceLearners = getAttendanceLearnersFromRaw(row.raw);
+
+      attendanceLearners.forEach((learner: any) => {
+        const latestModule = getLatestAttendanceModule(learner?.Attendance);
+        if (latestModule) all.push(latestModule);
+      });
+    });
+
+    return withAllFirst(ALL_PROGRAMMES, all);
   }, [safeRows]);
 
+  const latestProgrammeAudit = useMemo(() => {
+  const expectedModules: string[] = [];
+
+  safeRows.forEach((row) => {
+    const attendanceLearners = getAttendanceLearnersFromRaw(row.raw);
+
+    attendanceLearners.forEach((learner: any) => {
+      const latestModule = getLatestAttendanceModule(learner?.Attendance);
+      if (latestModule) expectedModules.push(latestModule);
+    });
+  });
+
+  const expectedUnique = withAllFirst(ALL_PROGRAMMES, expectedModules);
+  const actualUnique = programmeOptions;
+
+  const extraInFilter = actualUnique.filter((x) => !expectedUnique.includes(x));
+  const missingFromFilter = expectedUnique.filter((x) => !actualUnique.includes(x));
+
+  return {
+    expectedUnique,
+    actualUnique,
+    extraInFilter,
+    missingFromFilter,
+  };
+}, [safeRows, programmeOptions]);
+
+useEffect(() => {
+  console.log("Programme filter audit", latestProgrammeAudit);
+  console.table(
+    latestProgrammeAudit.expectedUnique.map((module) => ({
+      module,
+      inFilter: latestProgrammeAudit.actualUnique.includes(module),
+    }))
+  );
+}, [latestProgrammeAudit]);
+
   const ratingOptions = useMemo(() => {
-    return unique(["All Ratings", ...safeRows.map((r) => r.rating || "Unknown")]);
+    const ratings = safeRows.map((r) => String(r.rating || "Unknown").trim() || "Unknown");
+    return withAllFirst(ALL_RATINGS, ratings);
   }, [safeRows]);
 
   const organisationOptions = useMemo(() => {
-    const set = new Set<string>();
+    const all: string[] = [];
 
-    safeRows.forEach((r) => {
-      const students = getStudentsFromRaw(r.raw);
-      students.forEach((student: any) => {
-        const org = pickOrganisation(student);
-        if (org) set.add(org);
+    safeRows.forEach((row) => {
+      const learnersJsonStudents = getLearnersJsonStudentsFromRaw(row.raw);
+      learnersJsonStudents.forEach((student: any) => {
+        const organisation = pickOrganisation(student);
+        if (organisation) all.push(organisation);
       });
     });
 
-    return [ALL_ORGANIZATIONS, ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+    return withAllFirst(ALL_ORGANIZATIONS, all);
   }, [safeRows]);
 
   const statusOptions = useMemo(() => {
-    const set = new Set<string>();
+    const all: string[] = [];
 
-    safeRows.forEach((r) => {
-      const students = getStudentsFromRaw(r.raw);
-      students.forEach((student: any) => {
+    safeRows.forEach((row) => {
+      const learnersJsonStudents = getLearnersJsonStudentsFromRaw(row.raw);
+      learnersJsonStudents.forEach((student: any) => {
         const status = pickStatus(student);
-        if (status) set.add(status);
+        if (status) all.push(status);
       });
     });
 
-    const dynamic = Array.from(set).sort((a, b) => a.localeCompare(b));
-    return [ALL_STATUSES, ...dynamic];
+    return withAllFirst(ALL_STATUSES, all);
   }, [safeRows]);
 
   const riskOptions = ["All", "On track", "At risk", "Overdue", "Unknown"];
 
   return (
-    <div className="bg-card border-b px-6 py-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="border-b bg-card px-6 py-4">
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">
           Engagement Coordinator , Learner Risk & Actions
         </h2>
@@ -154,27 +300,29 @@ export default function GlobalFilters({
             className="gap-1.5 text-muted-foreground"
             onClick={() => onRefresh?.()}
           >
-            <RefreshCcw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCcw className="h-3.5 w-3.5" />
+            Refresh
           </Button>
 
           <Button size="sm" variant="outline" className="gap-1.5">
-            <Settings2 className="w-3.5 h-3.5" /> Thresholds
+            <Settings2 className="h-3.5 w-3.5" />
+            Thresholds
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center gap-3">
         <Select
           value={filters.programme}
           onValueChange={(v) => onChange({ ...filters, programme: v })}
         >
-          <SelectTrigger className="w-[220px] h-9 text-sm">
+          <SelectTrigger className="h-9 w-[220px] text-sm">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
-            {programmeOptions.map((p) => (
-              <SelectItem key={p} value={p}>
-                {p}
+            {programmeOptions.map((programme) => (
+              <SelectItem key={programme} value={programme}>
+                {programme}
               </SelectItem>
             ))}
           </SelectContent>
@@ -184,13 +332,13 @@ export default function GlobalFilters({
           value={filters.coach}
           onValueChange={(v) => onChange({ ...filters, coach: v })}
         >
-          <SelectTrigger className="w-[190px] h-9 text-sm">
+          <SelectTrigger className="h-9 w-[190px] text-sm">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
-            {coachOptions.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
+            {coachOptions.map((coach) => (
+              <SelectItem key={coach} value={coach}>
+                {coach}
               </SelectItem>
             ))}
           </SelectContent>
@@ -200,13 +348,13 @@ export default function GlobalFilters({
           value={filters.rating}
           onValueChange={(v) => onChange({ ...filters, rating: v })}
         >
-          <SelectTrigger className="w-[160px] h-9 text-sm">
+          <SelectTrigger className="h-9 w-[160px] text-sm">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
-            {ratingOptions.map((r) => (
-              <SelectItem key={r} value={r}>
-                {r}
+            {ratingOptions.map((rating) => (
+              <SelectItem key={rating} value={rating}>
+                {rating}
               </SelectItem>
             ))}
           </SelectContent>
@@ -216,13 +364,13 @@ export default function GlobalFilters({
           value={filters.risk}
           onValueChange={(v) => onChange({ ...filters, risk: v })}
         >
-          <SelectTrigger className="w-[150px] h-9 text-sm">
+          <SelectTrigger className="h-9 w-[150px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {riskOptions.map((r) => (
-              <SelectItem key={r} value={r}>
-                {r}
+            {riskOptions.map((risk) => (
+              <SelectItem key={risk} value={risk}>
+                {risk}
               </SelectItem>
             ))}
           </SelectContent>
@@ -232,13 +380,13 @@ export default function GlobalFilters({
           value={filters.organisation}
           onValueChange={(v) => onChange({ ...filters, organisation: v })}
         >
-          <SelectTrigger className="w-[190px] h-9 text-sm">
+          <SelectTrigger className="h-9 w-[190px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {organisationOptions.map((o) => (
-              <SelectItem key={o} value={o}>
-                {o}
+            {organisationOptions.map((organisation) => (
+              <SelectItem key={organisation} value={organisation}>
+                {organisation}
               </SelectItem>
             ))}
           </SelectContent>
@@ -248,13 +396,13 @@ export default function GlobalFilters({
           value={filters.status}
           onValueChange={(v) => onChange({ ...filters, status: v })}
         >
-          <SelectTrigger className="w-[170px] h-9 text-sm">
+          <SelectTrigger className="h-9 w-[170px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {statusOptions.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
+            {statusOptions.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status}
               </SelectItem>
             ))}
           </SelectContent>

@@ -1,5 +1,4 @@
-import { useRef } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import AppLayout from "@/components/AppLayout";
@@ -13,10 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Send, Users, Edit, Eye, Clock } from "lucide-react";
 
 import { fetchUiCoaches } from "@/lib/services/kbcDashboard";
-import { buildEmailRecipients, renderTemplate, type EmailRecipient } from "@/lib/emailCenter";
+import { renderTemplate, type EmailRecipient } from "@/lib/emailCenter";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
 import { getMissedLearnersFromCoaches } from "@/lib/dashboard/getMissedLearners";
-
 
 const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
@@ -28,6 +26,16 @@ const kpiLabels: Record<string, string> = {
 type EmailCentreLocationState = {
   selectedRecipient?: EmailRecipient;
   source?: string;
+};
+
+type AbsenceWeeksFilter = "all" | 0 | 1 | 2 | 3;
+
+const absenceWindowLabels: Record<AbsenceWeeksFilter, string> = {
+  all: "All",
+  0: "This week",
+  1: "Previous week",
+  2: "2 weeks ago",
+  3: "3 weeks ago",
 };
 
 export default function EmailCentre() {
@@ -46,10 +54,11 @@ export default function EmailCentre() {
   const [sending, setSending] = useState(false);
 
   const [manualRecipients, setManualRecipients] = useState<EmailRecipient[]>([]);
-
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [absenceWeeks, setAbsenceWeeks] = useState<AbsenceWeeksFilter>(0);
+
   const subjectRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -90,28 +99,39 @@ export default function EmailCentre() {
     }
   }, [isEditing]);
 
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [absenceWeeks, selectedTemplate.id, manualRecipients.length]);
+
   const allRecipients = useMemo(() => {
-    return getMissedLearnersFromCoaches(coaches);
-  }, [coaches]);
+    return getMissedLearnersFromCoaches(coaches, absenceWeeks);
+  }, [coaches, absenceWeeks]);
 
   const bulkRecipients = useMemo(() => {
-    return allRecipients.filter(
-      (l) =>
+    if (selectedTemplate.kpiCategory === "missed-session") {
+      return allRecipients.filter((l: any) => {
+        return (
+          l.status !== "Inactive" &&
+          l.lastSessionStatus === "Missed" &&
+          Boolean(l.hasAttendanceInWindow)
+        );
+      });
+    }
+
+    return allRecipients.filter((l) => {
+      return (
         l.status !== "Inactive" &&
         Array.isArray(l.riskCategories) &&
         l.riskCategories.includes(selectedTemplate.kpiCategory)
-    );
+      );
+    });
   }, [allRecipients, selectedTemplate]);
 
-  const effectiveRecipients = manualRecipients.length > 0
-    ? manualRecipients
-    : bulkRecipients;
+  const effectiveRecipients = manualRecipients.length > 0 ? manualRecipients : bulkRecipients;
 
   const finalRecipients =
     selectedIds.length > 0
-      ? effectiveRecipients.filter((r) =>
-        selectedIds.includes(r.learnerEmail)
-      )
+      ? effectiveRecipients.filter((r) => selectedIds.includes(r.learnerEmail))
       : effectiveRecipients;
 
   const recipientCount = finalRecipients.length;
@@ -120,23 +140,32 @@ export default function EmailCentre() {
 
   const previewSubject = previewRecipient
     ? renderTemplate(subject, {
-      ...previewRecipient,
-      senderName: "Progress Coordinator",
-    })
+        ...previewRecipient,
+        senderName: "Progress Coordinator",
+      })
     : subject;
 
   const previewBody = previewRecipient
     ? renderTemplate(body, {
-      ...previewRecipient,
-      senderName: "Progress Coordinator",
-    })
+        ...previewRecipient,
+        senderName: "Progress Coordinator",
+      })
     : body;
+
+  const handleTemplateChange = (template: (typeof mockEmailTemplates)[number]) => {
+    setSelectedTemplate(template);
+    setSubject(template.subject);
+    setBody(template.body);
+    setShowPreview(false);
+  };
 
   const handleSendNow = async () => {
     if (!finalRecipients.length) return;
 
     const ok = window.confirm(
-      `You are about to send ${finalRecipients.length} email${finalRecipients.length !== 1 ? "s" : ""}. Continue?`
+      `You are about to send ${finalRecipients.length} email${
+        finalRecipients.length !== 1 ? "s" : ""
+      }. Continue?`
     );
     if (!ok) return;
 
@@ -173,9 +202,9 @@ export default function EmailCentre() {
           recipients: renderedRecipients,
           preview: renderedRecipients[0]
             ? {
-              subject: renderedRecipients[0].renderedSubject,
-              body: renderedRecipients[0].renderedBody,
-            }
+                subject: renderedRecipients[0].renderedSubject,
+                body: renderedRecipients[0].renderedBody,
+              }
             : null,
         }),
       });
@@ -203,48 +232,45 @@ export default function EmailCentre() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl">
-        <h2 className="text-xl font-semibold text-foreground mb-1">Email Centre</h2>
-        <p className="text-sm text-muted-foreground mb-6">
+      <div className="max-w-6xl p-6">
+        <h2 className="mb-1 text-xl font-semibold text-foreground">Email Centre</h2>
+        <p className="mb-6 text-sm text-muted-foreground">
           Send targeted emails to learners by risk category using pre-built templates.
         </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-3">
             <p className="text-sm font-medium text-foreground">Templates</p>
 
-            {mockEmailTemplates.map((t) => (
+            {mockEmailTemplates.map((template) => (
               <Card
-                key={t.id}
-                className={`p-4 cursor-pointer transition-all ${selectedTemplate.id === t.id ? "ring-2 ring-ring" : "hover:shadow-sm"
-                  }`}
-                onClick={() => {
-                  setSelectedTemplate(t);
-                  setSubject(t.subject);
-                  setBody(t.body);
-                }}
+                key={template.id}
+                className={`cursor-pointer p-4 transition-all ${
+                  selectedTemplate.id === template.id ? "ring-2 ring-ring" : "hover:shadow-sm"
+                }`}
+                onClick={() => handleTemplateChange(template)}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-foreground">{t.name}</p>
-                    <Badge variant="outline" className="text-[10px] mt-1">
-                      {kpiLabels[t.kpiCategory]}
+                    <p className="text-sm font-medium text-foreground">{template.name}</p>
+                    <Badge variant="outline" className="mt-1 text-[10px]">
+                      {kpiLabels[template.kpiCategory]}
                     </Badge>
                   </div>
-                  <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
               </Card>
             ))}
           </div>
 
-          <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-4 lg:col-span-2">
             {manualRecipients.length > 0 && (
-              <Card className="p-4 border-primary/30 bg-primary/5">
+              <Card className="border-primary/30 bg-primary/5 p-4">
                 <p className="text-sm font-medium text-foreground">Selected learner</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {manualRecipients[0].learnerName}, {manualRecipients[0].learnerEmail}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   This email will be sent to the selected learner only.
                 </p>
 
@@ -259,10 +285,10 @@ export default function EmailCentre() {
               </Card>
             )}
 
-            <Card className="p-5 space-y-4">
+            <Card className="space-y-4 p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Edit className="w-4 h-4" />
+                  <Edit className="h-4 w-4" />
                   <p className="text-sm font-medium text-foreground">Template</p>
                 </div>
 
@@ -281,7 +307,8 @@ export default function EmailCentre() {
                     className="gap-1.5 text-muted-foreground"
                     onClick={() => setShowPreview(true)}
                   >
-                    <Eye className="w-3.5 h-3.5" /> Preview
+                    <Eye className="h-3.5 w-3.5" />
+                    Preview
                   </Button>
                 </div>
               </div>
@@ -296,8 +323,9 @@ export default function EmailCentre() {
                   ref={subjectRef}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className={`mt-1 ${!isEditing ? "bg-muted cursor-not-allowed opacity-70" : ""
-                    }`}
+                  className={`mt-1 ${
+                    !isEditing ? "cursor-not-allowed bg-muted opacity-70" : ""
+                  }`}
                   disabled={!isEditing}
                 />
               </div>
@@ -308,17 +336,18 @@ export default function EmailCentre() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   rows={12}
-                  className={`mt-1 font-mono text-xs ${!isEditing ? "bg-muted cursor-not-allowed opacity-70" : ""
-                    }`}
+                  className={`mt-1 font-mono text-xs ${
+                    !isEditing ? "cursor-not-allowed bg-muted opacity-70" : ""
+                  }`}
                   disabled={!isEditing}
                 />
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                <p className="text-xs text-muted-foreground w-full mb-1">Available merge fields:</p>
-                {selectedTemplate.mergeFields.map((f: string) => (
-                  <Badge key={f} variant="secondary" className="text-[10px] font-mono">
-                    {`{{${f}}}`}
+                <p className="mb-1 w-full text-xs text-muted-foreground">Available merge fields:</p>
+                {selectedTemplate.mergeFields.map((field: string) => (
+                  <Badge key={field} variant="secondary" className="text-[10px] font-mono">
+                    {`{{${field}}}`}
                   </Badge>
                 ))}
               </div>
@@ -326,7 +355,7 @@ export default function EmailCentre() {
 
             {showPreview && (
               <Card className="p-4">
-                <div className="flex justify-between items-center mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm font-medium">Email Preview</p>
 
                   <Button size="sm" variant="ghost" onClick={() => setShowPreview(false)}>
@@ -335,25 +364,25 @@ export default function EmailCentre() {
                 </div>
 
                 <iframe
-                  className="w-full h-64 border rounded-md"
+                  className="h-64 w-full rounded-md border"
                   srcDoc={`
-        <html>
-          <body style="font-family: Arial; padding: 16px;">
-            <h3>${previewSubject}</h3>
-            <p style="white-space: pre-line;">${previewBody}</p>
-          </body>
-        </html>
-      `}
+                    <html>
+                      <body style="font-family: Arial; padding: 16px;">
+                        <h3>${previewSubject}</h3>
+                        <p style="white-space: pre-line;">${previewBody}</p>
+                      </body>
+                    </html>
+                  `}
                 />
               </Card>
             )}
 
-            <Card className="p-5 space-y-4">
+            <Card className="space-y-4 p-5">
               <p className="text-sm font-medium text-foreground">Send Options</p>
 
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold text-foreground">
                     {loading ? "..." : recipientCount}
                   </span>
@@ -363,31 +392,66 @@ export default function EmailCentre() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Select Learners<span className="text-gray-500">"Multiple selection is available"</span>  ({selectedIds.length})</p>
+              {selectedTemplate.kpiCategory === "missed-session" && manualRecipients.length === 0 && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <span className="text-sm text-muted-foreground">Absence Window</span>
+                  <select
+                    value={absenceWeeks}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setAbsenceWeeks(value === "all" ? "all" : (Number(value) as AbsenceWeeksFilter));
+                    }}
+                    className="h-10 w-full rounded-xl border border-[#E4E4E4] bg-white px-3 text-sm text-[#4C4C4C] sm:w-auto"
+                  >
+                    <option value="all">{absenceWindowLabels.all}</option>
+                    <option value={0}>{absenceWindowLabels[0]}</option>
+                    <option value={1}>{absenceWindowLabels[1]}</option>
+                    <option value={2}>{absenceWindowLabels[2]}</option>
+                    <option value={3}>{absenceWindowLabels[3]}</option>
+                  </select>
+                </div>
+              )}
 
-                <div className="border rounded-md p-2">
-                  <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
-                    {effectiveRecipients.map((r) => {
-                      const selected = selectedIds.includes(r.learnerEmail);
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Select Learners
+                  <span className="ml-1 text-gray-500">"Multiple selection is available"</span>
+                  <span className="ml-1">({selectedIds.length})</span>
+                </p>
+
+                <div className="rounded-md border p-2">
+                  <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
+                    {effectiveRecipients.map((recipient: any) => {
+                      const selected = selectedIds.includes(recipient.learnerEmail);
+                      const lastSessionDate = recipient.lastSessionDate
+                        ? `, ${recipient.lastSessionDate}`
+                        : "";
 
                       return (
                         <div
-                          key={r.learnerEmail}
+                          key={recipient.learnerEmail}
                           onClick={() => {
                             setSelectedIds((prev) =>
                               selected
-                                ? prev.filter((id) => id !== r.learnerEmail)
-                                : [...prev, r.learnerEmail]
+                                ? prev.filter((id) => id !== recipient.learnerEmail)
+                                : [...prev, recipient.learnerEmail]
                             );
                           }}
-                          className={`px-2 py-1 text-sm rounded cursor-pointer ${selected ? "bg-primary text-white" : "hover:bg-muted"
-                            }`}
+                          className={`cursor-pointer rounded px-2 py-1 text-sm ${
+                            selected ? "bg-primary text-white" : "hover:bg-muted"
+                          }`}
                         >
-                          {r.learnerName}
+                          {recipient.learnerName}
+                          {selectedTemplate.kpiCategory === "missed-session" ? lastSessionDate : ""}
                         </div>
                       );
                     })}
+
+                    {effectiveRecipients.length === 0 && (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">
+                        No learners found for this selection.
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -395,9 +459,8 @@ export default function EmailCentre() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() =>
-                      setSelectedIds(effectiveRecipients.map((r) => r.learnerEmail))
-                    }
+                    onClick={() => setSelectedIds(effectiveRecipients.map((r) => r.learnerEmail))}
+                    disabled={!effectiveRecipients.length}
                   >
                     Select All
                   </Button>
@@ -406,11 +469,13 @@ export default function EmailCentre() {
                     size="sm"
                     variant="ghost"
                     onClick={() => setSelectedIds([])}
+                    disabled={!selectedIds.length}
                   >
                     Clear
                   </Button>
                 </div>
               </div>
+
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox checked={copyLM} onCheckedChange={(v) => setCopyLM(!!v)} />
@@ -429,7 +494,7 @@ export default function EmailCentre() {
                   onClick={handleSendNow}
                   disabled={sending || !recipientCount}
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="h-3.5 w-3.5" />
                   {sending ? "Sending..." : "Send Now"}
                 </Button>
 
@@ -440,12 +505,14 @@ export default function EmailCentre() {
                     alert("Schedule endpoint not connected yet");
                   }}
                 >
-                  <Clock className="w-3.5 h-3.5" /> Schedule
+                  <Clock className="h-3.5 w-3.5" />
+                  Schedule
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground">
-                You are about to send to {recipientCount} learner{recipientCount !== 1 ? "s" : ""}.
+                You are about to send to {recipientCount} learner
+                {recipientCount !== 1 ? "s" : ""}.
               </p>
             </Card>
           </div>
