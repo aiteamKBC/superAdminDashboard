@@ -73,11 +73,6 @@ const parseAttendanceDate = (raw: string): Date | null => {
   const s = String(raw || "").trim();
   if (!s) return null;
 
-  // يدعم:
-  // 2026-03-13
-  // 2026 03 13
-  // 2026/03/13
-  // 2026-03-13_anything
   const m = s.match(/^(\d{4})[-/\s](\d{2})[-/\s](\d{2})/);
   if (!m) return null;
 
@@ -111,9 +106,6 @@ const endOfDay = (date: Date) => {
   return d;
 };
 
-// 1 => آخر 7 أيام
-// 2 => آخر 14 يوم
-// 4 => آخر 28 يوم
 const getExactWeekRange = (weekIndex: 0 | 1 | 2 | 3) => {
   const today = new Date();
 
@@ -144,7 +136,6 @@ const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
   return `${formatUiDate(start)} → ${formatUiDate(end)}`;
 };
 
-// Attendance KPIs that are red-flagged based on missed sessions
 const kpiAccentClass: Record<KpiCategory, string> = {
   "missed-session": "border-l-4 border-l-[#80560F]",
   "review-due": "border-l-4 border-l-[#866CB6]",
@@ -225,19 +216,27 @@ function buildAttendanceMetrics(
     lastVal == null ? "Unknown" : lastVal === 1 ? "Attended" : "Missed"
   ) as Learner["lastSessionStatus"];
 
-  const last10 = filteredEntries.slice(-10);
-  const missedLast10 = last10.reduce(
+  // آخر 10 أسابيع من تاريخ اليوم
+  const now = new Date();
+  const tenWeeksAgo = startOfDay(new Date(now));
+  tenWeeksAgo.setDate(tenWeeksAgo.getDate() - 69);
+
+  const entriesLast10Weeks = allEntries.filter((item) => item.parsed >= tenWeeksAgo);
+
+  const missedLast10Weeks = entriesLast10Weeks.reduce(
     (acc, item) => acc + ((item.value?.value ?? 0) === 0 ? 1 : 0),
     0
   );
 
+  // streak من آخر session حقيقي ورا بعض
   let missedInRow = 0;
-  const streakSource = filteredEntries.length > 0 ? filteredEntries : allEntries;
-
-  for (let i = streakSource.length - 1; i >= 0; i--) {
-    const v = streakSource[i]?.value?.value;
-    if (v === 0) missedInRow++;
-    else break;
+  for (let i = allEntries.length - 1; i >= 0; i--) {
+    const v = allEntries[i]?.value?.value;
+    if (v === 0) {
+      missedInRow++;
+    } else {
+      break;
+    }
   }
 
   const total = filteredEntries.length;
@@ -258,7 +257,7 @@ function buildAttendanceMetrics(
 
   return {
     absenceRatio,
-    missedLast10Weeks: missedLast10,
+    missedLast10Weeks,
     missedInRow,
     missedCountInWindow,
     lastSessionDate: lastEntry?.normalizedDate || "N/A",
@@ -280,7 +279,6 @@ function riskCatsFromAttendance(missedInRow: number, absenceRatio: number): KpiC
   return cats;
 }
 
-/* ---------------- JSON array helpers ---------------- */
 const getLastCompletedSessionDate = (attendance?: AttendanceInput) => {
   const entries = normalizeAttendanceEntries(attendance);
 
@@ -291,8 +289,6 @@ const getLastCompletedSessionDate = (attendance?: AttendanceInput) => {
 
   return completed[completed.length - 1].normalizedDate;
 };
-
-/* ---------------- JSON array helpers ---------------- */
 
 const asArray = (v: any): any[] => {
   if (!v) return [];
@@ -326,30 +322,12 @@ const getStudentsFromRaw = (raw: any): any[] => {
 
 const lowerText = (v: unknown) => String(v ?? "").trim().toLowerCase();
 
-const uniqueStrings = (arr: string[]) =>
-  Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
-
-const matchesLooseFilterValue = (candidate: unknown, selected: string) => {
-  const a = lowerText(candidate);
-  const b = lowerText(selected);
-
-  if (!b) return true;
-  if (!a) return false;
-
-  return a === b || a.includes(b) || b.includes(a);
-};
-
-const matchesAnyFilterValue = (candidates: unknown[], selected: string) =>
-  candidates.some((candidate) => matchesLooseFilterValue(candidate, selected));
-
 const matchesExactFilterValue = (candidate: unknown, selected: string) => {
   return lowerText(candidate) === lowerText(selected);
 };
 
 const matchesAnyExactFilterValue = (candidates: unknown[], selected: string) =>
   candidates.some((candidate) => matchesExactFilterValue(candidate, selected));
-
-/* ---------------- bookings helpers ---------------- */
 
 const BOOKED_TYPE_LABELS = {
   booked_students_PR: "Progress Review",
@@ -409,8 +387,6 @@ const getUpcomingMeetingsFromRaw = (raw: any): any[] => {
   return Array.isArray(meetings) ? meetings : [];
 };
 
-/* ---------------- name helpers ---------------- */
-
 const normName = (v: unknown) =>
   String(v ?? "")
     .trim()
@@ -428,12 +404,19 @@ const sameLooseName = (a: unknown, b: unknown) => {
 
 const getModuleLabel = (moduleStr: unknown) => String(moduleStr ?? "").trim();
 
-const getAttendanceModules = (attendance?: AttendanceInput) =>
-  uniqueStrings(
-    normalizeAttendanceEntries(attendance)
-      .map((entry) => getModuleLabel(entry.value?.module))
-      .filter(Boolean)
-  );
+
+/*Date of the session*/ 
+const getBookedStudentDate = (student: any) => {
+          return (
+            pickFirstString(student, [
+              "dayDate",
+              "DayDate",
+              "date",
+              "sessionDate",
+              "meetingDate",
+            ]) || "N/A"
+          );
+        };
 
 const getLearnerBookedMetaByType = (
   raw: any,
@@ -452,10 +435,6 @@ const getLearnerBookedMetaByType = (
     (entry) => entry.sessionType === targetType
   );
 
-  const upcomingMeetings = getUpcomingMeetingsFromRaw(raw)
-    .filter((m) => m && m.date)
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-
   if (!bookedEntries.length) {
     return {
       booked: false,
@@ -467,7 +446,7 @@ const getLearnerBookedMetaByType = (
 
   const learnerNameNorm = normName(
     learnerFullName ||
-    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
+      pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
   );
 
   const learnerEmail = normEmail(
@@ -517,35 +496,11 @@ const getLearnerBookedMetaByType = (
     };
   }
 
-  const bookedStudent = matchedBooking.student;
-
-  const candidateNames = [
-    pickFirstString(bookedStudent, [
-      "matched_student_name",
-      "matchedStudentName",
-      "customerName",
-      "FullName",
-      "name",
-    ]),
-    learnerFullName,
-    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"]),
-  ]
-    .map(normName)
-    .filter(Boolean);
-
-  const matchedMeeting =
-    upcomingMeetings.find((meeting) => {
-      const meetingCustomerName = normName(meeting?.customerName);
-      if (!meetingCustomerName) return false;
-
-      return candidateNames.some((name) => sameLooseName(name, meetingCustomerName));
-    }) || null;
-
   return {
     booked: true,
     hasData: true,
-    sessionType: targetType,
-    sessionDate: matchedMeeting?.date || "N/A",
+    sessionType: matchedBooking.sessionType,
+    sessionDate: getBookedStudentDate(matchedBooking.student),
   };
 };
 
@@ -563,10 +518,6 @@ const getLearnerBookedMeta = (
 } => {
   const bookedEntries = getBookedEntriesFromRaw(raw);
 
-  const upcomingMeetings = getUpcomingMeetingsFromRaw(raw)
-    .filter((m) => m && m.date)
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-
   if (!bookedEntries.length) {
     return {
       booked: false,
@@ -578,7 +529,7 @@ const getLearnerBookedMeta = (
 
   const learnerNameNorm = normName(
     learnerFullName ||
-    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
+      pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
   );
 
   const learnerEmail = normEmail(
@@ -628,39 +579,13 @@ const getLearnerBookedMeta = (
     };
   }
 
-  const bookedStudent = matchedBooking.student;
-
-  const candidateNames = [
-    pickFirstString(bookedStudent, [
-      "matched_student_name",
-      "matchedStudentName",
-      "customerName",
-      "FullName",
-      "name",
-    ]),
-    learnerFullName,
-    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"]),
-  ]
-    .map(normName)
-    .filter(Boolean);
-
-  const matchedMeeting =
-    upcomingMeetings.find((meeting) => {
-      const meetingCustomerName = normName(meeting?.customerName);
-      if (!meetingCustomerName) return false;
-
-      return candidateNames.some((name) => sameLooseName(name, meetingCustomerName));
-    }) || null;
-
   return {
     booked: true,
     hasData: true,
     sessionType: matchedBooking.sessionType,
-    sessionDate: matchedMeeting?.date || "N/A",
+    sessionDate: getBookedStudentDate(matchedBooking.student),
   };
 };
-
-/* ---------------- progress review helpers ---------------- */
 
 type ReviewListItem = {
   ID?: string;
@@ -694,8 +619,6 @@ function priorityFromReview(overdueReviews: number | undefined): Learner["priori
   return "high";
 }
 
-/* ---------------- OTJ helpers ---------------- */
-
 const toNum = (v: any): number | null => {
   if (v == null) return null;
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -726,7 +649,6 @@ const getOtjPriorityLabel = (priority: OtjPriority) => {
   }
 };
 
-/* ---------------- (-) filter from Progress Hours ---------------- */
 const stripLeadingMinus = (v: unknown) =>
   String(v ?? "")
     .trim()
@@ -734,8 +656,6 @@ const stripLeadingMinus = (v: unknown) =>
     .trim();
 
 const hasLeadingMinus = (v: unknown) => /^\s*-/.test(String(v ?? "").trim());
-
-/* ---------------- reading helpers ---------------- */
 
 const normalizeLooseKey = (value: string) =>
   String(value || "")
@@ -756,12 +676,9 @@ const getLooseNum = (raw: any, aliases: string[]) => {
   return toNum(getLooseRawValue(raw, aliases)) ?? 0;
 };
 
-/* ---------------- Marking helpers ---------------- */
-
 type CoachMarkingRow = {
   coachId: string;
   coachName: string;
-
   todayMarking: number;
   yesterdayMarking: number;
   minus2Marking: number;
@@ -770,23 +687,19 @@ type CoachMarkingRow = {
   minus5Marking: number;
   minus6Marking: number;
   minus7Marking: number;
-
   lastWeekPr: number;
   secondWeekPr: number;
   thirdWeekPr: number;
   fourthWeekPr: number;
-
   monthlyTotalPrDoneOld: number;
   actuallyMonthlyDone: number;
   monthlyTotalPrRequired: number;
   completionRate: number;
-
   totalOverdue: number;
 };
 
 function getCoachMarkingSummary(raw: any): CoachMarkingRow {
   const todayMarking = getLooseNum(raw, ["Today marking"]);
-
   const yesterdayMarking = getLooseNum(raw, ["Yesterday marking"]);
   const minus2Marking = getLooseNum(raw, ["-2 marking"]);
   const minus3Marking = getLooseNum(raw, ["-3 marking"]);
@@ -796,24 +709,9 @@ function getCoachMarkingSummary(raw: any): CoachMarkingRow {
   const minus7Marking = getLooseNum(raw, ["-7 marking"]);
 
   const lastWeekPr = getLooseNum(raw, ["Last Week PR", "-Last Week PR"]);
-
-  const secondWeekPr = getLooseNum(raw, [
-    "-Second Week PR",
-    "Second Week PR",
-    "- Second Week PR",
-  ]);
-
-  const thirdWeekPr = getLooseNum(raw, [
-    "-Third Week PR",
-    "Third Week PR",
-    "- Third Week PR",
-  ]);
-
-  const fourthWeekPr = getLooseNum(raw, [
-    "-Fourth Week PR",
-    "- Fourth Week PR",
-    "Fourth Week PR",
-  ]);
+  const secondWeekPr = getLooseNum(raw, ["-Second Week PR", "Second Week PR", "- Second Week PR"]);
+  const thirdWeekPr = getLooseNum(raw, ["-Third Week PR", "Third Week PR", "- Third Week PR"]);
+  const fourthWeekPr = getLooseNum(raw, ["-Fourth Week PR", "- Fourth Week PR", "Fourth Week PR"]);
 
   const monthlyTotalPrDoneOld = getLooseNum(raw, [
     "Monthly Total PR Done + Old",
@@ -821,17 +719,13 @@ function getCoachMarkingSummary(raw: any): CoachMarkingRow {
   ]);
 
   const actuallyMonthlyDone = getLooseNum(raw, ["Actually Monthly Done"]);
-
   const monthlyTotalPrRequired = getLooseNum(raw, ["Monthly Total PR Required"]);
-
   const completionRate = getLooseNum(raw, ["Completion Rate"]);
-
   const totalOverdue = toNum(raw?.evidence_submitted) ?? 0;
 
   return {
     coachId: String(raw?.case_owner_id ?? raw?.staff_id ?? raw?.case_owner ?? ""),
     coachName: String(raw?.case_owner ?? "Unknown"),
-
     todayMarking,
     yesterdayMarking,
     minus2Marking,
@@ -840,17 +734,14 @@ function getCoachMarkingSummary(raw: any): CoachMarkingRow {
     minus5Marking,
     minus6Marking,
     minus7Marking,
-
     lastWeekPr,
     secondWeekPr,
     thirdWeekPr,
     fourthWeekPr,
-
     monthlyTotalPrDoneOld,
     actuallyMonthlyDone,
     monthlyTotalPrRequired,
     completionRate,
-
     totalOverdue,
   };
 }
@@ -1171,6 +1062,13 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
 
 /* ---------------- page ---------------- */
 
+type ContactActionState = {
+  called: boolean;
+  emailed: boolean;
+  resolved: boolean;
+  note: string;
+};
+
 export default function Dashboard() {
   const [rows, setRows] = useState<UiCoach[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1187,13 +1085,11 @@ export default function Dashboard() {
 
   const [activeKpi, setActiveKpi] = useState<KpiCategory | null>(null);
   const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
-  const [resolvedLearners, setResolvedLearners] = useState<Set<string>>(new Set());
   const [bookedSessionTypeFilter, setBookedSessionTypeFilter] = useState<
     "All Session Types" | "Progress Review" | "MCM" | "Support Session"
   >("All Session Types");
-  const [contactActions, setContactActions] = useState<
-    Record<string, { called: boolean; emailed: boolean; resolved: boolean }>
-  >({});
+
+  const [contactActions, setContactActions] = useState<Record<string, ContactActionState>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1225,7 +1121,8 @@ export default function Dashboard() {
 
       const data = await res.json();
 
-      const mapped: Record<string, { called: boolean; emailed: boolean }> = {};
+      const mapped: Record<string, ContactActionState> = {};
+
       for (const item of data || []) {
         const key =
           item.contact_key ||
@@ -1235,6 +1132,7 @@ export default function Dashboard() {
           called: Boolean(item.called),
           emailed: Boolean(item.emailed),
           resolved: Boolean(item.resolved),
+          note: String(item.note || "").trim(),
         };
       }
 
@@ -1258,14 +1156,34 @@ export default function Dashboard() {
       called: boolean;
       emailed: boolean;
       resolved: boolean;
+      note: string;
     }) => {
+      const nextState: ContactActionState = {
+        called: payload.called,
+        emailed: payload.emailed,
+        resolved: payload.resolved,
+        note: payload.note,
+      };
+
       setContactActions((prev) => ({
         ...prev,
-        [payload.contactKey]: {
+        [payload.contactKey]: nextState,
+      }));
+
+      setSelectedLearner((prev) => {
+        if (!prev) return prev;
+
+        const prevKey = String((prev as any).attendanceContactKey || "");
+        if (prevKey !== payload.contactKey) return prev;
+
+        return {
+          ...prev,
           called: payload.called,
           emailed: payload.emailed,
-        },
-      }));
+          isResolved: payload.resolved,
+          note: payload.note,
+        } as Learner;
+      });
 
       try {
         const res = await fetch("/local-api/learner-contact-actions", {
@@ -1279,6 +1197,8 @@ export default function Dashboard() {
             module: payload.module,
             called: payload.called,
             emailed: payload.emailed,
+            resolved: payload.resolved,
+            note: payload.note,
           }),
         });
 
@@ -1340,18 +1260,13 @@ export default function Dashboard() {
           (id && attById.get(id)) ||
           (emailKey && attByEmail.get(emailKey)) ||
           attLearners.find((a: any) =>
-            sameLooseName(
-              a?.FullName || a?.fullName || a?.name,
-              fullName
-            )
+            sameLooseName(a?.FullName || a?.fullName || a?.name, fullName)
           ) ||
           null;
 
         const metrics = buildAttendanceMetrics(attRec?.Attendance, absenceWeeks);
 
-        let priority: Learner["priority"] = priorityFromAttendance(
-          metrics.missedInRow
-        );
+        let priority: Learner["priority"] = priorityFromAttendance(metrics.missedInRow);
         const riskCategories: KpiCategory[] = riskCatsFromAttendance(
           metrics.missedInRow,
           metrics.absenceRatio
@@ -1381,9 +1296,7 @@ export default function Dashboard() {
         const progressVariance = toNum((s as any)?.ProgressVariance);
 
         const progressHoursRaw =
-          pickFirstString(s as any, [
-            "Progress_Hours",
-          ]) || "";
+          pickFirstString(s as any, ["Progress_Hours"]) || "";
 
         const requiredHoursToSubmit = progressHoursRaw
           ? stripLeadingMinus(progressHoursRaw)
@@ -1393,7 +1306,6 @@ export default function Dashboard() {
         const actualOtj = toNum((s as any)?.Completed);
         const plannedOtj = toNum((s as any)?.Planned);
 
-        // Calculate target hours based on elapsed time and planned hours, to see if learner is on track to complete planned hours
         const totalDays = toNum(
           getLooseRawValue(s as any, ["Total Days", "TotalDays", "total_days"])
         );
@@ -1411,7 +1323,6 @@ export default function Dashboard() {
           progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
 
         const hasOtjBehind = otjBehindPct > 0 || hasLeadingMinus(progressHoursRaw);
-
         const otjPriority = getOtjPriority(otjBehindPct);
 
         const lastProgressReviewDate = pickFirstString(s as any, [
@@ -1450,23 +1361,8 @@ export default function Dashboard() {
           }
         }
 
-        const anyBookedMeta = getLearnerBookedMeta(
-          raw,
-          s,
-          id,
-          emailKey,
-          fullName
-        );
-
-        const mcmBookedMeta = getLearnerBookedMetaByType(
-          raw,
-          s,
-          id,
-          emailKey,
-          fullName,
-          "MCM"
-        );
-
+        const anyBookedMeta = getLearnerBookedMeta(raw, s, id, emailKey, fullName);
+        const mcmBookedMeta = getLearnerBookedMetaByType(raw, s, id, emailKey, fullName, "MCM");
         const prBookedMeta = getLearnerBookedMetaByType(
           raw,
           s,
@@ -1526,9 +1422,7 @@ export default function Dashboard() {
 
         const coachPhone = pickFirstString(raw as any, ["owner_phone"]) || "";
         const coachEmail = pickFirstString(s as any, ["OwnerEmail", "case_owner_email"]) || "";
-
         const lastMonthlyMeetingDate = getLastCompletedSessionDate(attRec?.Attendance);
-
         const progressReviewBooked = prBookedMeta.booked;
 
         const attendanceEmail = normEmail(attRec?.Email || emailKey);
@@ -1540,10 +1434,8 @@ export default function Dashboard() {
           id: id || emailKey || `${coach.id}:${fullName}`,
           firstName,
           lastName,
-
           organisation: organisation || "Unknown",
           programme: programme || metrics.latestProgramme || "Unknown",
-
           coach: coach.name,
           email: emailKey ? emailKey : "Unknown",
           phone:
@@ -1555,53 +1447,42 @@ export default function Dashboard() {
               "phone",
               "Phone",
             ]) || "N/A",
-
           status: learnerStatus,
-
           absenceRatio: metrics.absenceRatio,
           missedLast10Weeks: metrics.missedLast10Weeks,
           missedInRow: metrics.missedInRow,
           lastSessionDate: metrics.lastSessionDate,
           lastSessionStatus: metrics.lastSessionStatus,
-
           lastProgressReviewDate: lastProgressReviewDate || "",
           nextProgressReviewDue,
           progressReviewBooked: false,
-
           lastMonthlyMeetingDate: "N/A",
-
           plannedOtjHours: plannedOtj ?? 0,
           expectedOtjHours: expectedOtj ?? 0,
           actualOtjHours: actualOtj ?? 0,
-
           lineManagerName: pickFirstString(s as any, ["ManagerName"]) || "N/A",
           lineManagerEmail: pickFirstString(s as any, ["ManagerEmail"]) || "N/A",
           lineManagerPhone: pickFirstString(s as any, ["ManagerPhone"]) || "N/A",
-
           hrManagerName: "",
           hrManagerEmail: "",
           hrManagerPhone: "",
-
           priority,
           riskCategories,
         } as Learner;
-        (learner as any).hasAttendanceInWindow = (metrics as any).hasAttendanceInWindow;
 
-        // OTJ behind metrics
+        (learner as any).hasAttendanceInWindow = (metrics as any).hasAttendanceInWindow;
         (learner as any).hasOtjBehind = hasOtjBehind;
         (learner as any).otjBehindBy = otjBehindBy;
         (learner as any).otjBehindPct = otjBehindPct;
         (learner as any).requiredHoursToSubmit = requiredHoursToSubmit;
         (learner as any).otjPriority = otjPriority;
         (learner as any).otjPriorityLabel = getOtjPriorityLabel(otjPriority);
-
-        // otj target hours
         (learner as any).targetNow = targetNow;
 
-        // Booking meta
         (learner as any).monthlyCoachingBooked = monthlyCoachingBooked;
         (learner as any).monthlyCoachingHasData = monthlyCoachingHasData;
-        (learner as any).anyBookedSessionType = anyBookedMeta.sessionType; (learner as any).monthlyCoachingSessionDate = mcmBookedMeta.sessionDate;
+        (learner as any).anyBookedSessionType = anyBookedMeta.sessionType;
+        (learner as any).monthlyCoachingSessionDate = mcmBookedMeta.sessionDate;
 
         (learner as any).progressReviewBooked = progressReviewBooked;
         (learner as any).progressReviewHasData = prBookedMeta.hasData;
@@ -1621,26 +1502,15 @@ export default function Dashboard() {
         (learner as any).__reviewFlag = reviewFlag;
         (learner as any).__reviewOverdue = reviewFlag === "overdue";
 
-        // Coaching notes and evidence links could be added here if available in raw data
         (learner as any).coachPhone = coachPhone;
         (learner as any).coachEmail = coachEmail;
-
         (learner as any).lineManagerName =
           pickFirstString(s as any, ["ManagerName", "Manager Name"]) || "N/A";
-
-        // (learner as any).lineManagerPhone =
-        //   pickFirstString(s as any, ["ManagerPhone", "Manager Phone"]) || "No phone on file";
-
         (learner as any).lineManagerEmail =
           pickFirstString(s as any, ["ManagerEmail", "Manager Email"]) || "No email on file";
 
-        (learner as any).lastMonthlyMeetingDate =
-          lastMonthlyMeetingDate;
-
-        // filters
-        // (learner as any).attendanceModules = attendanceModules;
+        (learner as any).lastMonthlyMeetingDate = lastMonthlyMeetingDate;
         (learner as any).latestAttendanceModule = latestAttendanceModule;
-
         (learner as any).attendanceEmail = attendanceEmail;
         (learner as any).attendanceDate = attendanceDate;
         (learner as any).attendanceModule = attendanceModule;
@@ -1712,8 +1582,7 @@ export default function Dashboard() {
     const coachingBooked =
       activeKpi === "coaching-booked" && bookedSessionTypeFilter !== "All Session Types"
         ? coachingBookedBase.filter(
-          (l) =>
-            String((l as any).anyBookedSessionType || "Unknown") === bookedSessionTypeFilter
+          (l) => String((l as any).anyBookedSessionType || "Unknown") === bookedSessionTypeFilter
         ).length
         : coachingBookedBase.length;
 
@@ -1728,15 +1597,15 @@ export default function Dashboard() {
       count: number,
       totalValue = total
     ): KpiCardData =>
-    ({
-      id,
-      title,
-      count,
-      total: totalValue,
-      percentage: totalValue ? Math.round((count / totalValue) * 100) : 0,
-      trend: 0,
-      accentClass: kpiAccentClass[id],
-    } as KpiCardData);
+      ({
+        id,
+        title,
+        count,
+        total: totalValue,
+        percentage: totalValue ? Math.round((count / totalValue) * 100) : 0,
+        trend: 0,
+        accentClass: kpiAccentClass[id],
+      }) as KpiCardData;
 
     return [
       mk("missed-session", "Missed Session", missed),
@@ -1764,13 +1633,9 @@ export default function Dashboard() {
           Boolean((l as any).hasAttendanceInWindow) &&
           l.lastSessionStatus === "Missed"
       );
-    }
-
-    else if (activeKpi === "review-due") {
+    } else if (activeKpi === "review-due") {
       result = activeLearners.filter((l) => (l as any).__reviewFlag === "overdue");
-    }
-
-    else if (activeKpi === "coaching-due") {
+    } else if (activeKpi === "coaching-due") {
       result = activeLearners
         .filter(
           (l) =>
@@ -1778,9 +1643,7 @@ export default function Dashboard() {
             !Boolean((l as any).monthlyCoachingBooked)
         )
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
-    }
-
-    else if (activeKpi === "coaching-booked") {
+    } else if (activeKpi === "coaching-booked") {
       const base = activeLearners
         .filter(
           (l) =>
@@ -1789,18 +1652,14 @@ export default function Dashboard() {
         )
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
 
-      if (bookedSessionTypeFilter === "All Session Types") {
-        result = base;
-      } else {
-        result = base.filter(
-          (l) =>
-            String((l as any).anyBookedSessionType || "Unknown") ===
-            bookedSessionTypeFilter
-        );
-      }
-    }
-
-    else if (activeKpi === "otj-behind") {
+      result =
+        bookedSessionTypeFilter === "All Session Types"
+          ? base
+          : base.filter(
+            (l) =>
+              String((l as any).anyBookedSessionType || "Unknown") === bookedSessionTypeFilter
+          );
+    } else if (activeKpi === "otj-behind") {
       result = activeLearners
         .filter((l) => Boolean((l as any).hasOtjBehind))
         .sort(
@@ -1811,17 +1670,25 @@ export default function Dashboard() {
     }
 
     return result.map((l) => {
-      const contactKey = (l as any).attendanceContactKey;
+      const contactKey = String((l as any).attendanceContactKey || "");
 
       return {
         ...l,
-        isResolved: resolvedLearners.has(l.id),
+        isResolved: contactActions[contactKey]?.resolved ?? false,
         called: contactActions[contactKey]?.called ?? false,
         emailed: contactActions[contactKey]?.emailed ?? false,
+        note: contactActions[contactKey]?.note ?? "",
       };
     });
+  }, [activeLearners, activeKpi, bookedSessionTypeFilter, contactActions]);
 
-  }, [activeLearners, activeKpi, bookedSessionTypeFilter, resolvedLearners, contactActions]);
+  useEffect(() => {
+    setSelectedLearner((prev) => {
+      if (!prev) return prev;
+      const updated = filteredLearners.find((l) => l.id === prev.id);
+      return updated ?? prev;
+    });
+  }, [filteredLearners]);
 
   return (
     <AppLayout>
@@ -1847,7 +1714,9 @@ export default function Dashboard() {
                 <KpiCard
                   data={card}
                   active={activeKpi === card.id}
-                  onClick={() => setActiveKpi(activeKpi === card.id ? null : (card.id as KpiCategory))}
+                  onClick={() =>
+                    setActiveKpi(activeKpi === card.id ? null : (card.id as KpiCategory))
+                  }
                 />
               </div>
             ))}
@@ -1922,12 +1791,21 @@ export default function Dashboard() {
           learner={selectedLearner}
           open={!!selectedLearner}
           onClose={() => setSelectedLearner(null)}
-          onResolve={(id) => {
-            setResolvedLearners((prev) => new Set(prev).add(id));
+          onUpdateContactAction={updateContactAction}
+          onResolve={({ contactKey, email, date, module, resolved, note }) => {
+            void updateContactAction({
+              contactKey,
+              email,
+              date,
+              module,
+              resolved,
+              called: contactActions[contactKey]?.called ?? false,
+              emailed: contactActions[contactKey]?.emailed ?? false,
+              note: note ?? contactActions[contactKey]?.note ?? "",
+            });
           }}
         />
       </div>
     </AppLayout>
   );
-
 }

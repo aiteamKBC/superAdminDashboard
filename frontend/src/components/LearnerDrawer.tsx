@@ -1,5 +1,4 @@
-// Learners Data on the right
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Learner, EngagementAction, CallOutcome } from "@/types/dashboard";
 import { mockActions } from "@/data/mockData";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -27,7 +26,24 @@ interface LearnerDrawerProps {
   learner: Learner | null;
   open: boolean;
   onClose: () => void;
-  onResolve?: (id: string) => void;
+  onResolve?: (payload: {
+    contactKey: string;
+    email: string;
+    date: string;
+    module: string;
+    resolved: boolean;
+    note: string;
+  }) => void;
+  onUpdateContactAction?: (payload: {
+    contactKey: string;
+    email: string;
+    date: string;
+    module: string;
+    called: boolean;
+    emailed: boolean;
+    resolved: boolean;
+    note: string;
+  }) => void;
 }
 
 const kpiLabels: Record<string, string> = {
@@ -59,6 +75,35 @@ const formatDateValue = (v: unknown, fallback = "N/A") => {
 
 const yesNoText = (v: unknown) => (v ? "Yes" : "No");
 
+const splitNoteParts = (noteValue: unknown) => {
+  const note = String(noteValue || "").trim();
+  if (!note) return { outcome: "", details: "" };
+
+  const parts = note.split(" | ").map((part) => part.trim()).filter(Boolean);
+
+  if (parts.length >= 2) {
+    return {
+      outcome: parts[0],
+      details: parts.slice(1).join(" | "),
+    };
+  }
+
+  return {
+    outcome: note,
+    details: "",
+  };
+};
+
+const buildNoteValue = (outcome: string, details: string) => {
+  const cleanOutcome = String(outcome || "").trim();
+  const cleanDetails = String(details || "").trim();
+
+  if (cleanOutcome && cleanDetails) return `${cleanOutcome} | ${cleanDetails}`;
+  if (cleanOutcome) return cleanOutcome;
+  if (cleanDetails) return cleanDetails;
+  return "";
+};
+
 const getOtjStatusMeta = (priority: string) => {
   switch (priority) {
     case "at-risk":
@@ -84,11 +129,24 @@ const getOtjStatusMeta = (priority: string) => {
   }
 };
 
-export default function LearnerDrawer({ learner, open, onClose, onResolve }: LearnerDrawerProps) {
+export default function LearnerDrawer({
+  learner,
+  open,
+  onClose,
+  onResolve,
+  onUpdateContactAction,
+}: LearnerDrawerProps) {
   const [showCallLog, setShowCallLog] = useState(false);
   const [callOutcome, setCallOutcome] = useState<CallOutcome | "">("");
   const [callNotes, setCallNotes] = useState("");
-  // go to send email center page 
+
+  useEffect(() => {
+    const noteParts = splitNoteParts((learner as any)?.note);
+    setCallOutcome((noteParts.outcome || "") as CallOutcome | "");
+    setCallNotes(noteParts.details || "");
+    setShowCallLog(false);
+  }, [learner]);
+
   const navigate = useNavigate();
   const isResolved = !!learner?.isResolved;
 
@@ -127,7 +185,6 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
   const otjStatus = getOtjStatusMeta(otjPriority);
 
   const progressTarget = targetNow > 0 ? targetNow : planned;
-
   const progressWidth =
     progressTarget > 0 ? Math.min(100, (completed / progressTarget) * 100) : 0;
 
@@ -166,10 +223,6 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
   const hrManagerPhone = safeText(learner.hrManagerPhone, "No phone on file");
   const hrManagerEmail = safeText(learner.hrManagerEmail, "No email on file");
 
-
-
-
-
   const iconForType = (type: EngagementAction["type"]) => {
     switch (type) {
       case "call":
@@ -187,7 +240,6 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
     }
   };
 
-  // navigate to email center with pre-filled recipient
   const toEmailRecipient = (learner: Learner) => {
     const learnerAny = learner as any;
 
@@ -220,6 +272,23 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
     });
   };
 
+  const handleSaveLog = () => {
+    const note = buildNoteValue(String(callOutcome || ""), callNotes);
+
+    onUpdateContactAction?.({
+      contactKey: String((learner as any).attendanceContactKey || ""),
+      email: String((learner as any).attendanceEmail || ""),
+      date: String((learner as any).attendanceDate || ""),
+      module: String((learner as any).attendanceModule || ""),
+      called: true,
+      emailed: Boolean((learner as any).emailed),
+      resolved: Boolean((learner as any).isResolved),
+      note,
+    });
+
+    setShowCallLog(false);
+  };
+
   return (
     <Sheet
       open={open}
@@ -247,10 +316,11 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
 
             {learner.priority !== "normal" && (
               <Badge
-                className={`text-[11px] border-0 ${learner.priority === "critical"
-                  ? "bg-severity-critical-bg text-severity-critical-foreground"
-                  : "bg-severity-overdue-bg text-severity-overdue-foreground"
-                  }`}
+                className={`text-[11px] border-0 ${
+                  learner.priority === "critical"
+                    ? "bg-severity-critical-bg text-severity-critical-foreground"
+                    : "bg-severity-overdue-bg text-severity-overdue-foreground"
+                }`}
               >
                 {learner.priority === "critical" ? "Critical" : "High Priority"}
               </Badge>
@@ -290,12 +360,13 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
             <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5 text-xs">
               <span className="text-muted-foreground">Absence ratio:</span>
               <span
-                className={`font-semibold ${(learner.absenceRatio || 0) > 25
-                  ? "text-severity-critical"
-                  : (learner.absenceRatio || 0) > 15
-                    ? "text-severity-overdue"
-                    : "text-foreground"
-                  }`}
+                className={`font-semibold ${
+                  (learner.absenceRatio || 0) > 25
+                    ? "text-severity-critical"
+                    : (learner.absenceRatio || 0) > 15
+                      ? "text-severity-overdue"
+                      : "text-foreground"
+                }`}
               >
                 {learner.absenceRatio || 0}%
               </span>
@@ -304,12 +375,13 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
             <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5 text-xs">
               <span className="text-muted-foreground">Missed (10 wks):</span>
               <span
-                className={`font-semibold ${(learner.missedLast10Weeks || 0) >= 3
-                  ? "text-severity-critical"
-                  : (learner.missedLast10Weeks || 0) >= 2
-                    ? "text-severity-overdue"
-                    : "text-foreground"
-                  }`}
+                className={`font-semibold ${
+                  (learner.missedLast10Weeks || 0) >= 3
+                    ? "text-severity-critical"
+                    : (learner.missedLast10Weeks || 0) >= 2
+                      ? "text-severity-overdue"
+                      : "text-foreground"
+                }`}
               >
                 {learner.missedLast10Weeks || 0}
               </span>
@@ -318,12 +390,13 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
             <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5 text-xs">
               <span className="text-muted-foreground">Missed in row:</span>
               <span
-                className={`font-semibold ${(learner.missedInRow || 0) >= 3
-                  ? "text-severity-critical"
-                  : (learner.missedInRow || 0) >= 2
-                    ? "text-severity-overdue"
-                    : "text-foreground"
-                  }`}
+                className={`font-semibold ${
+                  (learner.missedInRow || 0) >= 3
+                    ? "text-severity-critical"
+                    : (learner.missedInRow || 0) >= 2
+                      ? "text-severity-overdue"
+                      : "text-foreground"
+                }`}
               >
                 {learner.missedInRow || 0}
               </span>
@@ -491,24 +564,32 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
             <Button size="sm" onClick={() => setShowCallLog(!showCallLog)} className="gap-1.5">
               <Phone className="w-3.5 h-3.5" /> Log a Call
             </Button>
+
             <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSendEmail}>
               <Mail className="w-3.5 h-3.5" /> Send Email
             </Button>
-            {/* <Button size="sm" variant="outline" className="gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" /> Escalate
-            </Button> */}
+
             <Button size="sm" variant="outline" className="gap-1.5">
               <Calendar className="w-3.5 h-3.5" /> Book Appointment
             </Button>
+
             <Button
               size="sm"
               variant="outline"
               className="gap-1.5"
               onClick={() => {
-                onResolve?.(learner.id);
+                onResolve?.({
+                  contactKey: String((learner as any).attendanceContactKey || ""),
+                  email: String((learner as any).attendanceEmail || ""),
+                  date: String((learner as any).attendanceDate || ""),
+                  module: String((learner as any).attendanceModule || ""),
+                  resolved: !Boolean((learner as any).isResolved),
+                  note: buildNoteValue(String(callOutcome || ""), callNotes),
+                });
               }}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Mark Resolved
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {isResolved ? "Reopen Case" : "Mark Resolved"}
             </Button>
           </div>
 
@@ -537,14 +618,7 @@ export default function LearnerDrawer({ learner, open, onClose, onResolve }: Lea
               />
 
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setShowCallLog(false);
-                    setCallOutcome("");
-                    setCallNotes("");
-                  }}
-                >
+                <Button size="sm" onClick={handleSaveLog}>
                   Save Log
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setShowCallLog(false)}>

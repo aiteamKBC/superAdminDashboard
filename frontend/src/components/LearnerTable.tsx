@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Download, Phone, Mail, ArrowUpDown, X } from "lucide-react";
+import { Search, Download, Phone, Mail, ArrowUpDown } from "lucide-react";
 
 interface LearnerTableProps {
   learners: Learner[];
@@ -21,6 +21,8 @@ interface LearnerTableProps {
     module: string;
     called: boolean;
     emailed: boolean;
+    resolved: boolean;
+    note: string;
   }) => void;
 }
 
@@ -86,9 +88,27 @@ const calcBehindPct = (learner: Learner) => {
   return Math.abs(Math.round(((expected - actual) / expected) * 100));
 };
 
-// helper to get required hours to submit for coaching-due KPI, which may not be present on all learners
 const getRequiredHoursToSubmit = (learner: Learner) =>
   String((learner as any).requiredHoursToSubmit || "N/A");
+
+const splitNoteParts = (noteValue: unknown) => {
+  const note = String(noteValue || "").trim();
+  if (!note) return { outcome: "", details: "" };
+
+  const parts = note.split(" | ").map((part) => part.trim()).filter(Boolean);
+
+  if (parts.length >= 2) {
+    return {
+      outcome: parts[0],
+      details: parts.slice(1).join(" | "),
+    };
+  }
+
+  return {
+    outcome: note,
+    details: "",
+  };
+};
 
 export default function LearnerTable({
   learners,
@@ -119,8 +139,8 @@ export default function LearnerTable({
             : String((l as any).monthlyCoachingSessionDate || "").toLowerCase();
 
         const phone = String(l.phone || "").toLowerCase();
-
         const requiredHoursToSubmit = getRequiredHoursToSubmit(l).toLowerCase();
+        const note = String((l as any).note || "").toLowerCase();
 
         const matchesSearch =
           !q ||
@@ -132,8 +152,8 @@ export default function LearnerTable({
           l.coach.toLowerCase().includes(q) ||
           sessionType.toLowerCase().includes(q) ||
           sessionDate.includes(q) ||
-          requiredHoursToSubmit.includes(q);
-
+          requiredHoursToSubmit.includes(q) ||
+          note.includes(q);
 
         return matchesSearch;
       })
@@ -275,6 +295,11 @@ export default function LearnerTable({
         "Programme",
         "Coach",
         "Email",
+        "Called",
+        "Emailed",
+        "Resolved",
+        "Note",
+        "Booked Meeting",
         "Last Session",
         "Status",
       ];
@@ -286,6 +311,11 @@ export default function LearnerTable({
         l.programme,
         l.coach,
         l.email,
+        Boolean((l as any).called) ? "Yes" : "No",
+        Boolean((l as any).emailed) ? "Yes" : "No",
+        Boolean((l as any).isResolved) ? "Yes" : "No",
+        String((l as any).note || ""),
+        Boolean((l as any).anyBooked) ? String((l as any).anyBookedSessionDate || "") : "",
         l.lastSessionDate || "N/A",
         l.lastSessionStatus || "Unknown",
       ]);
@@ -332,7 +362,7 @@ export default function LearnerTable({
     kpiCategory === "otj-behind"
       ? 11
       : kpiCategory === "missed-session"
-        ? 11
+        ? 14
         : kpiCategory === "review-due"
           ? 9
           : kpiCategory === "coaching-due"
@@ -448,6 +478,15 @@ export default function LearnerTable({
                     <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
                       Emailed
                     </th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                      Resolved
+                    </th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                      Note
+                    </th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                      Booked Meeting
+                    </th>
                   </>
                 )}
 
@@ -526,6 +565,7 @@ export default function LearnerTable({
             <tbody>
               {filtered.map((l) => {
                 const behindPct = calcBehindPct(l);
+                const noteParts = splitNoteParts((l as any).note);
 
                 return (
                   <tr
@@ -547,7 +587,7 @@ export default function LearnerTable({
                     <td className="px-4 py-3.5 font-medium text-[#505050]">
                       <div className="flex items-center gap-2">
                         {l.firstName} {l.lastName}
-                        {l.isResolved && (
+                        {(l as any).isResolved && (
                           <Badge className="border-0 bg-green-100 text-green-700 text-[11px]">
                             Resolved
                           </Badge>
@@ -575,6 +615,8 @@ export default function LearnerTable({
                                 module: String((l as any).attendanceModule || ""),
                                 called: Boolean(checked),
                                 emailed: Boolean((l as any).emailed),
+                                resolved: Boolean((l as any).isResolved),
+                                note: String((l as any).note || ""),
                               });
                             }}
                           />
@@ -594,9 +636,68 @@ export default function LearnerTable({
                                 module: String((l as any).attendanceModule || ""),
                                 called: Boolean((l as any).called),
                                 emailed: Boolean(checked),
+                                resolved: Boolean((l as any).isResolved),
+                                note: String((l as any).note || ""),
                               });
                             }}
                           />
+                        </td>
+
+                        <td
+                          className="p-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={Boolean((l as any).isResolved)}
+                            onCheckedChange={(checked) => {
+                              onUpdateContactAction?.({
+                                contactKey: String((l as any).attendanceContactKey || ""),
+                                email: String((l as any).attendanceEmail || ""),
+                                date: String((l as any).attendanceDate || ""),
+                                module: String((l as any).attendanceModule || ""),
+                                called: Boolean((l as any).called),
+                                emailed: Boolean((l as any).emailed),
+                                resolved: Boolean(checked),
+                                note: String((l as any).note || ""),
+                              });
+                            }}
+                          />
+                        </td>
+
+                        <td
+                          className="p-3 min-w-[240px] max-w-[280px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {String((l as any).note || "").trim() ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex w-fit rounded-full bg-[#FFF8EE] px-2 py-1 text-[11px] font-medium text-[#B27715]">
+                                {noteParts.outcome || "Logged"}
+                              </span>
+                              {noteParts.details ? (
+                                <p
+                                  className="text-xs text-[#7C7C7C] line-clamp-2"
+                                  title={noteParts.details}
+                                >
+                                  {noteParts.details}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#A0A0A0]">No log</span>
+                          )}
+                        </td>
+
+                        <td
+                          className="p-3 min-w-[140px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {Boolean((l as any).anyBooked) && String((l as any).anyBookedSessionDate || "").trim() ? (
+                            <Badge className="rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
+                              {String((l as any).anyBookedSessionDate)}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-[#A0A0A0]">Not booked</span>
+                          )}
                         </td>
                       </>
                     )}
