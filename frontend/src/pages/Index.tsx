@@ -382,9 +382,8 @@ const getBookedEntriesFromRaw = (
   return out;
 };
 
-const getUpcomingMeetingsFromRaw = (raw: any): any[] => {
-  const meetings = raw?.upcomming_sessions?.meetings;
-  return Array.isArray(meetings) ? meetings : [];
+const getBookedStudentField = (student: any, keys: string[]) => {
+  return pickFirstString(student, keys) || "N/A";
 };
 
 const normName = (v: unknown) =>
@@ -404,20 +403,85 @@ const sameLooseName = (a: unknown, b: unknown) => {
 
 const getModuleLabel = (moduleStr: unknown) => String(moduleStr ?? "").trim();
 
+/*date filter*/
+const parseBookedDate = (value: unknown): Date | null => {
+  const s = String(value || "").trim();
+  if (!s) return null;
 
-/*Date of the session*/ 
-const getBookedStudentDate = (student: any) => {
-          return (
-            pickFirstString(student, [
-              "dayDate",
-              "DayDate",
-              "date",
-              "sessionDate",
-              "meetingDate",
-            ]) || "N/A"
-          );
-        };
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
 
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (Number.isNaN(dt.getTime())) return null;
+
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const isTodayOrFuture = (value: unknown) => {
+  const dt = parseBookedDate(value);
+  if (!dt) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return dt.getTime() >= today.getTime();
+};
+/*Bring all the data*/
+const getLearnerIdentityCandidates = (learner: any, fullName: string, emailKey: string, id: string) => {
+  const learnerEmail = normEmail(
+    emailKey ||
+    pickFirstString(learner, ["Email", "email", "emailAddress", "UserEmail", "LearnerEmail"])
+  );
+
+  const learnerNameNorm = normName(
+    fullName ||
+    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
+  );
+
+  const learnerId = normId(id || learner?.ID || learner?.id);
+
+  return { learnerEmail, learnerNameNorm, learnerId };
+};
+
+const bookingMatchesLearner = (
+  student: any,
+  learnerId: string,
+  learnerEmail: string,
+  learnerNameNorm: string
+) => {
+  const bookedId = normId(
+    pickFirstString(student, ["matched_student_id", "matchedStudentId", "ID", "Id", "id"])
+  );
+
+  const bookedEmail = normEmail(
+    pickFirstString(student, [
+      "matched_student_email",
+      "matchedStudentEmail",
+      "customerEmail",
+      "Email",
+      "email",
+    ])
+  );
+
+  const bookedName = normName(
+    pickFirstString(student, [
+      "matched_student_name",
+      "matchedStudentName",
+      "customerName",
+      "FullName",
+      "name",
+    ])
+  );
+
+  return (
+    (learnerId && bookedId && learnerId === bookedId) ||
+    (learnerEmail && bookedEmail && learnerEmail === bookedEmail) ||
+    (learnerNameNorm && bookedName && sameLooseName(learnerNameNorm, bookedName))
+  );
+};
+
+/*Date of the session*/
 const getLearnerBookedMetaByType = (
   raw: any,
   learner: any,
@@ -430,9 +494,15 @@ const getLearnerBookedMetaByType = (
   hasData: boolean;
   sessionType: SessionType;
   sessionDate: string;
+  serviceName: string;
+  groupName: string;
 } => {
   const bookedEntries = getBookedEntriesFromRaw(raw).filter(
-    (entry) => entry.sessionType === targetType
+    (entry) =>
+      entry.sessionType === targetType &&
+      isTodayOrFuture(
+        pickFirstString(entry.student, ["dayDate", "DayDate", "date", "sessionDate"])
+      )
   );
 
   if (!bookedEntries.length) {
@@ -441,12 +511,14 @@ const getLearnerBookedMetaByType = (
       hasData: false,
       sessionType: targetType,
       sessionDate: "N/A",
+      serviceName: "N/A",
+      groupName: "N/A",
     };
   }
 
   const learnerNameNorm = normName(
     learnerFullName ||
-      pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
+    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
   );
 
   const learnerEmail = normEmail(
@@ -493,14 +565,23 @@ const getLearnerBookedMetaByType = (
       hasData: true,
       sessionType: targetType,
       sessionDate: "N/A",
+      serviceName: "N/A",
+      groupName: "N/A",
     };
   }
+
+  const student = matchedBooking.student || {};
 
   return {
     booked: true,
     hasData: true,
     sessionType: matchedBooking.sessionType,
-    sessionDate: getBookedStudentDate(matchedBooking.student),
+    sessionDate:
+      pickFirstString(student, ["dayDate", "DayDate", "date", "sessionDate"]) || "N/A",
+    serviceName:
+      pickFirstString(student, ["serviceName", "ServiceName"]) || "N/A",
+    groupName:
+      pickFirstString(student, ["Group", "group"]) || "N/A",
   };
 };
 
@@ -515,8 +596,14 @@ const getLearnerBookedMeta = (
   hasData: boolean;
   sessionType: SessionType;
   sessionDate: string;
+  serviceName: string;
+  groupName: string;
 } => {
-  const bookedEntries = getBookedEntriesFromRaw(raw);
+  const bookedEntries = getBookedEntriesFromRaw(raw).filter((entry) =>
+    isTodayOrFuture(
+      pickFirstString(entry.student, ["dayDate", "DayDate", "date", "sessionDate"])
+    )
+  );
 
   if (!bookedEntries.length) {
     return {
@@ -524,12 +611,14 @@ const getLearnerBookedMeta = (
       hasData: false,
       sessionType: "Unknown",
       sessionDate: "N/A",
+      serviceName: "N/A",
+      groupName: "N/A",
     };
   }
 
   const learnerNameNorm = normName(
     learnerFullName ||
-      pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
+    pickFirstString(learner, ["FullName", "fullName", "DisplayName", "displayName", "name"])
   );
 
   const learnerEmail = normEmail(
@@ -576,14 +665,23 @@ const getLearnerBookedMeta = (
       hasData: true,
       sessionType: "Unknown",
       sessionDate: "N/A",
+      serviceName: "N/A",
+      groupName: "N/A",
     };
   }
+
+  const student = matchedBooking.student || {};
 
   return {
     booked: true,
     hasData: true,
     sessionType: matchedBooking.sessionType,
-    sessionDate: getBookedStudentDate(matchedBooking.student),
+    sessionDate:
+      pickFirstString(student, ["dayDate", "DayDate", "date", "sessionDate"]) || "N/A",
+    serviceName:
+      pickFirstString(student, ["serviceName", "ServiceName"]) || "N/A",
+    groupName:
+      pickFirstString(student, ["Group", "group"]) || "N/A",
   };
 };
 
@@ -1069,6 +1167,71 @@ type ContactActionState = {
   note: string;
 };
 
+function buildBookedLearnerRows(
+  learners: Learner[],
+  bookedSessionTypeFilter: "All Session Types" | "Progress Review" | "MCM" | "Support Session"
+): Learner[] {
+  const rows: Learner[] = [];
+
+  for (const learner of learners) {
+    const learnerAny = learner as any;
+    const raw = learnerAny._rawCoachData;
+    if (!raw) continue;
+
+    const bookedEntries = getBookedEntriesFromRaw(raw).filter(({ student, sessionType }) => {
+      const bookingDate = pickFirstString(student, ["dayDate", "DayDate", "date", "sessionDate"]);
+      const matchesDate = isTodayOrFuture(bookingDate);
+
+      const matchesType =
+        bookedSessionTypeFilter === "All Session Types" ||
+        sessionType === bookedSessionTypeFilter;
+
+      return matchesDate && matchesType;
+    });
+
+    const { learnerEmail, learnerNameNorm, learnerId } = getLearnerIdentityCandidates(
+      learnerAny.__rawStudent,
+      `${learner.firstName} ${learner.lastName}`.trim(),
+      learner.email,
+      learner.id
+    );
+
+    for (const entry of bookedEntries) {
+      const student = entry.student || {};
+
+      if (!bookingMatchesLearner(student, learnerId, learnerEmail, learnerNameNorm)) {
+        continue;
+      }
+
+      const sessionDate =
+        pickFirstString(student, ["dayDate", "DayDate", "date", "sessionDate"]) || "N/A";
+
+      const serviceName =
+        pickFirstString(student, ["serviceName", "ServiceName"]) || "N/A";
+
+      const groupName =
+        pickFirstString(student, ["Group", "group"]) || "N/A";
+
+      rows.push({
+        ...learner,
+        id: `${learner.id}::${entry.sessionType}::${sessionDate}::${serviceName}`,
+        anyBooked: true,
+        anyBookedHasData: true,
+        anyBookedSessionType: entry.sessionType,
+        anyBookedSessionDate: sessionDate,
+        anyBookedServiceName: serviceName,
+        anyBookedGroupName: groupName,
+      } as Learner);
+    }
+  }
+
+  return rows.sort((a, b) => {
+    const ad = String((a as any).anyBookedSessionDate || "");
+    const bd = String((b as any).anyBookedSessionDate || "");
+    return ad.localeCompare(bd);
+  });
+}
+
 export default function Dashboard() {
   const [rows, setRows] = useState<UiCoach[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1494,6 +1657,14 @@ export default function Dashboard() {
         (learner as any).anyBookedSessionType = anyBookedMeta.sessionType;
         (learner as any).anyBookedSessionDate = anyBookedMeta.sessionDate;
 
+        /*Booking session metadata*/
+        (learner as any).anyBookedServiceName = anyBookedMeta.serviceName;
+        // (learner as any).anyBookedGroupName = anyBookedMeta.groupName;
+
+        (learner as any)._rawCoachData = raw;
+        (learner as any)._rawStudent = s;
+
+        (learner as any).mcmBookedSessionDate = mcmBookedMeta.sessionDate;
         (learner as any).supportSessionBooked = supportBookedMeta.booked;
         (learner as any).supportSessionHasData = supportBookedMeta.hasData;
         (learner as any).supportSessionSessionType = supportBookedMeta.sessionType;
@@ -1573,18 +1744,12 @@ export default function Dashboard() {
       return hasData && !booked;
     }).length;
 
-    const coachingBookedBase = activeLearners.filter((l) => {
-      const hasData = Boolean((l as any).anyBookedHasData);
-      const booked = Boolean((l as any).anyBooked);
-      return hasData && booked;
-    });
+    const coachingBookedRows = buildBookedLearnerRows(
+      activeLearners,
+      bookedSessionTypeFilter
+    );
 
-    const coachingBooked =
-      activeKpi === "coaching-booked" && bookedSessionTypeFilter !== "All Session Types"
-        ? coachingBookedBase.filter(
-          (l) => String((l as any).anyBookedSessionType || "Unknown") === bookedSessionTypeFilter
-        ).length
-        : coachingBookedBase.length;
+    const coachingBooked = coachingBookedRows.length;
 
     const otjBehind = activeLearners.filter((l) => Boolean((l as any).hasOtjBehind)).length;
 
@@ -1644,21 +1809,7 @@ export default function Dashboard() {
         )
         .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
     } else if (activeKpi === "coaching-booked") {
-      const base = activeLearners
-        .filter(
-          (l) =>
-            Boolean((l as any).anyBookedHasData) &&
-            Boolean((l as any).anyBooked)
-        )
-        .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
-
-      result =
-        bookedSessionTypeFilter === "All Session Types"
-          ? base
-          : base.filter(
-            (l) =>
-              String((l as any).anyBookedSessionType || "Unknown") === bookedSessionTypeFilter
-          );
+      result = buildBookedLearnerRows(activeLearners, bookedSessionTypeFilter);
     } else if (activeKpi === "otj-behind") {
       result = activeLearners
         .filter((l) => Boolean((l as any).hasOtjBehind))

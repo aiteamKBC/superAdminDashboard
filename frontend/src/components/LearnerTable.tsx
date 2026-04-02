@@ -225,6 +225,7 @@ export default function LearnerTable({
         "Email",
         "Session Type",
         "Session Date",
+        "Service Name",
       ];
 
       rows = filtered.map((l) => [
@@ -236,6 +237,8 @@ export default function LearnerTable({
         l.email,
         (l as any).anyBookedSessionType || "Unknown",
         (l as any).anyBookedSessionDate || "N/A",
+        (l as any).anyBookedServiceName || "N/A",
+        (l as any).anyBookedGroupName || "N/A",
       ]);
     } else if (kpiCategory === "review-due") {
       headers = [
@@ -368,7 +371,7 @@ export default function LearnerTable({
           : kpiCategory === "coaching-due"
             ? 8
             : kpiCategory === "coaching-booked"
-              ? 8
+              ? 10
               : 7;
 
   return (
@@ -553,6 +556,13 @@ export default function LearnerTable({
                         Session Date <ArrowUpDown className="w-3 h-3" />
                       </span>
                     </th>
+
+                    <th className="p-3 text-left font-medium text-muted-foreground">
+                      Service Name
+                    </th>
+                    {/* <th className="p-3 text-left font-medium text-muted-foreground">
+                      Group
+                    </th> */}
                   </>
                 )}
 
@@ -776,6 +786,12 @@ export default function LearnerTable({
                         <td className="p-3 text-muted-foreground">
                           {String((l as any).anyBookedSessionDate || "N/A")}
                         </td>
+                        <td className="p-3 text-muted-foreground">
+                          {String((l as any).anyBookedServiceName || "N/A")}
+                        </td>
+                        {/* <td className="p-3 text-muted-foreground">
+                          {String((l as any).anyBookedGroupName || "N/A")}
+                        </td> */}
                       </>
                     )}
 
