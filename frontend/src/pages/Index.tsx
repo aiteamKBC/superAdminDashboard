@@ -13,6 +13,7 @@ import type { UiCoach } from "@/lib/adapters/kbcToUi";
 
 import type { KpiCategory, Learner } from "@/types/dashboard";
 import type { KpiCardData } from "@/types/dashboard";
+import type { ProgressReviewSummaryRow } from "@/lib/types/kbc";
 
 /* ---------------- helpers ---------------- */
 const getLatestAttendanceModule = (attendance?: AttendanceInput) => {
@@ -691,14 +692,32 @@ type ReviewListItem = {
   FullName?: string;
   overdueReviews?: number;
   earliestOverdue?: string;
+  nextPrDate?: string;
 };
+
+const getReviewDate = (item: any) =>
+  pickFirstString(item, [
+    "nextPrDate",
+    "NextPrDate",
+    "next_pr_date",
+    "nextReviewDate",
+    "NextReviewDate",
+    "reviewDate",
+    "ReviewDate",
+    "earliestOverdue",
+  ]) || "N/A";
 
 function buildProgressReviewIndex(overall: unknown) {
   const o = overall as any;
+
   const overdue: ReviewListItem[] = o?.overall?.lists?.overdueLearners ?? [];
+  const upcoming: ReviewListItem[] = o?.overall?.lists?.upcomingLearners ?? [];
 
   const overdueByEmail = new Map<string, ReviewListItem>();
   const overdueById = new Map<string, ReviewListItem>();
+
+  const upcomingByEmail = new Map<string, ReviewListItem>();
+  const upcomingById = new Map<string, ReviewListItem>();
 
   for (const it of overdue) {
     const e = normEmail(it?.Email);
@@ -708,7 +727,20 @@ function buildProgressReviewIndex(overall: unknown) {
     if (id) overdueById.set(id, it);
   }
 
-  return { overdueByEmail, overdueById };
+  for (const it of upcoming) {
+    const e = normEmail(it?.Email);
+    const id = normId(it?.ID);
+
+    if (e) upcomingByEmail.set(e, it);
+    if (id) upcomingById.set(id, it);
+  }
+
+  return {
+    overdueByEmail,
+    overdueById,
+    upcomingByEmail,
+    upcomingById,
+  };
 }
 
 function priorityFromReview(overdueReviews: number | undefined): Learner["priority"] {
@@ -1232,10 +1264,209 @@ function buildBookedLearnerRows(
   });
 }
 
+// Unique key 
+const getLearnerUniqueKey = (learner: Learner) => {
+  const anyLearner = learner as any;
+
+  const email = String(learner.email || "").trim().toLowerCase();
+  const rawId = String(learner.id || "").trim();
+  const fullName = `${learner.firstName || ""} ${learner.lastName || ""}`.trim().toLowerCase();
+  const organisation = String(learner.organisation || "").trim().toLowerCase();
+  const programme = String(learner.programme || "").trim().toLowerCase();
+
+  return (
+    email ||
+    rawId ||
+    `${fullName}||${organisation}||${programme}` ||
+    String(anyLearner.attendanceContactKey || "")
+  );
+};
+
+const mergeLearnerRows = (existing: Learner, incoming: Learner): Learner => {
+  const e: any = existing;
+  const i: any = incoming;
+
+  const existingRisks = Array.isArray(existing.riskCategories) ? existing.riskCategories : [];
+  const incomingRisks = Array.isArray(incoming.riskCategories) ? incoming.riskCategories : [];
+
+  const mergedRiskCategories = Array.from(new Set([...existingRisks, ...incomingRisks]));
+
+  const priorityRank: Record<string, number> = {
+    normal: 0,
+    high: 1,
+    critical: 2,
+  };
+
+  const strongerPriority =
+    (priorityRank[incoming.priority || "normal"] ?? 0) >
+      (priorityRank[existing.priority || "normal"] ?? 0)
+      ? incoming.priority
+      : existing.priority;
+
+  const pick = <T,>(a: T, b: T) => {
+    const aStr = String(a ?? "").trim();
+    const bStr = String(b ?? "").trim();
+    return bStr && bStr !== "N/A" && bStr !== "Unknown" ? b : a;
+  };
+
+  const merged = {
+    ...existing,
+    ...incoming,
+
+    id: pick(existing.id, incoming.id),
+    email: pick(existing.email, incoming.email),
+    phone: pick(existing.phone, incoming.phone),
+    organisation: pick(existing.organisation, incoming.organisation),
+    programme: pick(existing.programme, incoming.programme),
+    coach: pick(existing.coach, incoming.coach),
+
+    lastSessionDate: pick(existing.lastSessionDate, incoming.lastSessionDate),
+    lastSessionStatus:
+      i.lastSessionStatus && i.lastSessionStatus !== "Unknown"
+        ? i.lastSessionStatus
+        : e.lastSessionStatus,
+
+    lastProgressReviewDate: pick(existing.lastProgressReviewDate, incoming.lastProgressReviewDate),
+    nextProgressReviewDue: pick(e.nextProgressReviewDue, i.nextProgressReviewDue),
+
+    priority: strongerPriority,
+    riskCategories: mergedRiskCategories,
+  } as Learner;
+
+  (merged as any).hasAttendanceInWindow =
+    Boolean(e.hasAttendanceInWindow) || Boolean(i.hasAttendanceInWindow);
+
+  (merged as any).hasOtjBehind =
+    Boolean(e.hasOtjBehind) || Boolean(i.hasOtjBehind);
+
+  (merged as any).otjBehindPct = Math.max(
+    Number(e.otjBehindPct ?? 0),
+    Number(i.otjBehindPct ?? 0)
+  );
+
+  (merged as any).otjBehindBy = Math.max(
+    Number(e.otjBehindBy ?? 0),
+    Number(i.otjBehindBy ?? 0)
+  );
+
+  (merged as any).requiredHoursToSubmit =
+    pick(e.requiredHoursToSubmit, i.requiredHoursToSubmit);
+
+  (merged as any).otjPriority =
+    Number(i.otjBehindPct ?? 0) > Number(e.otjBehindPct ?? 0)
+      ? i.otjPriority
+      : e.otjPriority;
+
+  (merged as any).targetNow = Math.max(
+    Number(e.targetNow ?? 0),
+    Number(i.targetNow ?? 0)
+  );
+
+  (merged as any).monthlyCoachingBooked =
+    Boolean(e.monthlyCoachingBooked) || Boolean(i.monthlyCoachingBooked);
+
+  (merged as any).monthlyCoachingHasData =
+    Boolean(e.monthlyCoachingHasData) || Boolean(i.monthlyCoachingHasData);
+
+  (merged as any).monthlyCoachingSessionDate =
+    pick(e.monthlyCoachingSessionDate, i.monthlyCoachingSessionDate);
+
+  (merged as any).progressReviewBooked =
+    Boolean(e.progressReviewBooked) || Boolean(i.progressReviewBooked);
+
+  (merged as any).progressReviewHasData =
+    Boolean(e.progressReviewHasData) || Boolean(i.progressReviewHasData);
+
+  (merged as any).progressReviewSessionDate =
+    pick(e.progressReviewSessionDate, i.progressReviewSessionDate);
+
+  (merged as any).anyBooked =
+    Boolean(e.anyBooked) || Boolean(i.anyBooked);
+
+  (merged as any).anyBookedHasData =
+    Boolean(e.anyBookedHasData) || Boolean(i.anyBookedHasData);
+
+  (merged as any).anyBookedSessionType =
+    pick(e.anyBookedSessionType, i.anyBookedSessionType);
+
+  (merged as any).anyBookedSessionDate =
+    pick(e.anyBookedSessionDate, i.anyBookedSessionDate);
+
+  (merged as any).anyBookedServiceName =
+    pick(e.anyBookedServiceName, i.anyBookedServiceName);
+
+  (merged as any).attendanceEmail =
+    pick(e.attendanceEmail, i.attendanceEmail);
+
+  (merged as any).attendanceDate =
+    pick(e.attendanceDate, i.attendanceDate);
+
+  (merged as any).attendanceModule =
+    pick(e.attendanceModule, i.attendanceModule);
+
+  (merged as any).attendanceContactKey =
+    pick(e.attendanceContactKey, i.attendanceContactKey);
+
+  (merged as any)._rawCoachData = i._rawCoachData || e._rawCoachData;
+  (merged as any)._rawStudent = i._rawStudent || e._rawStudent;
+
+  // review fields
+  (merged as any).overduePrCount = Math.max(
+    Number(e.overduePrCount ?? 0),
+    Number(i.overduePrCount ?? 0)
+  );
+
+  (merged as any).reviewStatusLabel =
+    pick(e.reviewStatusLabel, i.reviewStatusLabel);
+
+  (merged as any).reviewStatusTone =
+    pick(e.reviewStatusTone, i.reviewStatusTone);
+
+  (merged as any).nextPrDate =
+    pick(e.nextPrDate, i.nextPrDate);
+
+  (merged as any).bookedPrDate =
+    pick(i.bookedPrDate, e.bookedPrDate);
+
+  return merged;
+};
+
+// review State
+const getReviewStatusLabel = (overdueCount: number) => {
+  if (overdueCount <= 0) {
+    return {
+      label: "Ahead",
+      tone: "ahead",
+    } as const;
+  }
+
+  if (overdueCount > 12) {
+    return {
+      label: "Due",
+      tone: "due",
+    } as const;
+  }
+
+  if (overdueCount > 10) {
+    return {
+      label: "At Risk",
+      tone: "at-risk",
+    } as const;
+  }
+
+  return {
+    label: "Normal",
+    tone: "normal",
+  } as const;
+};
+
 export default function Dashboard() {
   const [rows, setRows] = useState<UiCoach[]>([]);
   const [loading, setLoading] = useState(true);
   const [absenceWeeks, setAbsenceWeeks] = useState<"all" | 0 | 1 | 2 | 3>(0);
+
+  // PR
+  const [progressReviewRows, setProgressReviewRows] = useState<ProgressReviewSummaryRow[]>([]);
 
   const [filters, setFilters] = useState<DashboardFilters>({
     coach: "All Coaches",
@@ -1306,9 +1537,26 @@ export default function Dashboard() {
     }
   }, []);
 
+  const loadProgressReviewSummary = useCallback(async () => {
+    try {
+      const res = await fetch("/local-api/progress-review-summary/");
+      if (!res.ok) throw new Error("Failed to load progress review summary");
+
+      const data = await res.json();
+      setProgressReviewRows(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setProgressReviewRows([]);
+    }
+  }, []);
+
   useEffect(() => {
     void loadContactActions();
   }, [loadContactActions]);
+
+  useEffect(() => {
+    void loadProgressReviewSummary();
+  }, [loadProgressReviewSummary]);
 
   const updateContactAction = useCallback(
     async (payload: {
@@ -1378,12 +1626,30 @@ export default function Dashboard() {
 
   const filteredRows = useMemo(() => applyDashboardFilters(rows, filters), [rows, filters]);
 
+  const progressReviewIndex = useMemo(() => {
+  const byEmail = new Map<string, ProgressReviewSummaryRow>();
+  const byId = new Map<string, ProgressReviewSummaryRow>();
+  const byName = new Map<string, ProgressReviewSummaryRow>();
+
+  for (const row of progressReviewRows) {
+    const email = String(row?.email || "").trim().toLowerCase();
+    const id = String(row?.id || "").trim();
+    const fullName = normName(String(row?.fullName || "").trim());
+
+    if (email) byEmail.set(email, row);
+    if (id) byId.set(id, row);
+    if (fullName) byName.set(fullName, row);
+  }
+
+  return { byEmail, byId, byName };
+}, [progressReviewRows]);
+
   const activeLearners = useMemo<Learner[]>(() => {
     const out: Learner[] = [];
 
     for (const coach of filteredRows) {
       const raw = coach.raw as any;
-      const prIndex = buildProgressReviewIndex(raw?.overall_progress_review);
+      const prIndex = progressReviewIndex;
 
       const attLearners = raw?.attendance?.learners ?? [];
       const attById = new Map<string, any>();
@@ -1435,26 +1701,37 @@ export default function Dashboard() {
           metrics.absenceRatio
         );
 
-        const overdueItem =
-          (emailKey && prIndex.overdueByEmail.get(emailKey)) ||
-          (id && prIndex.overdueById.get(id)) ||
+        const reviewRow =
+          (emailKey && prIndex.byEmail.get(emailKey)) ||
+          (id && prIndex.byId.get(String(id))) ||
+          (fullName && prIndex.byName.get(normName(fullName))) ||
           null;
 
-        let nextProgressReviewDue = "N/A";
-        const reviewFlag: "none" | "overdue" = overdueItem ? "overdue" : "none";
+        const overduePrCount = Number(reviewRow?.overduePrCount ?? 0);
+        const reviewFlag: "none" | "overdue" = overduePrCount > 0 ? "overdue" : "none";
 
-        if (overdueItem) {
-          nextProgressReviewDue = String(overdueItem.earliestOverdue || "Overdue");
-
+        if (overduePrCount > 0) {
           if (!riskCategories.includes("review-due")) {
             riskCategories.push("review-due");
           }
 
-          const prio = priorityFromReview(overdueItem.overdueReviews);
+          const prio = priorityFromReview(overduePrCount);
           if (prio === "critical" || (prio === "high" && priority === "normal")) {
             priority = prio;
           }
         }
+
+        const reviewStatus = {
+          label: String(reviewRow?.reviewStatus || "Ahead"),
+          tone:
+            String(reviewRow?.reviewStatus || "").toLowerCase() === "due"
+              ? "due"
+              : String(reviewRow?.reviewStatus || "").toLowerCase() === "at risk"
+                ? "at-risk"
+                : String(reviewRow?.reviewStatus || "").toLowerCase() === "normal"
+                  ? "normal"
+                  : "ahead",
+        } as const;
 
         const progressVariance = toNum((s as any)?.ProgressVariance);
 
@@ -1488,14 +1765,16 @@ export default function Dashboard() {
         const hasOtjBehind = otjBehindPct > 0 || hasLeadingMinus(progressHoursRaw);
         const otjPriority = getOtjPriority(otjBehindPct);
 
-        const lastProgressReviewDate = pickFirstString(s as any, [
-          "Last Progress Review",
-          "LastProgressReview",
-          "last_progress_review",
-          "Last_PR_Date",
-          "last_pr_date",
-          "Last PR Date",
-        ]);
+        const lastProgressReviewDate =
+          String(reviewRow?.lastProgressReview || "").trim() ||
+          pickFirstString(s as any, [
+            "Last Progress Review",
+            "LastProgressReview",
+            "last_progress_review",
+            "Last_PR_Date",
+            "last_pr_date",
+            "Last PR Date",
+          ]);
 
         const learnerStatusRaw = pickFirstString(s as any, [
           "Program-Status",
@@ -1534,6 +1813,14 @@ export default function Dashboard() {
           fullName,
           "Progress Review"
         );
+
+        const bookedPrDate =
+          prBookedMeta.booked && prBookedMeta.sessionDate !== "N/A"
+            ? prBookedMeta.sessionDate
+            : "";
+
+        const nextPrDate =
+          String(reviewRow?.nextReviewStatus || "").trim() || "N/A";
 
         const supportBookedMeta = getLearnerBookedMetaByType(
           raw,
@@ -1617,7 +1904,7 @@ export default function Dashboard() {
           lastSessionDate: metrics.lastSessionDate,
           lastSessionStatus: metrics.lastSessionStatus,
           lastProgressReviewDate: lastProgressReviewDate || "",
-          nextProgressReviewDue,
+          nextProgressReviewDue: nextPrDate,
           progressReviewBooked: false,
           lastMonthlyMeetingDate: "N/A",
           plannedOtjHours: plannedOtj ?? 0,
@@ -1673,6 +1960,13 @@ export default function Dashboard() {
         (learner as any).__reviewFlag = reviewFlag;
         (learner as any).__reviewOverdue = reviewFlag === "overdue";
 
+        // PR
+        (learner as any).overduePrCount = overduePrCount;
+        (learner as any).reviewStatusLabel = reviewStatus.label;
+        (learner as any).reviewStatusTone = reviewStatus.tone;
+        (learner as any).nextPrDate = nextPrDate;
+        (learner as any).bookedPrDate = bookedPrDate || "N/A";
+
         (learner as any).coachPhone = coachPhone;
         (learner as any).coachEmail = coachEmail;
         (learner as any).lineManagerName =
@@ -1707,8 +2001,23 @@ export default function Dashboard() {
       }
     }
 
-    return out.filter((l) => l.status === "Active");
-  }, [filteredRows, absenceWeeks, filters]);
+    const deduped = new Map<string, Learner>();
+
+    for (const learner of out) {
+      const key = getLearnerUniqueKey(learner);
+      if (!key) continue;
+
+      const existing = deduped.get(key);
+
+      if (!existing) {
+        deduped.set(key, learner);
+      } else {
+        deduped.set(key, mergeLearnerRows(existing, learner));
+      }
+    }
+
+    return Array.from(deduped.values()).filter((l) => l.status === "Active");
+  }, [filteredRows, absenceWeeks, filters, progressReviewIndex]);
 
   const coachMarkingRows = useMemo<CoachMarkingRow[]>(() => {
     return filteredRows
@@ -1799,7 +2108,16 @@ export default function Dashboard() {
           l.lastSessionStatus === "Missed"
       );
     } else if (activeKpi === "review-due") {
-      result = activeLearners.filter((l) => (l as any).__reviewFlag === "overdue");
+      result = [...activeLearners].sort((a, b) => {
+        const aCount = Number((a as any).overduePrCount ?? 0);
+        const bCount = Number((b as any).overduePrCount ?? 0);
+
+        if (bCount !== aCount) return bCount - aCount;
+
+        const aDate = String((a as any).nextPrDate || "");
+        const bDate = String((b as any).nextPrDate || "");
+        return aDate.localeCompare(bDate);
+      });
     } else if (activeKpi === "coaching-due") {
       result = activeLearners
         .filter(
@@ -1915,6 +2233,7 @@ export default function Dashboard() {
 
               <div className="overflow-hidden rounded-2xl border border-[#E4E4E4] bg-white">
                 <LearnerTable
+                  key={`${activeKpi}-${bookedSessionTypeFilter}-${absenceWeeks}`}
                   learners={filteredLearners}
                   kpiCategory={activeKpi}
                   onSelectLearner={setSelectedLearner}

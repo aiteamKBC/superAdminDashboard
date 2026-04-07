@@ -123,3 +123,16 @@ export type EmailRecipient = {
   status?: string;
   riskCategories: string[];
 };
+
+// Progress Review Summary type
+export type ProgressReviewSummaryRow = {
+  id?: number | string;
+  fullName?: string;
+  email?: string;
+  group?: string;
+  caseOwner?: string;
+  lastProgressReview?: string;
+  nextReviewStatus?: string;
+  overduePrCount?: number;
+  reviewStatus?: "Ahead" | "Normal" | "At Risk" | "Due" | string;
+};

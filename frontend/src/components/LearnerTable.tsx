@@ -60,14 +60,12 @@ const otjPriorityBadge = (priority: string) => {
           At Risk
         </Badge>
       );
-
     case "need-attention":
       return (
         <Badge className="bg-severity-overdue-bg text-severity-overdue-foreground border-0 text-[11px]">
           Need Attention
         </Badge>
       );
-
     default:
       return (
         <Badge variant="outline" className="text-[11px]">
@@ -130,13 +128,16 @@ export default function LearnerTable({
       .filter((l) => {
         const sessionType =
           kpiCategory === "coaching-booked"
-            ? String((l as any).anyBookedSessionType || "Unknown")
-            : String((l as any).monthlyCoachingSessionType || "Unknown");
+            ? String((l as any).anyBookedSessionType || "Unknown").toLowerCase()
+            : String((l as any).monthlyCoachingSessionType || "Unknown").toLowerCase();
 
         const sessionDate =
           kpiCategory === "coaching-booked"
             ? String((l as any).anyBookedSessionDate || "").toLowerCase()
             : String((l as any).monthlyCoachingSessionDate || "").toLowerCase();
+
+        const serviceName = String((l as any).anyBookedServiceName || "").toLowerCase();
+        const groupName = String((l as any).anyBookedGroupName || "").toLowerCase();
 
         const phone = String(l.phone || "").toLowerCase();
         const requiredHoursToSubmit = getRequiredHoursToSubmit(l).toLowerCase();
@@ -145,18 +146,21 @@ export default function LearnerTable({
         const matchesSearch =
           !q ||
           `${l.firstName} ${l.lastName}`.toLowerCase().includes(q) ||
-          l.organisation.toLowerCase().includes(q) ||
-          l.email.toLowerCase().includes(q) ||
+          String(l.organisation || "").toLowerCase().includes(q) ||
+          String(l.email || "").toLowerCase().includes(q) ||
           phone.includes(q) ||
-          l.programme.toLowerCase().includes(q) ||
-          l.coach.toLowerCase().includes(q) ||
-          sessionType.toLowerCase().includes(q) ||
+          String(l.programme || "").toLowerCase().includes(q) ||
+          String(l.coach || "").toLowerCase().includes(q) ||
+          sessionType.includes(q) ||
           sessionDate.includes(q) ||
+          serviceName.includes(q) ||
+          groupName.includes(q) ||
           requiredHoursToSubmit.includes(q) ||
           note.includes(q);
 
         return matchesSearch;
       })
+
       .sort((a, b) => {
         let av: any;
         let bv: any;
@@ -197,6 +201,19 @@ export default function LearnerTable({
     return data;
   }, [learners, search, sessionTypeFilter, sortField, sortDir, kpiCategory]);
 
+  const getRowKey = (l: Learner) => {
+    const anyLearner = l as any;
+
+    return [
+      kpiCategory,
+      l.id,
+      anyLearner.attendanceContactKey || "",
+      anyLearner.anyBookedSessionType || "",
+      anyLearner.anyBookedSessionDate || "",
+      anyLearner.anyBookedServiceName || "",
+    ].join("::");
+  };
+
   const toggleSort = (field: string) => {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -222,7 +239,6 @@ export default function LearnerTable({
         "Organisation",
         "Programme",
         "Coach",
-        "Email",
         "Session Type",
         "Session Date",
         "Service Name",
@@ -234,11 +250,9 @@ export default function LearnerTable({
         l.organisation,
         l.programme,
         l.coach,
-        l.email,
         (l as any).anyBookedSessionType || "Unknown",
         (l as any).anyBookedSessionDate || "N/A",
         (l as any).anyBookedServiceName || "N/A",
-        (l as any).anyBookedGroupName || "N/A",
       ]);
     } else if (kpiCategory === "review-due") {
       headers = [
@@ -249,7 +263,10 @@ export default function LearnerTable({
         "Coach",
         "Email",
         "Last Progress Review",
-        "Overdue PR Date",
+        "Next PR",
+        "No. of overdue PR",
+        "Booked Date",
+        "Review Status",
       ];
 
       rows = filtered.map((l) => [
@@ -260,7 +277,10 @@ export default function LearnerTable({
         l.coach,
         l.email,
         l.lastProgressReviewDate || "N/A",
-        (l as any).nextProgressReviewDue || "N/A",
+        (l as any).nextPrDate || (l as any).nextProgressReviewDue || "N/A",
+        Number((l as any).overduePrCount ?? 0),
+        (l as any).bookedPrDate || "N/A",
+        (l as any).reviewStatusLabel || "Normal",
       ]);
     } else if (kpiCategory === "otj-behind") {
       headers = [
@@ -294,33 +314,33 @@ export default function LearnerTable({
       headers = [
         "Name",
         "Phone",
-        "Organisation",
-        "Programme",
-        "Coach",
-        "Email",
         "Called",
         "Emailed",
         "Resolved",
         "Note",
         "Booked Meeting",
+        "Organisation",
+        "Programme",
+        "Coach",
         "Last Session",
         "Status",
+        "Priority",
       ];
 
       rows = filtered.map((l) => [
         `${l.firstName} ${l.lastName}`,
         l.phone || "N/A",
-        l.organisation,
-        l.programme,
-        l.coach,
-        l.email,
         Boolean((l as any).called) ? "Yes" : "No",
         Boolean((l as any).emailed) ? "Yes" : "No",
         Boolean((l as any).isResolved) ? "Yes" : "No",
         String((l as any).note || ""),
         Boolean((l as any).anyBooked) ? String((l as any).anyBookedSessionDate || "") : "",
+        l.organisation,
+        l.programme,
+        l.coach,
         l.lastSessionDate || "N/A",
         l.lastSessionStatus || "Unknown",
+        l.priority || "",
       ]);
     } else if (kpiCategory === "coaching-due") {
       headers = [
@@ -345,11 +365,7 @@ export default function LearnerTable({
     }
 
     const csv = [headers, ...rows]
-      .map((r) =>
-        r
-          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      )
+      .map((r) => r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -367,11 +383,11 @@ export default function LearnerTable({
       : kpiCategory === "missed-session"
         ? 14
         : kpiCategory === "review-due"
-          ? 9
+          ? 12
           : kpiCategory === "coaching-due"
             ? 8
             : kpiCategory === "coaching-booked"
-              ? 10
+              ? 9
               : 7;
 
   return (
@@ -475,21 +491,11 @@ export default function LearnerTable({
 
                 {kpiCategory === "missed-session" && (
                   <>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
-                      Called
-                    </th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
-                      Emailed
-                    </th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
-                      Resolved
-                    </th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
-                      Note
-                    </th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
-                      Booked Meeting
-                    </th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Called</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Emailed</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Resolved</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Note</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Booked Meeting</th>
                   </>
                 )}
 
@@ -524,12 +530,11 @@ export default function LearnerTable({
 
                 {kpiCategory === "review-due" && (
                   <>
-                    <th className="p-3 text-left font-medium text-muted-foreground">
-                      Last Progress Review
-                    </th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">
-                      Overdue PR Date
-                    </th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Last Progress Review</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Next PR</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">No. of overdue PR</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Booked Date</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Review Status</th>
                   </>
                 )}
 
@@ -557,16 +562,11 @@ export default function LearnerTable({
                       </span>
                     </th>
 
-                    <th className="p-3 text-left font-medium text-muted-foreground">
-                      Service Name
-                    </th>
-                    {/* <th className="p-3 text-left font-medium text-muted-foreground">
-                      Group
-                    </th> */}
+                    <th className="p-3 text-left font-medium text-muted-foreground">Service Name</th>
                   </>
                 )}
 
-                {kpiCategory !== "coaching-booked" && (
+                {kpiCategory !== "coaching-booked" && kpiCategory !== "review-due" && (
                   <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
                 )}
               </tr>
@@ -577,9 +577,187 @@ export default function LearnerTable({
                 const behindPct = calcBehindPct(l);
                 const noteParts = splitNoteParts((l as any).note);
 
+                if (kpiCategory === "missed-session") {
+                  return (
+                    <tr
+                      key={getRowKey(l)}
+                      className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                      onClick={() => onSelectLearner(l)}
+                    >
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected.has(l.id)}
+                          onCheckedChange={() => {
+                            const next = new Set(selected);
+                            next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                            setSelected(next);
+                          }}
+                        />
+                      </td>
+
+                      <td className="px-4 py-3.5 font-medium text-[#505050]">
+                        <div className="flex items-center gap-2">
+                          {l.firstName} {l.lastName}
+                          {(l as any).isResolved && (
+                            <Badge className="border-0 bg-green-100 text-green-700 text-[11px]">
+                              Resolved
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
+
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={Boolean((l as any).called)}
+                          onCheckedChange={(checked) => {
+                            onUpdateContactAction?.({
+                              contactKey: String((l as any).attendanceContactKey || ""),
+                              email: String((l as any).attendanceEmail || ""),
+                              date: String((l as any).attendanceDate || ""),
+                              module: String((l as any).attendanceModule || ""),
+                              called: Boolean(checked),
+                              emailed: Boolean((l as any).emailed),
+                              resolved: Boolean((l as any).isResolved),
+                              note: String((l as any).note || ""),
+                            });
+                          }}
+                        />
+                      </td>
+
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={Boolean((l as any).emailed)}
+                          onCheckedChange={(checked) => {
+                            onUpdateContactAction?.({
+                              contactKey: String((l as any).attendanceContactKey || ""),
+                              email: String((l as any).attendanceEmail || ""),
+                              date: String((l as any).attendanceDate || ""),
+                              module: String((l as any).attendanceModule || ""),
+                              called: Boolean((l as any).called),
+                              emailed: Boolean(checked),
+                              resolved: Boolean((l as any).isResolved),
+                              note: String((l as any).note || ""),
+                            });
+                          }}
+                        />
+                      </td>
+
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={Boolean((l as any).isResolved)}
+                          onCheckedChange={(checked) => {
+                            onUpdateContactAction?.({
+                              contactKey: String((l as any).attendanceContactKey || ""),
+                              email: String((l as any).attendanceEmail || ""),
+                              date: String((l as any).attendanceDate || ""),
+                              module: String((l as any).attendanceModule || ""),
+                              called: Boolean((l as any).called),
+                              emailed: Boolean((l as any).emailed),
+                              resolved: Boolean(checked),
+                              note: String((l as any).note || ""),
+                            });
+                          }}
+                        />
+                      </td>
+
+                      <td className="p-3 min-w-[240px] max-w-[280px]" onClick={(e) => e.stopPropagation()}>
+                        {String((l as any).note || "").trim() ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit rounded-full bg-[#FFF8EE] px-2 py-1 text-[11px] font-medium text-[#B27715]">
+                              {noteParts.outcome || "Logged"}
+                            </span>
+                            {noteParts.details ? (
+                              <p
+                                className="text-xs text-[#7C7C7C] line-clamp-2"
+                                title={noteParts.details}
+                              >
+                                {noteParts.details}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[#A0A0A0]">No log</span>
+                        )}
+                      </td>
+
+                      <td className="p-3 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
+                        {Boolean((l as any).anyBooked) && String((l as any).anyBookedSessionDate || "").trim() ? (
+                          <Badge className="rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
+                            {String((l as any).anyBookedSessionDate)}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-[#A0A0A0]">Not booked</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3.5 text-[#7C7C7C]">{l.organisation}</td>
+                      <td className="p-3 text-muted-foreground">{l.programme}</td>
+                      <td className="p-3 text-muted-foreground">{l.coach}</td>
+                      <td className="p-3 text-muted-foreground">{l.lastSessionDate}</td>
+
+                      <td className="p-3">
+                        <Badge
+                          variant="outline"
+                          className={
+                            l.lastSessionStatus === "Attended"
+                              ? "text-[11px] border-emerald-300 text-emerald-700 bg-emerald-50"
+                              : l.lastSessionStatus === "Missed"
+                                ? "text-[11px] border-rose-300 text-rose-700 bg-rose-50"
+                                : "text-[11px] border-slate-300 text-slate-600 bg-slate-50"
+                          }
+                        >
+                          {l.lastSessionStatus}
+                        </Badge>
+                      </td>
+
+                      <td className="p-3">{priorityBadge(l.priority)}</td>
+                    </tr>
+                  );
+                }
+
+                if (kpiCategory === "coaching-booked") {
+                  return (
+                    <tr
+                      key={getRowKey(l)}
+                      className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                      onClick={() => onSelectLearner(l)}
+                    >
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected.has(l.id)}
+                          onCheckedChange={() => {
+                            const next = new Set(selected);
+                            next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                            setSelected(next);
+                          }}
+                        />
+                      </td>
+
+                      <td className="px-4 py-3.5 font-medium text-[#505050]">
+                        {l.firstName} {l.lastName}
+                      </td>
+                      <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
+                      <td className="px-4 py-3.5 text-[#7C7C7C]">{l.organisation}</td>
+                      <td className="p-3 text-muted-foreground">{l.programme}</td>
+                      <td className="p-3 text-muted-foreground">{l.coach}</td>
+                      <td className="p-3 text-muted-foreground">
+                        {String((l as any).anyBookedSessionType || "Unknown")}
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {String((l as any).anyBookedSessionDate || "N/A")}
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {String((l as any).anyBookedServiceName || "N/A")}
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
                   <tr
-                    key={l.id}
+                    key={getRowKey(l)}
                     className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
                     onClick={() => onSelectLearner(l)}
                   >
@@ -605,113 +783,7 @@ export default function LearnerTable({
                       </div>
                     </td>
 
-                    <td className="p-3 text-muted-foreground">
-                      {l.phone || "N/A"}
-                    </td>
-
-                    {kpiCategory === "missed-session" && (
-                      <>
-                        <td
-                          className="p-3"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Checkbox
-                            checked={Boolean((l as any).called)}
-                            onCheckedChange={(checked) => {
-                              onUpdateContactAction?.({
-                                contactKey: String((l as any).attendanceContactKey || ""),
-                                email: String((l as any).attendanceEmail || ""),
-                                date: String((l as any).attendanceDate || ""),
-                                module: String((l as any).attendanceModule || ""),
-                                called: Boolean(checked),
-                                emailed: Boolean((l as any).emailed),
-                                resolved: Boolean((l as any).isResolved),
-                                note: String((l as any).note || ""),
-                              });
-                            }}
-                          />
-                        </td>
-
-                        <td
-                          className="p-3"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Checkbox
-                            checked={Boolean((l as any).emailed)}
-                            onCheckedChange={(checked) => {
-                              onUpdateContactAction?.({
-                                contactKey: String((l as any).attendanceContactKey || ""),
-                                email: String((l as any).attendanceEmail || ""),
-                                date: String((l as any).attendanceDate || ""),
-                                module: String((l as any).attendanceModule || ""),
-                                called: Boolean((l as any).called),
-                                emailed: Boolean(checked),
-                                resolved: Boolean((l as any).isResolved),
-                                note: String((l as any).note || ""),
-                              });
-                            }}
-                          />
-                        </td>
-
-                        <td
-                          className="p-3"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Checkbox
-                            checked={Boolean((l as any).isResolved)}
-                            onCheckedChange={(checked) => {
-                              onUpdateContactAction?.({
-                                contactKey: String((l as any).attendanceContactKey || ""),
-                                email: String((l as any).attendanceEmail || ""),
-                                date: String((l as any).attendanceDate || ""),
-                                module: String((l as any).attendanceModule || ""),
-                                called: Boolean((l as any).called),
-                                emailed: Boolean((l as any).emailed),
-                                resolved: Boolean(checked),
-                                note: String((l as any).note || ""),
-                              });
-                            }}
-                          />
-                        </td>
-
-                        <td
-                          className="p-3 min-w-[240px] max-w-[280px]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {String((l as any).note || "").trim() ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="inline-flex w-fit rounded-full bg-[#FFF8EE] px-2 py-1 text-[11px] font-medium text-[#B27715]">
-                                {noteParts.outcome || "Logged"}
-                              </span>
-                              {noteParts.details ? (
-                                <p
-                                  className="text-xs text-[#7C7C7C] line-clamp-2"
-                                  title={noteParts.details}
-                                >
-                                  {noteParts.details}
-                                </p>
-                              ) : null}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[#A0A0A0]">No log</span>
-                          )}
-                        </td>
-
-                        <td
-                          className="p-3 min-w-[140px]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {Boolean((l as any).anyBooked) && String((l as any).anyBookedSessionDate || "").trim() ? (
-                            <Badge className="rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
-                              {String((l as any).anyBookedSessionDate)}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-[#A0A0A0]">Not booked</span>
-                          )}
-                        </td>
-                      </>
-                    )}
-
+                    <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
                     <td className="px-4 py-3.5 text-[#7C7C7C]">{l.organisation}</td>
                     <td className="p-3 text-muted-foreground">{l.programme}</td>
                     <td className="p-3 text-muted-foreground">{l.coach}</td>
@@ -739,33 +811,38 @@ export default function LearnerTable({
                       </>
                     )}
 
-                    {kpiCategory === "missed-session" && (
-                      <>
-                        <td className="p-3 text-muted-foreground">{l.lastSessionDate}</td>
-                        <td className="p-3">
-                          <Badge
-                            variant="outline"
-                            className={
-                              l.lastSessionStatus === "Attended"
-                                ? "text-[11px] border-emerald-300 text-emerald-700 bg-emerald-50"
-                                : l.lastSessionStatus === "Missed"
-                                  ? "text-[11px] border-rose-300 text-rose-700 bg-rose-50"
-                                  : "text-[11px] border-slate-300 text-slate-600 bg-slate-50"
-                            }
-                          >
-                            {l.lastSessionStatus}
-                          </Badge>
-                        </td>
-                      </>
-                    )}
-
                     {kpiCategory === "review-due" && (
                       <>
+                        <td className="p-3 text-muted-foreground">{l.lastProgressReviewDate || "N/A"}</td>
+
                         <td className="p-3 text-muted-foreground">
-                          {l.lastProgressReviewDate || "N/A"}
+                          {(l as any).nextPrDate || (l as any).nextProgressReviewDue || "N/A"}
                         </td>
+
                         <td className="p-3 text-muted-foreground">
-                          {(l as any).nextProgressReviewDue || "N/A"}
+                          {Number((l as any).overduePrCount ?? 0)}
+                        </td>
+
+                        <td className="p-3 text-muted-foreground">
+                          {(l as any).bookedPrDate && (l as any).bookedPrDate !== "N/A"
+                            ? (l as any).bookedPrDate
+                            : "Not booked"}
+                        </td>
+
+                        <td className="p-3">
+                          <Badge
+                            className={
+                              (l as any).reviewStatusTone === "due"
+                                ? "border-0 bg-severity-critical-bg text-severity-critical-foreground text-[11px]"
+                                : (l as any).reviewStatusTone === "at-risk"
+                                  ? "border-0 bg-severity-overdue-bg text-severity-overdue-foreground text-[11px]"
+                                  : (l as any).reviewStatusTone === "ahead"
+                                    ? "border-0 bg-emerald-100 text-emerald-700 text-[11px]"
+                                    : "border-0 bg-slate-100 text-slate-700 text-[11px]"
+                            }
+                          >
+                            {(l as any).reviewStatusLabel || "Normal"}
+                          </Badge>
                         </td>
                       </>
                     )}
@@ -778,24 +855,7 @@ export default function LearnerTable({
                       </td>
                     )}
 
-                    {kpiCategory === "coaching-booked" && (
-                      <>
-                        <td className="p-3 text-muted-foreground">
-                          {String((l as any).anyBookedSessionType || "Unknown")}
-                        </td>
-                        <td className="p-3 text-muted-foreground">
-                          {String((l as any).anyBookedSessionDate || "N/A")}
-                        </td>
-                        <td className="p-3 text-muted-foreground">
-                          {String((l as any).anyBookedServiceName || "N/A")}
-                        </td>
-                        {/* <td className="p-3 text-muted-foreground">
-                          {String((l as any).anyBookedGroupName || "N/A")}
-                        </td> */}
-                      </>
-                    )}
-
-                    {kpiCategory !== "coaching-booked" && (
+                    {kpiCategory !== "review-due" && (
                       <td className="p-3">
                         {kpiCategory === "otj-behind"
                           ? otjPriorityBadge(String((l as any).otjPriority || "normal"))
