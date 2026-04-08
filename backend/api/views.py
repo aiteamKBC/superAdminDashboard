@@ -7,6 +7,19 @@ from django.db import connection, connections
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, date
 
+# Next PR 
+def split_next_review_status(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return "", ""
+
+    if "(" in raw and ")" in raw:
+        date_part = raw.split("(", 1)[0].strip()
+        state_part = raw.split("(", 1)[1].rsplit(")", 1)[0].strip()
+        return date_part, state_part
+
+    return raw, ""
+
 def current_db_info(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT current_database(), current_schema()")
@@ -39,6 +52,17 @@ def parse_date_safe(value):
             return datetime.strptime(value, fmt).date()
         except Exception:
             continue
+
+    import re
+
+    match = re.search(r"(\d{2}[/-]\d{2}[/-]\d{2,4}|\d{4}[/-]\d{2}[/-]\d{2})$", value)
+    if match:
+        extracted = match.group(1).strip()
+        for fmt in formats:
+            try:
+                return datetime.strptime(extracted, fmt).date()
+            except Exception:
+                continue
 
     return None
 
@@ -85,16 +109,27 @@ def progress_review_summary(request):
 
     for row in raw_rows:
         overdue_count = 0
+        next_due_date_from_planned = None
+        next_due_state_from_planned = ""
 
         for i in range(1, 17):
             planned_key = f"Review Planned Date{i}"
             status_key = f"Review Status{i}"
 
             planned_date = parse_date_safe(row.get(planned_key))
-            completed = is_completed_status(row.get(status_key))
+            planned_status_raw = str(row.get(status_key) or "").strip()
+            completed = is_completed_status(planned_status_raw)
 
-            if planned_date and planned_date < today and not completed:
+            if not planned_date:
+                continue
+
+            if planned_date < today and not completed:
                 overdue_count += 1
+
+            if planned_date >= today and not completed:
+                if next_due_date_from_planned is None or planned_date < next_due_date_from_planned:
+                    next_due_date_from_planned = planned_date
+                    next_due_state_from_planned = planned_status_raw
 
         if overdue_count <= 0:
             review_status = "Ahead"
@@ -105,6 +140,15 @@ def progress_review_summary(request):
         else:
             review_status = "Normal"
 
+        next_review_raw = row.get("Next Review (Status)") or ""
+        next_pr_date, next_pr_state = split_next_review_status(next_review_raw)
+
+        if not next_pr_date and next_due_date_from_planned:
+            next_pr_date = next_due_date_from_planned.strftime("%Y-%m-%d")
+
+        if not next_pr_state and next_due_state_from_planned:
+            next_pr_state = next_due_state_from_planned
+
         results.append({
             "id": row.get("ID"),
             "fullName": row.get("FullName") or "",
@@ -112,7 +156,9 @@ def progress_review_summary(request):
             "group": row.get("Group") or "",
             "caseOwner": row.get("CaseOwner") or "",
             "lastProgressReview": row.get("Last Progress Review") or "",
-            "nextReviewStatus": row.get("Next Review (Status)") or "",
+            "nextReviewStatus": next_review_raw,
+            "nextPrDate": next_pr_date,
+            "nextPrState": next_pr_state,
             "overduePrCount": overdue_count,
             "reviewStatus": review_status,
         })
@@ -239,4 +285,135 @@ def learner_contact_actions(request):
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    
+# Employer attendance summary based on due dates in booking review summaries and actual attendance records
+def booking_review_employer_summary(request):
+    with connections["employer"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                id,
+                case_owner_id,
+                day_date,
+                booking_id,
+                service_name,
+                meeting_subject,
+                customer_name,
+                customer_email,
+                learner_email,
+                learner_phone,
+                total_participant_count,
+                staff_names,
+                staff_emails,
+                status,
+                summary_json,
+                summary_text,
+                planned,
+                submitted,
+                expected,
+                otj_hours_status,
+                inserted_at,
+                last_synced_at
+            FROM public.booking_review_summaries
+            WHERE
+                LOWER(COALESCE(service_name, '')) LIKE '%progress review%'
+                OR LOWER(COALESCE(service_name, '')) LIKE '%monthly coaching review%'
+                OR LOWER(COALESCE(service_name, '')) LIKE '%mcr%'
+                OR LOWER(COALESCE(meeting_subject, '')) LIKE '%progress review%'
+                OR LOWER(COALESCE(meeting_subject, '')) LIKE '%monthly coaching review%'
+                OR LOWER(COALESCE(meeting_subject, '')) LIKE '%mcr%'
+            ORDER BY day_date DESC NULLS LAST, id DESC
+        """)
+        columns = [col[0] for col in cursor.description]
+        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    results = []
+
+    for row in raw_rows:
+        learner_email = str(
+            row.get("learner_email") or row.get("customer_email") or ""
+        ).strip().lower()
+
+        summary_data = row.get("summary_json")
+        if isinstance(summary_data, str):
+            try:
+                summary_data = json.loads(summary_data)
+            except Exception:
+                summary_data = None
+
+        employer_owner = ""
+        employer_action = ""
+        employer_due = ""
+
+        if isinstance(summary_data, dict):
+            actions = summary_data.get("priority_actions", []) or []
+
+            for act in actions:
+                owner = str(act.get("owner") or "").strip()
+                action = str(act.get("action") or "").strip()
+                due = str(act.get("due") or "").strip()
+
+                owner_lower = owner.lower()
+                if "employer" in owner_lower or "line manager" in owner_lower:
+                    employer_owner = owner
+                    employer_action = action
+                    employer_due = due
+                    break
+
+        total_participants = row.get("total_participant_count") or 0
+        staff_names = str(row.get("staff_names") or "").strip()
+        staff_emails = str(row.get("staff_emails") or "").strip()
+
+        # افتراض عملي:
+        # 2 مشاركين = غالبًا coach + learner
+        # 3 أو أكثر = employer حاضر غالبًا
+        if total_participants >= 3:
+            employer_attendance = "Yes"
+        else:
+            employer_attendance = "No"
+
+        results.append({
+            "id": row.get("id"),
+            "caseOwnerId": row.get("case_owner_id"),
+            "dayDate": row.get("day_date").isoformat() if row.get("day_date") else None,
+            "bookingId": row.get("booking_id") or "",
+            "serviceName": row.get("service_name") or "",
+            "meetingSubject": row.get("meeting_subject") or "",
+            "customerName": row.get("customer_name") or "",
+            "customerEmail": str(row.get("customer_email") or "").strip().lower(),
+            "learnerEmail": learner_email,
+            "learnerPhone": row.get("learner_phone") or "",
+            "totalParticipantCount": total_participants,
+            "staffNames": staff_names,
+            "staffEmails": staff_emails,
+            "status": row.get("status") or "",
+            "planned": row.get("planned"),
+            "submitted": row.get("submitted"),
+            "expected": row.get("expected"),
+            "otjHoursStatus": row.get("otj_hours_status") or "",
+            "insertedAt": row.get("inserted_at").isoformat() if row.get("inserted_at") else None,
+            "lastSyncedAt": row.get("last_synced_at").isoformat() if row.get("last_synced_at") else None,
+            "employerAttendance": employer_attendance,
+            "employerOwner": employer_owner,
+            "employerAction": employer_action,
+            "employerDue": employer_due,
+            "summaryText": row.get("summary_text") or "",
+        })
+
+    return JsonResponse(results, safe=False)
+# Test
+def employer_tables_debug(request):
+    with connections["employer"].cursor() as cursor:
+        cursor.execute("""
+            SELECT table_schema, table_name
+            FROM information_schema.tables
+            WHERE table_type = 'BASE TABLE'
+            ORDER BY table_schema, table_name
+        """)
+        rows = cursor.fetchall()
+
+    return JsonResponse(
+        [
+            {"schema": row[0], "table": row[1]}
+            for row in rows
+        ],
+        safe=False
+    )

@@ -1425,6 +1425,12 @@ const mergeLearnerRows = (existing: Learner, incoming: Learner): Learner => {
   (merged as any).nextPrDate =
     pick(e.nextPrDate, i.nextPrDate);
 
+  (merged as any).nextPrState =
+    pick(e.nextPrState, i.nextPrState);
+
+  (merged as any).nextReviewStatusRaw =
+    pick(e.nextReviewStatusRaw, i.nextReviewStatusRaw);
+
   (merged as any).bookedPrDate =
     pick(i.bookedPrDate, e.bookedPrDate);
 
@@ -1459,6 +1465,135 @@ const getReviewStatusLabel = (overdueCount: number) => {
     tone: "normal",
   } as const;
 };
+
+// bring the email of the student
+const getEmailLocalPart = (email: unknown) => {
+  const e = normEmail(email);
+  if (!e.includes("@")) return e;
+  return e.split("@")[0].trim();
+};
+
+const tokenizeName = (value: unknown) =>
+  normName(value)
+    .split(" ")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+const sameLooseNameTokens = (a: unknown, b: unknown) => {
+  const ax = tokenizeName(a);
+  const bx = tokenizeName(b);
+
+  if (!ax.length || !bx.length) return false;
+
+  const aJoined = ax.join(" ");
+  const bJoined = bx.join(" ");
+
+  if (aJoined === bJoined) return true;
+  if (aJoined.includes(bJoined) || bJoined.includes(aJoined)) return true;
+
+  const overlap = ax.filter((t) => bx.includes(t)).length;
+  const minLen = Math.min(ax.length, bx.length);
+
+  return minLen > 0 && overlap >= minLen;
+};
+
+const findBestProgressReviewMatch = (
+  learner: {
+    id?: string;
+    email?: string;
+    fullName?: string;
+  },
+  rows: ProgressReviewSummaryRow[]
+): ProgressReviewSummaryRow | null => {
+  const learnerId = normId(learner.id);
+  const learnerEmail = normEmail(learner.email);
+  const learnerLocal = getEmailLocalPart(learnerEmail);
+  const learnerName = normName(learner.fullName);
+
+  if (!learnerId && !learnerEmail && !learnerName) return null;
+
+  for (const row of rows) {
+    const rowId = normId(row?.id);
+    const rowEmail = normEmail(row?.email);
+    const rowLocal = getEmailLocalPart(rowEmail);
+    const rowName = normName(row?.fullName);
+
+    if (learnerId && rowId && learnerId === rowId) return row;
+    if (learnerEmail && rowEmail && learnerEmail === rowEmail) return row;
+    if (learnerLocal && rowLocal && learnerLocal === rowLocal && learnerName && rowName && sameLooseNameTokens(learnerName, rowName)) {
+      return row;
+    }
+    if (learnerName && rowName && sameLooseNameTokens(learnerName, rowName)) {
+      return row;
+    }
+  }
+
+  return null;
+};
+
+const getNextPrDateFromRow = (row: any) =>
+  pickFirstString(row, [
+    "nextPrDate",
+    "next_pr_date",
+    "NextPrDate",
+    "Next PR",
+    "nextReviewDate",
+    "NextReviewDate",
+    "nextReviewStatus",
+    "reviewDate",
+    "ReviewDate",
+    "earliestOverdue",
+    "next_progress_review",
+    "nextProgressReview",
+  ]) || "N/A";
+
+const getReviewNumber = (row: any, keys: string[]) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value == null || value === "") continue;
+
+    const num = Number(value);
+    if (Number.isFinite(num)) return num;
+  }
+  return 0;
+};
+
+const getReviewString = (row: any, keys: string[]) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+};
+
+const getOverduePrCountFromRow = (row: any) =>
+  getReviewNumber(row, [
+    "overduePrCount",
+    "overduePRCount",
+    "overdueReviews",
+    "overdue_reviews",
+    "overdue_pr_count",
+    "overdueCount",
+    "No. of overdue PR",
+    "noOfOverduePr",
+  ]);
+
+const getReviewStatusFromRow = (row: any) =>
+  getReviewString(row, [
+    "reviewStatus",
+    "review_status",
+    "Review Status",
+    "status",
+  ]) || "Ahead";
+
+const getLastProgressReviewFromRow = (row: any) =>
+  getReviewString(row, [
+    "lastProgressReview",
+    "last_progress_review",
+    "Last Progress Review",
+    "lastPrDate",
+    "last_pr_date",
+  ]);
 
 export default function Dashboard() {
   const [rows, setRows] = useState<UiCoach[]>([]);
@@ -1627,22 +1762,25 @@ export default function Dashboard() {
   const filteredRows = useMemo(() => applyDashboardFilters(rows, filters), [rows, filters]);
 
   const progressReviewIndex = useMemo(() => {
-  const byEmail = new Map<string, ProgressReviewSummaryRow>();
-  const byId = new Map<string, ProgressReviewSummaryRow>();
-  const byName = new Map<string, ProgressReviewSummaryRow>();
+    const byEmail = new Map<string, ProgressReviewSummaryRow>();
+    const byId = new Map<string, ProgressReviewSummaryRow>();
+    const byName = new Map<string, ProgressReviewSummaryRow>();
+    const byEmailLocal = new Map<string, ProgressReviewSummaryRow>();
 
-  for (const row of progressReviewRows) {
-    const email = String(row?.email || "").trim().toLowerCase();
-    const id = String(row?.id || "").trim();
-    const fullName = normName(String(row?.fullName || "").trim());
+    for (const row of progressReviewRows) {
+      const email = String(row?.email || "").trim().toLowerCase();
+      const emailLocal = getEmailLocalPart(email);
+      const id = String(row?.id || "").trim();
+      const fullName = normName(String(row?.fullName || "").trim());
 
-    if (email) byEmail.set(email, row);
-    if (id) byId.set(id, row);
-    if (fullName) byName.set(fullName, row);
-  }
+      if (email) byEmail.set(email, row);
+      if (emailLocal) byEmailLocal.set(emailLocal, row);
+      if (id) byId.set(id, row);
+      if (fullName) byName.set(fullName, row);
+    }
 
-  return { byEmail, byId, byName };
-}, [progressReviewRows]);
+    return { byEmail, byId, byName, byEmailLocal, rows: progressReviewRows };
+  }, [progressReviewRows]);
 
   const activeLearners = useMemo<Learner[]>(() => {
     const out: Learner[] = [];
@@ -1702,12 +1840,40 @@ export default function Dashboard() {
         );
 
         const reviewRow =
+          (id && prIndex.byId.get(id)) ||
           (emailKey && prIndex.byEmail.get(emailKey)) ||
-          (id && prIndex.byId.get(String(id))) ||
+          (emailKey && prIndex.byEmailLocal.get(getEmailLocalPart(emailKey))) ||
           (fullName && prIndex.byName.get(normName(fullName))) ||
+          findBestProgressReviewMatch(
+            {
+              id,
+              email: emailKey,
+              fullName,
+            },
+            prIndex.rows
+          ) ||
           null;
 
-        const overduePrCount = Number(reviewRow?.overduePrCount ?? 0);
+        if (!reviewRow) {
+          console.log("PR NO MATCH", {
+            learnerId: id,
+            learnerEmail: emailKey,
+            learnerName: fullName,
+          });
+        } else {
+          console.log("PR MATCH OK", {
+            learnerId: id,
+            reviewId: reviewRow?.id,
+            learnerEmail: emailKey,
+            reviewEmail: reviewRow?.email,
+            learnerName: fullName,
+            reviewName: reviewRow?.fullName,
+            nextReviewStatus: reviewRow?.nextReviewStatus,
+            overduePrCount: reviewRow?.overduePrCount,
+          });
+        }
+
+        const overduePrCount = getOverduePrCountFromRow(reviewRow);
         const reviewFlag: "none" | "overdue" = overduePrCount > 0 ? "overdue" : "none";
 
         if (overduePrCount > 0) {
@@ -1721,14 +1887,16 @@ export default function Dashboard() {
           }
         }
 
+        const reviewStatusValue = getReviewStatusFromRow(reviewRow);
+
         const reviewStatus = {
-          label: String(reviewRow?.reviewStatus || "Ahead"),
+          label: reviewStatusValue,
           tone:
-            String(reviewRow?.reviewStatus || "").toLowerCase() === "due"
+            reviewStatusValue.toLowerCase() === "due"
               ? "due"
-              : String(reviewRow?.reviewStatus || "").toLowerCase() === "at risk"
+              : reviewStatusValue.toLowerCase() === "at risk"
                 ? "at-risk"
-                : String(reviewRow?.reviewStatus || "").toLowerCase() === "normal"
+                : reviewStatusValue.toLowerCase() === "normal"
                   ? "normal"
                   : "ahead",
         } as const;
@@ -1766,7 +1934,7 @@ export default function Dashboard() {
         const otjPriority = getOtjPriority(otjBehindPct);
 
         const lastProgressReviewDate =
-          String(reviewRow?.lastProgressReview || "").trim() ||
+          getLastProgressReviewFromRow(reviewRow) ||
           pickFirstString(s as any, [
             "Last Progress Review",
             "LastProgressReview",
@@ -1819,8 +1987,11 @@ export default function Dashboard() {
             ? prBookedMeta.sessionDate
             : "";
 
+        const rawNextReviewStatus = String(reviewRow?.nextReviewStatus || "").trim();
+
         const nextPrDate =
-          String(reviewRow?.nextReviewStatus || "").trim() || "N/A";
+          String((reviewRow as any)?.nextPrDate || "").trim() ||
+          getNextPrDateFromRow(reviewRow);
 
         const supportBookedMeta = getLearnerBookedMetaByType(
           raw,
@@ -1964,7 +2135,10 @@ export default function Dashboard() {
         (learner as any).overduePrCount = overduePrCount;
         (learner as any).reviewStatusLabel = reviewStatus.label;
         (learner as any).reviewStatusTone = reviewStatus.tone;
+        (learner as any).nextReviewStatusRaw = rawNextReviewStatus;
         (learner as any).nextPrDate = nextPrDate;
+        (learner as any).nextPrState = String((reviewRow as any)?.nextPrState || "").trim();
+
         (learner as any).bookedPrDate = bookedPrDate || "N/A";
 
         (learner as any).coachPhone = coachPhone;

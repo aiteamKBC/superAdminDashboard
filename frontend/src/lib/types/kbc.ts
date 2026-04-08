@@ -1,3 +1,64 @@
+export type KbcStudent = {
+  ID?: string | number;
+  id?: string | number;
+
+  Email?: string;
+  email?: string;
+  emailAddress?: string;
+  UserEmail?: string;
+  LearnerEmail?: string;
+
+  FullName?: string;
+  fullName?: string;
+  DisplayName?: string;
+  displayName?: string;
+  name?: string;
+
+  Gender?: string;
+  Overall?: string | number;
+  overall?: string | number;
+
+  CaseOwnerId?: string | number;
+  LMSProgress?: string | number;
+  AptemProgress?: string | number;
+
+  ["Review Status1"]?: string;
+  ["Review Status2"]?: string;
+  ["Review Status3"]?: string;
+  ["Review Status4"]?: string;
+  ["Review Status5"]?: string;
+  ["Review Status6"]?: string;
+  ["Review Status7"]?: string;
+  ["Review Status8"]?: string;
+  ["Review Status9"]?: string;
+  ["Review Status10"]?: string;
+  ["Review Status11"]?: string;
+  ["Review Status12"]?: string;
+  ["Review Status13"]?: string;
+  ["Review Status14"]?: string;
+  ["Review Status15"]?: string;
+  ["Review Status16"]?: string;
+
+  ["Review Planned Date1"]?: string;
+  ["Review Planned Date2"]?: string;
+  ["Review Planned Date3"]?: string;
+  ["Review Planned Date4"]?: string;
+  ["Review Planned Date5"]?: string;
+  ["Review Planned Date6"]?: string;
+  ["Review Planned Date7"]?: string;
+  ["Review Planned Date8"]?: string;
+  ["Review Planned Date9"]?: string;
+  ["Review Planned Date10"]?: string;
+  ["Review Planned Date11"]?: string;
+  ["Review Planned Date12"]?: string;
+  ["Review Planned Date13"]?: string;
+  ["Review Planned Date14"]?: string;
+  ["Review Planned Date15"]?: string;
+  ["Review Planned Date16"]?: string;
+
+  [key: string]: any;
+};
+
 export type KbcCoach = {
   case_owner: string;
   owner_phone?: string;
@@ -51,7 +112,7 @@ export type KbcCoach = {
 
   distribution?: Record<string, number>;
 
-  students?: any[];
+  students?: KbcStudent[];
 
   tasks: any[];
 
@@ -133,6 +194,8 @@ export type ProgressReviewSummaryRow = {
   caseOwner?: string;
   lastProgressReview?: string;
   nextReviewStatus?: string;
+  nextPrDate?: string;
+  nextPrState?: string;
   overduePrCount?: number;
   reviewStatus?: "Ahead" | "Normal" | "At Risk" | "Due" | string;
 };

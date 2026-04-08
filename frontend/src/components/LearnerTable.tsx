@@ -816,17 +816,23 @@ export default function LearnerTable({
                         <td className="p-3 text-muted-foreground">{l.lastProgressReviewDate || "N/A"}</td>
 
                         <td className="p-3 text-muted-foreground">
-                          {(l as any).nextPrDate || (l as any).nextProgressReviewDue || "N/A"}
+                          {(l as any).nextPrDate
+                            ? `${(l as any).nextPrDate}${(l as any).nextPrState ? ` (${(l as any).nextPrState})` : ""}`
+                            : "N/A"}
                         </td>
 
                         <td className="p-3 text-muted-foreground">
                           {Number((l as any).overduePrCount ?? 0)}
                         </td>
 
-                        <td className="p-3 text-muted-foreground">
-                          {(l as any).bookedPrDate && (l as any).bookedPrDate !== "N/A"
-                            ? (l as any).bookedPrDate
-                            : "Not booked"}
+                        <td className="p-3 min-w-[140px]">
+                          {(l as any).bookedPrDate && (l as any).bookedPrDate !== "N/A" ? (
+                            <Badge className="rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
+                              {(l as any).bookedPrDate}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-[#A0A0A0]">Not booked</span>
+                          )}
                         </td>
 
                         <td className="p-3">

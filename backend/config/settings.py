@@ -89,6 +89,12 @@ DATABASES = {
         conn_max_age=600,
         ssl_require=True,
     ),
+
+    "employer": dj_database_url.parse(
+        os.getenv("EMPLOYER_DATABASE"),
+        conn_max_age=600,
+        ssl_require=True,
+    ),
 }
 
 
