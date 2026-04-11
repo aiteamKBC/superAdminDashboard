@@ -41,11 +41,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     "api",
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,24 +81,30 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     "default": dj_database_url.parse(
-        os.getenv("DATABASE_URL"),
+        os.getenv("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
-        ssl_require=True,
-    ),
-
-    "neon": dj_database_url.parse(
-        os.getenv("NEON_DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=True,
-    ),
-
-    "employer": dj_database_url.parse(
-        os.getenv("EMPLOYER_DATABASE"),
-        conn_max_age=600,
-        ssl_require=True,
+        ssl_require=False,
     ),
 }
 
+# Optional databases - only configure if environment variables are set
+if os.getenv("NEON_DATABASE_URL"):
+    DATABASES["neon"] = dj_database_url.parse(
+        os.getenv("NEON_DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+
+if os.getenv("EMPLOYER_DATABASE"):
+    DATABASES["employer"] = dj_database_url.parse(
+        os.getenv("EMPLOYER_DATABASE"),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+
+
+# CORS Settings - Allow frontend to access API
+CORS_ALLOW_ALL_ORIGINS = True  # For development only
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -133,3 +141,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# KBC API Configuration
+KBC_API_KEY = os.getenv("KBC_API_KEY", "")
+KBC_API_BASE_URL = os.getenv("KBC_API_BASE_URL", "https://api.kentbusinesscollege.net")

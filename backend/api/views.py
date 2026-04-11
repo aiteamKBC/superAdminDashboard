@@ -2,10 +2,12 @@ from django.shortcuts import render
 
 # Create your views here.
 import json
+import requests
 from django.http import JsonResponse
 from django.db import connection, connections
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, date
+from django.conf import settings
 
 # Next PR 
 def split_next_review_status(value):
@@ -417,3 +419,42 @@ def employer_tables_debug(request):
         ],
         safe=False
     )
+
+# KBC API Proxy Endpoint
+def fetch_all_coaches_analytics(request):
+    """
+    Fetches all coaches analytics data from the KBC API.
+    This endpoint proxies requests to the external KBC API.
+    """
+    try:
+        api_key = getattr(settings, 'KBC_API_KEY', '')
+        api_base_url = getattr(settings, 'KBC_API_BASE_URL', 'https://api.kentbusinesscollege.net')
+        
+        if not api_key:
+            return JsonResponse({"error": "KBC API key not configured"}, status=500)
+        
+        # Make request to KBC API
+        response = requests.get(
+            f"{api_base_url.rstrip('/')}/api/coaches/all",
+            headers={
+                "x-api-key": api_key,
+                "Accept": "application/json",
+            },
+            timeout=30,
+        )
+        
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"KBC API returned status {response.status_code}",
+                "details": response.text[:500]  # Limit response size
+            }, status=response.status_code)
+        
+        # Return the data from KBC API
+        return JsonResponse(response.json(), safe=False)
+        
+    except requests.exceptions.Timeout:
+        return JsonResponse({"error": "KBC API request timed out"}, status=504)
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": f"Failed to connect to KBC API: {str(e)}"}, status=502)
+    except Exception as e:
+        return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)

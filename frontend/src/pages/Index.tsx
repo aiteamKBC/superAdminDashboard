@@ -1645,7 +1645,7 @@ export default function Dashboard() {
 
   const loadContactActions = useCallback(async () => {
     try {
-      const res = await fetch("/local-api/learner-contact-actions");
+      const res = await fetch("/api/learner-contact-actions/");
       if (!res.ok) throw new Error("Failed to load contact actions");
 
       const data = await res.json();
@@ -1674,7 +1674,7 @@ export default function Dashboard() {
 
   const loadProgressReviewSummary = useCallback(async () => {
     try {
-      const res = await fetch("/local-api/progress-review-summary/");
+      const res = await fetch("/api/progress-review-summary/");
       if (!res.ok) throw new Error("Failed to load progress review summary");
 
       const data = await res.json();
@@ -1732,7 +1732,7 @@ export default function Dashboard() {
       });
 
       try {
-        const res = await fetch("/local-api/learner-contact-actions", {
+        const res = await fetch("/api/learner-contact-actions/", {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

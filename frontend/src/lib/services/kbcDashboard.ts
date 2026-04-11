@@ -10,42 +10,17 @@ type CoachesResponse =
     };
 
 /**
- * CORE API, attendance, progress reviews, coaches
- * USERS API, learner profile, organisation, programme, OTJ
- *
- * CORE uses VITE_API_ORIGIN + VITE_API_KEY
- * USERS falls back to CORE unless VITE_USERS_API_ORIGIN (and optional VITE_USERS_API_KEY) are provided
+ * All API calls now go through the Django backend.
+ * The backend handles external KBC API integration.
  */
 
-const CORE_API_ORIGIN =
-  (import.meta as any).env?.VITE_API_ORIGIN?.toString().trim() || "/api";
-const CORE_API_KEY =
-  (import.meta as any).env?.VITE_API_KEY?.toString().trim() || "";
+const API_BASE_URL = "/api";
 
-const USERS_API_ORIGIN =
-  (import.meta as any).env?.VITE_USERS_API_ORIGIN?.toString().trim() ||
-  CORE_API_ORIGIN;
-const USERS_API_KEY =
-  (import.meta as any).env?.VITE_USERS_API_KEY?.toString().trim() ||
-  CORE_API_KEY;
-
-function joinUrl(base: string, path: string) {
-  const b = String(base || "").replace(/\/+$/, "");
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return `${b}${p}`;
-}
-
-async function requestJson<T>(
-  base: string,
-  apiKey: string,
-  path: string,
-  init: RequestInit = {}
-): Promise<T> {
-  const url = joinUrl(base, path);
+async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE_URL}${path}`;
 
   const headers = new Headers(init.headers || {});
   headers.set("accept", "application/json");
-  if (apiKey) headers.set("x-api-key", apiKey);
 
   const res = await fetch(url, { ...init, headers });
   if (!res.ok) {
@@ -56,11 +31,7 @@ async function requestJson<T>(
 }
 
 export async function fetchRawKbcCoaches(): Promise<KbcCoach[]> {
-  const payload = await requestJson<CoachesResponse>(
-    CORE_API_ORIGIN,
-    CORE_API_KEY,
-    "/coaches/all"
-  );
+  const payload = await requestJson<CoachesResponse>("/coaches/all");
 
   const rows: KbcCoach[] = Array.isArray(payload)
     ? payload

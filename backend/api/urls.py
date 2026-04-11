@@ -5,6 +5,7 @@ from .views import (
     progress_review_summary,
     booking_review_employer_summary,
     employer_tables_debug,
+    fetch_all_coaches_analytics,
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path("progress-review-summary/", progress_review_summary, name="progress-review-summary"),
     path("booking-review-employer-summary/", booking_review_employer_summary, name="booking-review-employer-summary"),
     path("employer-tables-debug/", employer_tables_debug),
+    path("coaches/all", fetch_all_coaches_analytics, name="fetch-all-coaches-analytics"),
 ]

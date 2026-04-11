@@ -5,24 +5,12 @@ import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const coreTarget = env.VITE_API_PROXY_TARGET || "https://api.kentbusinesscollege.net";
-  const usersTarget = env.VITE_USERS_API_PROXY_TARGET || coreTarget;
   const localDjangoTarget = env.VITE_LOCAL_DJANGO_PROXY_TARGET || "http://127.0.0.1:8000";
 
   return {
     server: {
       proxy: {
         "/api": {
-          target: coreTarget,
-          changeOrigin: true,
-          secure: true,
-        },
-        "/users-api": {
-          target: usersTarget,
-          changeOrigin: true,
-          secure: true,
-        },
-        "/local-api": {
           target: localDjangoTarget,
           changeOrigin: true,
           secure: false,
