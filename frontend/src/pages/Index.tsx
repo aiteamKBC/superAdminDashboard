@@ -140,10 +140,26 @@ const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
 const kpiAccentClass: Record<KpiCategory, string> = {
   "missed-session": "border-l-4 border-l-[#80560F]",
   "review-due": "border-l-4 border-l-[#866CB6]",
+  "review-booked": "border-l-4 border-l-[#b27715]",
   "coaching-due": "border-l-4 border-l-[#644D93]",
   "coaching-booked": "border-l-4 border-l-[#A88CD9]",
   "otj-behind": "border-l-4 border-l-[#B27715]",
   "coach-marking-overdue": "border-l-4 border-l-[#866CB6]",
+};
+
+const getPrMonthRange = (offset: number) => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
+
+const getPrMonthLabel = (offset: number) => {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 };
 
 type AttendanceDayEntry = { value?: number; module?: string };
@@ -1599,9 +1615,11 @@ export default function Dashboard() {
   const [rows, setRows] = useState<UiCoach[]>([]);
   const [loading, setLoading] = useState(true);
   const [absenceWeeks, setAbsenceWeeks] = useState<"all" | 0 | 1 | 2 | 3>(0);
+  const [prMonthOffset, setPrMonthOffset] = useState(0);
 
   // PR
   const [progressReviewRows, setProgressReviewRows] = useState<ProgressReviewSummaryRow[]>([]);
+  const [prBookedData, setPrBookedData] = useState<any[]>([]);
 
   const [filters, setFilters] = useState<DashboardFilters>({
     coach: "All Coaches",
@@ -1685,6 +1703,18 @@ export default function Dashboard() {
     }
   }, []);
 
+  const loadPrBookedData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/progress-review-booked/");
+      if (!res.ok) throw new Error("Failed to load progress review booked data");
+      const data = await res.json();
+      setPrBookedData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setPrBookedData([]);
+    }
+  }, []);
+
   useEffect(() => {
     void loadContactActions();
   }, [loadContactActions]);
@@ -1692,6 +1722,10 @@ export default function Dashboard() {
   useEffect(() => {
     void loadProgressReviewSummary();
   }, [loadProgressReviewSummary]);
+
+  useEffect(() => {
+    void loadPrBookedData();
+  }, [loadPrBookedData]);
 
   const updateContactAction = useCallback(
     async (payload: {
@@ -1952,10 +1986,20 @@ export default function Dashboard() {
           "status",
         ]);
 
+        const INACTIVE_STATUSES = new Set([
+          "Withdrawn",
+          "Break in Learning",
+          "OnBreak",
+          "On Break",
+          "OnBoarding",
+          "On Boarding",
+          "Onboarding",
+          "On Bording",
+          "ReadyToEnrol",
+          "UnderReview",
+        ]);
         const learnerStatus: Learner["status"] =
-          learnerStatusRaw === "Break in Learning" || learnerStatusRaw === "Withdrawn"
-            ? learnerStatusRaw
-            : "Active";
+          INACTIVE_STATUSES.has(learnerStatusRaw) ? "Withdrawn" : "Active";
 
         const otjBehindBy = otjBehindPct;
 
@@ -1986,6 +2030,17 @@ export default function Dashboard() {
           prBookedMeta.booked && prBookedMeta.sessionDate !== "N/A"
             ? prBookedMeta.sessionDate
             : "";
+
+        const learnerNameNormForBooking = normName(fullName);
+        const prBookingDates = getBookedEntriesFromRaw(raw)
+          .filter((entry) => entry.sessionType === "Progress Review")
+          .filter(({ student }) =>
+            bookingMatchesLearner(student, id, emailKey, learnerNameNormForBooking)
+          )
+          .map(({ student }) =>
+            pickFirstString(student, ["dayDate", "DayDate", "date", "sessionDate"])
+          )
+          .filter(Boolean) as string[];
 
         const rawNextReviewStatus = String(reviewRow?.nextReviewStatus || "").trim();
 
@@ -2140,6 +2195,7 @@ export default function Dashboard() {
         (learner as any).nextPrState = String((reviewRow as any)?.nextPrState || "").trim();
 
         (learner as any).bookedPrDate = bookedPrDate || "N/A";
+        (learner as any).prBookingDates = prBookingDates;
 
         (learner as any).coachPhone = coachPhone;
         (learner as any).coachEmail = coachEmail;
@@ -2219,7 +2275,27 @@ export default function Dashboard() {
         l.lastSessionStatus === "Missed"
     ).length;
 
-    const reviewDue = activeLearners.filter((l) => (l as any).__reviewFlag === "overdue").length;
+    const dueEmails = new Set(
+      progressReviewRows
+        .filter((row: any) => Number(row.overduePrCount ?? 0) > 0)
+        .map((row: any) => normEmail(row.email))
+    );
+    const reviewDue = activeLearners.filter((l) => dueEmails.has(normEmail(l.email))).length;
+
+    const { start: prStart, end: prEnd } = getPrMonthRange(prMonthOffset);
+    const bookedInMonthEmails = new Set(
+      prBookedData
+        .filter((row) =>
+          (row.bookedDates || []).some((d: any) => {
+            const dt = parseBookedDate(d.date);
+            return dt !== null && dt >= prStart && dt <= prEnd;
+          })
+        )
+        .map((row) => normEmail(row.email))
+    );
+    const reviewBooked = activeLearners.filter((l) =>
+      bookedInMonthEmails.has(normEmail(l.email))
+    ).length;
 
     const coachingDue = activeLearners.filter((l) => {
       const hasData = Boolean((l as any).monthlyCoachingHasData);
@@ -2257,7 +2333,8 @@ export default function Dashboard() {
 
     return [
       mk("missed-session", "Missed Session", missed),
-      mk("review-due", "Review Due", reviewDue),
+      mk("review-due", "Progress Review Due", reviewDue),
+      mk("review-booked", "Progress Review Booked", reviewBooked),
       mk("coaching-due", "Monthly Meeting Due - Not Booked", coachingDue),
       mk("coaching-booked", "Monthly Meeting - Booked", coachingBooked),
       mk("otj-behind", "OTJ Behind", otjBehind),
@@ -2268,7 +2345,7 @@ export default function Dashboard() {
         coachMarkingTotal
       ),
     ];
-  }, [activeLearners, coachMarkingRows, activeKpi, bookedSessionTypeFilter, filteredRows.length]);
+  }, [activeLearners, coachMarkingRows, activeKpi, bookedSessionTypeFilter, filteredRows.length, prMonthOffset, prBookedData, progressReviewRows]);
 
   const filteredLearners = useMemo(() => {
     if (!activeKpi) return [];
@@ -2282,16 +2359,60 @@ export default function Dashboard() {
           l.lastSessionStatus === "Missed"
       );
     } else if (activeKpi === "review-due") {
-      result = [...activeLearners].sort((a, b) => {
-        const aCount = Number((a as any).overduePrCount ?? 0);
-        const bCount = Number((b as any).overduePrCount ?? 0);
+      const dueByEmail = new Map<string, any>(
+        progressReviewRows
+          .filter((row: any) => Number(row.overduePrCount ?? 0) > 0)
+          .map((row: any) => [normEmail(row.email), row])
+      );
+      result = activeLearners
+        .filter((l) => dueByEmail.has(normEmail(l.email)))
+        .map((l) => {
+          const prRow = dueByEmail.get(normEmail(l.email));
+          return {
+            ...l,
+            overduePrCount: prRow?.overduePrCount ?? (l as any).overduePrCount,
+            reviewStatusLabel: prRow?.reviewStatus ?? (l as any).reviewStatusLabel,
+            nextPrDate: prRow?.nextPrDate ?? (l as any).nextPrDate,
+            nextPrState: prRow?.nextPrState ?? (l as any).nextPrState,
+            lastProgressReviewDate: prRow?.lastProgressReview ?? (l as any).lastProgressReviewDate,
+            bookedPrDate: (l as any).bookedPrDate ?? "N/A",
+          } as typeof l;
+        })
+        .sort((a, b) => {
+          const aCount = Number((a as any).overduePrCount ?? 0);
+          const bCount = Number((b as any).overduePrCount ?? 0);
+          if (bCount !== aCount) return bCount - aCount;
+          const aDate = String((a as any).nextPrDate || "");
+          const bDate = String((b as any).nextPrDate || "");
+          return aDate.localeCompare(bDate);
+        });
+    } else if (activeKpi === "review-booked") {
+      const { start: prStart, end: prEnd } = getPrMonthRange(prMonthOffset);
 
-        if (bCount !== aCount) return bCount - aCount;
+      const bookedByEmail = new Map<string, string>();
+      for (const row of prBookedData) {
+        const email = normEmail(row.email);
+        if (!email) continue;
+        const matchDate = (row.bookedDates || []).find((d: any) => {
+          const dt = parseBookedDate(d.date);
+          return dt !== null && dt >= prStart && dt <= prEnd;
+        });
+        if (matchDate && !bookedByEmail.has(email)) {
+          bookedByEmail.set(email, matchDate.date);
+        }
+      }
 
-        const aDate = String((a as any).nextPrDate || "");
-        const bDate = String((b as any).nextPrDate || "");
-        return aDate.localeCompare(bDate);
-      });
+      result = activeLearners
+        .filter((l) => bookedByEmail.has(normEmail(l.email)))
+        .map((l) => ({
+          ...l,
+          bookedPrDate: bookedByEmail.get(normEmail(l.email)) || "",
+        } as typeof l))
+        .sort((a, b) => {
+          const aDate = String((a as any).bookedPrDate || "");
+          const bDate = String((b as any).bookedPrDate || "");
+          return aDate.localeCompare(bDate);
+        });
     } else if (activeKpi === "coaching-due") {
       result = activeLearners
         .filter(
@@ -2323,7 +2444,7 @@ export default function Dashboard() {
         note: contactActions[contactKey]?.note ?? "",
       };
     });
-  }, [activeLearners, activeKpi, bookedSessionTypeFilter, contactActions]);
+  }, [activeLearners, activeKpi, bookedSessionTypeFilter, contactActions, prMonthOffset, prBookedData, progressReviewRows]);
 
   useEffect(() => {
     setSelectedLearner((prev) => {
@@ -2343,6 +2464,10 @@ export default function Dashboard() {
             filters={filters}
             onChange={setFilters}
             onRefresh={load}
+            showPrMonthFilter={activeKpi === "review-booked"}
+            prMonthOffset={prMonthOffset}
+            onPrMonthOffsetChange={setPrMonthOffset}
+            getPrMonthLabel={getPrMonthLabel}
           />
         </div>
 
@@ -2403,6 +2528,7 @@ export default function Dashboard() {
                     </select>
                   </div>
                 )}
+
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-[#E4E4E4] bg-white">

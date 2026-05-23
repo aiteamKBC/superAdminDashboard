@@ -20,6 +20,8 @@ function getKpiColor(id: KpiCardData["id"]) {
       return "#A78AD8";
     case "otj-behind":
       return "#C58412";
+    case "review-booked":
+      return "#b27715";
     case "coach-marking-overdue":
       return "#866CB6";
     default:
@@ -33,6 +35,8 @@ function getKpiSoftBg(id: KpiCardData["id"]) {
       return "#FFF9F0";
     case "review-due":
       return "#FCF8FF";
+    case "review-booked":
+      return "#F9F4EC";
     case "coaching-due":
       return "#F8F3FF";
     case "coaching-booked":

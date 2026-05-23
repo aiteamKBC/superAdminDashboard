@@ -25,6 +25,10 @@ type Props = {
   filters: DashboardFilters;
   onChange: (next: DashboardFilters) => void;
   onRefresh?: () => void;
+  showPrMonthFilter?: boolean;
+  prMonthOffset?: number;
+  onPrMonthOffsetChange?: (v: number) => void;
+  getPrMonthLabel?: (offset: number) => string;
 };
 
 /********************************** Helpers ***************************/
@@ -180,6 +184,10 @@ export default function GlobalFilters({
   filters,
   onChange,
   onRefresh,
+  showPrMonthFilter,
+  prMonthOffset = 0,
+  onPrMonthOffsetChange,
+  getPrMonthLabel,
 }: Props) {
   const lastRefreshed = useMemo(() => new Date(), []);
   const safeRows = Array.isArray(rows) ? rows : [];
@@ -411,6 +419,36 @@ useEffect(() => {
         <Badge variant="secondary" className="text-xs">
           Last 30 days
         </Badge>
+
+        {showPrMonthFilter && onPrMonthOffsetChange && getPrMonthLabel && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-3 py-1"
+            style={{ background: "#FCF3FF", border: "1.5px solid #866cb6" }}
+          >
+            <span className="text-xs font-semibold" style={{ color: "#644d93" }}>
+              PR Month
+            </span>
+            <Select
+              value={String(prMonthOffset)}
+              onValueChange={(v) => onPrMonthOffsetChange(Number(v))}
+            >
+              <SelectTrigger
+                className="h-7 w-[170px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
+                style={{ color: "#442F73", fontWeight: 600 }}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">This Month — {getPrMonthLabel(0)}</SelectItem>
+                <SelectItem value="1">{getPrMonthLabel(1)}</SelectItem>
+                <SelectItem value="2">{getPrMonthLabel(2)}</SelectItem>
+                <SelectItem value="3">{getPrMonthLabel(3)}</SelectItem>
+                <SelectItem value="4">{getPrMonthLabel(4)}</SelectItem>
+                <SelectItem value="5">{getPrMonthLabel(5)}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
     </div>
   );

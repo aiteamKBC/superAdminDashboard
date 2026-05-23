@@ -75,7 +75,7 @@ def is_completed_status(status_value):
 
 
 def progress_review_summary(request):
-    with connections["neon"].cursor() as cursor:
+    with connections["aptem"].cursor() as cursor:
         cursor.execute("""
             SELECT
                 "ID",
@@ -102,6 +102,7 @@ def progress_review_summary(request):
                 "Review Planned Date15", "Review Status15",
                 "Review Planned Date16", "Review Status16"
             FROM public.progress_review
+            WHERE LOWER(COALESCE("Status", '')) = 'active'
         """)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -419,6 +420,340 @@ def employer_tables_debug(request):
         ],
         safe=False
     )
+
+def progress_review_booked_summary(request):
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "ID", "FullName", "Email", "CaseOwner", "case_owner_id",
+                "Next Review (Status)"
+            FROM public.progress_review
+            WHERE LOWER(COALESCE("Status", '')) = 'active'
+        """)
+        columns = [col[0] for col in cursor.description]
+        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    results = []
+    for row in raw_rows:
+        next_review_raw = row.get("Next Review (Status)") or ""
+        date_part, state_part = split_next_review_status(next_review_raw)
+
+        if state_part.strip().lower() != "scheduled":
+            continue
+
+        parsed_date = parse_date_safe(date_part)
+        if not parsed_date:
+            continue
+
+        results.append({
+            "id": row.get("ID"),
+            "fullName": row.get("FullName") or "",
+            "email": (row.get("Email") or "").strip().lower(),
+            "caseOwner": row.get("CaseOwner") or "",
+            "caseOwnerId": row.get("case_owner_id"),
+            "bookedDates": [{
+                "date": parsed_date.strftime("%Y-%m-%d"),
+                "status": state_part,
+                "completed": False,
+            }],
+        })
+
+    return JsonResponse(results, safe=False)
+
+
+def aptem_learners_summary(request):
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "ID",
+                "FullName",
+                "Email",
+                "Group",
+                "Minimum",
+                "Planned",
+                "Submitted",
+                "Completed",
+                "Forecast",
+                "Exepected",
+                "ProgressVariance",
+                "Progress-Hours",
+                "OTJHoursStatus",
+                "TotalTargetKSB",
+                "TotalCompletedKSB",
+                "KSBStatus",
+                "Start-Date",
+                "End-Date",
+                "Total Days",
+                "Elapsed-Days",
+                "Program Name",
+                "Program-Status",
+                "subprogramme",
+                "TotalCompCount",
+                "TargetCompCount",
+                "CompletedCompCount",
+                "TargetComp%",
+                "CompletedComp%",
+                "CompStatus",
+                "OwnerName",
+                "OwnerEmail",
+                "Coach-RAG",
+                "OrganizationName",
+                "ManagerName",
+                "ManagerEmail",
+                "Manager Phone",
+                "Employer Email",
+                "Employer Repsentative",
+                "Learner Phone",
+                "Gender",
+                "Disability",
+                "Subscription Status",
+                "Levy or Not",
+                "Working hours",
+                "case_owner_id",
+                "Assignment Evidence",
+                "AssignEvdHours",
+                "LMS Evidence",
+                "LMSEvdHours",
+                "ExtraAct-Evidence",
+                "ExtrEvdHours",
+                "Markers_Markers",
+                "components",
+                "apprenticeship-agreement",
+                "trainingplan",
+                "individual-learning-record",
+                "contract-for-service",
+                "written-agreement",
+                "Address",
+                "post code "
+            FROM public.aptem_auto_extracting
+        """)
+        columns = [col[0] for col in cursor.description]
+        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    results = []
+    for row in raw_rows:
+        results.append({
+            "id": row.get("ID"),
+            "fullName": row.get("FullName") or "",
+            "email": (row.get("Email") or "").strip().lower(),
+            "group": row.get("Group") or "",
+            "otjMinimum": float(row.get("Minimum") or 0),
+            "otjPlanned": float(row.get("Planned") or 0),
+            "otjSubmitted": float(row.get("Submitted") or 0),
+            "otjCompleted": float(row.get("Completed") or 0),
+            "otjForecast": float(row.get("Forecast") or 0),
+            "otjExpected": float(row.get("Exepected") or 0),
+            "progressVariance": row.get("ProgressVariance") or "",
+            "progressHours": row.get("Progress-Hours") or "",
+            "otjHoursStatus": row.get("OTJHoursStatus") or "",
+            "totalTargetKsb": row.get("TotalTargetKSB"),
+            "totalCompletedKsb": row.get("TotalCompletedKSB"),
+            "ksbStatus": row.get("KSBStatus") or "",
+            "startDate": row.get("Start-Date").isoformat() if row.get("Start-Date") else None,
+            "endDate": row.get("End-Date").isoformat() if row.get("End-Date") else None,
+            "totalDays": row.get("Total Days"),
+            "elapsedDays": row.get("Elapsed-Days"),
+            "programName": row.get("Program Name") or "",
+            "programStatus": row.get("Program-Status") or "",
+            "subprogramme": row.get("subprogramme") or "",
+            "totalCompCount": row.get("TotalCompCount"),
+            "targetCompCount": row.get("TargetCompCount"),
+            "completedCompCount": row.get("CompletedCompCount") or "",
+            "targetCompPct": row.get("TargetComp%") or "",
+            "completedCompPct": row.get("CompletedComp%") or "",
+            "compStatus": row.get("CompStatus") or "",
+            "ownerName": row.get("OwnerName") or "",
+            "ownerEmail": (row.get("OwnerEmail") or "").strip().lower(),
+            "coachRag": row.get("Coach-RAG") or "",
+            "organizationName": row.get("OrganizationName") or "",
+            "managerName": row.get("ManagerName") or "",
+            "managerEmail": (row.get("ManagerEmail") or "").strip().lower(),
+            "managerPhone": row.get("Manager Phone") or "",
+            "employerEmail": (row.get("Employer Email") or "").strip().lower(),
+            "employerRepresentative": row.get("Employer Repsentative") or "",
+            "learnerPhone": row.get("Learner Phone") or "",
+            "gender": row.get("Gender") or "",
+            "disability": row.get("Disability") or "",
+            "subscriptionStatus": row.get("Subscription Status") or "",
+            "levyOrNot": row.get("Levy or Not") or "",
+            "workingHours": row.get("Working hours") or "",
+            "caseOwnerId": row.get("case_owner_id"),
+            "assignmentEvidence": row.get("Assignment Evidence"),
+            "assignEvdHours": float(row.get("AssignEvdHours") or 0),
+            "lmsEvidence": row.get("LMS Evidence"),
+            "lmsEvdHours": float(row.get("LMSEvdHours") or 0),
+            "extraActEvidence": row.get("ExtraAct-Evidence"),
+            "extraEvdHours": float(row.get("ExtrEvdHours") or 0),
+            "markers": row.get("Markers_Markers") or "",
+            "components": row.get("components") or "",
+            "apprenticeshipAgreement": row.get("apprenticeship-agreement") or "",
+            "trainingPlan": row.get("trainingplan") or "",
+            "individualLearningRecord": row.get("individual-learning-record") or "",
+            "contractForService": row.get("contract-for-service") or "",
+            "writtenAgreement": row.get("written-agreement") or "",
+            "address": row.get("Address") or "",
+            "postCode": row.get("post code ") or "",
+        })
+
+    return JsonResponse(results, safe=False)
+
+
+def mcr_summary(request):
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "ID",
+                "FullName",
+                "Email",
+                "Status",
+                "Subscription Status",
+                "CaseOwner",
+                "Last MCM",
+                "Next MCM",
+                "MCM1", "Status1",
+                "MCM2", "Status2",
+                "MCM3", "Status3",
+                "MCM4", "Status4",
+                "MCM5", "Status5",
+                "MCM6", "Status6",
+                "MCM7", "Status7",
+                "MCM8", "Status8",
+                "MCM9", "Status9",
+                "MCM10", "Status10",
+                "MCM11", "Status11",
+                "MCM12", "Status12",
+                "MCM13", "Status13",
+                "MCM14", "Status14",
+                "MCM15", "Status15",
+                "MCM16", "Status16",
+                "MCM17", "Status17",
+                "MCM18", "Status18",
+                "MCM19", "Status19",
+                "MCM20", "Status20",
+                "MCM21", "Status21",
+                "MCM22", "Status22",
+                "Last Actually Completed  MCM",
+                "Manager Name",
+                "Manager Email"
+            FROM public."MCR"
+        """)
+        columns = [col[0] for col in cursor.description]
+        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    today = date.today()
+    results = []
+
+    for row in raw_rows:
+        overdue_count = 0
+        next_due_date = None
+
+        for i in range(1, 23):
+            mcm_date = parse_date_safe(row.get(f"MCM{i}"))
+            status_raw = str(row.get(f"Status{i}") or "").strip()
+            completed = is_completed_status(status_raw)
+
+            if not mcm_date:
+                continue
+
+            if mcm_date < today and not completed:
+                overdue_count += 1
+
+            if mcm_date >= today and not completed:
+                if next_due_date is None or mcm_date < next_due_date:
+                    next_due_date = mcm_date
+
+        if overdue_count <= 0:
+            mcr_status = "Ahead"
+        elif overdue_count > 12:
+            mcr_status = "Due"
+        elif overdue_count > 10:
+            mcr_status = "At Risk"
+        else:
+            mcr_status = "Normal"
+
+        results.append({
+            "id": row.get("ID"),
+            "fullName": row.get("FullName") or "",
+            "email": (row.get("Email") or "").strip().lower(),
+            "status": row.get("Status") or "",
+            "subscriptionStatus": row.get("Subscription Status") or "",
+            "caseOwner": row.get("CaseOwner") or "",
+            "lastMcm": row.get("Last MCM") or "",
+            "nextMcm": row.get("Next MCM") or "",
+            "lastActuallyCompletedMcm": row.get("Last Actually Completed  MCM") or "",
+            "overdueMcmCount": overdue_count,
+            "nextDueDate": next_due_date.isoformat() if next_due_date else None,
+            "mcrStatus": mcr_status,
+            "managerName": row.get("Manager Name") or "",
+            "managerEmail": (row.get("Manager Email") or "").strip().lower(),
+        })
+
+    return JsonResponse(results, safe=False)
+
+
+def require_marking_summary(request):
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "LearnerId",
+                "FullName",
+                "Email",
+                "Subscription Status",
+                "CaseOwner ID",
+                "CaseOwner",
+                "ElapsedDays",
+                "Phone",
+                "CountEvidencePending",
+                "Evidence Accepted",
+                "Evidence Reffered",
+                "Referred Closure",
+                "Total Evidence",
+                "Last Snapshot CountApproved",
+                "Last Snapshot Date",
+                "Today",
+                "Yesterday",
+                "-2", "-3", "-4", "-5", "-6", "-7",
+                "Start-Date",
+                "Status",
+                "LastSubDate"
+            FROM public."Require Marking"
+        """)
+        columns = [col[0] for col in cursor.description]
+        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    results = []
+    for row in raw_rows:
+        results.append({
+            "learnerId": row.get("LearnerId"),
+            "fullName": row.get("FullName") or "",
+            "email": (row.get("Email") or "").strip().lower(),
+            "subscriptionStatus": row.get("Subscription Status") or "",
+            "caseOwnerId": row.get("CaseOwner ID"),
+            "caseOwner": row.get("CaseOwner") or "",
+            "elapsedDays": row.get("ElapsedDays"),
+            "phone": row.get("Phone") or "",
+            "countEvidencePending": row.get("CountEvidencePending") or 0,
+            "evidenceAccepted": row.get("Evidence Accepted") or 0,
+            "evidenceReferred": row.get("Evidence Reffered") or 0,
+            "referredClosure": row.get("Referred Closure") or 0,
+            "totalEvidence": row.get("Total Evidence") or 0,
+            "lastSnapshotCountApproved": row.get("Last Snapshot CountApproved") or "",
+            "lastSnapshotDate": row.get("Last Snapshot Date").isoformat() if row.get("Last Snapshot Date") else None,
+            "todayCount": row.get("Today") or 0,
+            "yesterdayCount": row.get("Yesterday") or 0,
+            "day2Count": row.get("-2") or 0,
+            "day3Count": row.get("-3") or 0,
+            "day4Count": row.get("-4") or 0,
+            "day5Count": row.get("-5") or 0,
+            "day6Count": row.get("-6") or 0,
+            "day7Count": row.get("-7") or 0,
+            "startDate": row.get("Start-Date").isoformat() if row.get("Start-Date") else None,
+            "status": row.get("Status") or "",
+            "lastSubDate": row.get("LastSubDate") or "",
+        })
+
+    return JsonResponse(results, safe=False)
+
 
 # KBC API Proxy Endpoint
 def fetch_all_coaches_analytics(request):

@@ -58,6 +58,23 @@
     --kpi-coaching: 260 31% 44%;     /* deeper purple */
     --kpi-otj: 37 79% 39%;           /* base gold */
 
+    /* ── Color schema palette (raw hex, for direct var() usage) ── */
+    /* Warm amber */
+    --c-1: #F9F4EC; --c-2: #F3E9DA; --c-3: #E9D9BD; --c-4: #DDC398;
+    --c-5: #CEA869; --c-6: #b27715; --c-7: #9D6912; --c-8: #80560F;
+    --c-9: #64430C; --c-10: #473008;
+    /* Purple */
+    --c-11: #a88cd9; --c-12: #866cb6; --c-13: #644d93;
+    --c-14: #442F73; --c-15: #241453; --c-16: #f9f5ff; --c-17: #aaaaaa;
+    /* Neutral greys */
+    --c-50: #F8F8F8; --c-100: #F1F1F1; --c-200: #E4E4E4; --c-300: #D6D6D6;
+    --c-400: #c5c5c5; --c-500: #aaaaaa; --c-600: #999999; --c-700: #808080;
+    --c-800: #666666; --c-900: #4C4C4C;
+    /* Purple tints */
+    --c-p-50: #FEF9FF; --c-p-100: #FCF3FF; --c-p-200: #FAEBFF;
+    --c-p-300: #F8DFFF; --c-p-400: #F3CEFF; --c-p-500: #EEB7FF;
+    --c-p-600: #D6A5E6; --c-p-700: #BA8FC7; --c-p-800: #9875A3; --c-p-900: #72587A;
+
     /* Extra aliases for custom usage */
     --dashboard-bg: 0 0% 97%;
     --dashboard-surface: 0 0% 100%;

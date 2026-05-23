@@ -566,7 +566,11 @@ export default function LearnerTable({
                   </>
                 )}
 
-                {kpiCategory !== "coaching-booked" && kpiCategory !== "review-due" && (
+                {kpiCategory === "review-booked" && (
+                  <th className="p-3 text-left font-medium text-muted-foreground">Booked PR Date</th>
+                )}
+
+                {kpiCategory !== "coaching-booked" && kpiCategory !== "review-due" && kpiCategory !== "review-booked" && (
                   <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
                 )}
               </tr>
@@ -750,6 +754,43 @@ export default function LearnerTable({
                       </td>
                       <td className="p-3 text-muted-foreground">
                         {String((l as any).anyBookedServiceName || "N/A")}
+                      </td>
+                    </tr>
+                  );
+                }
+
+                if (kpiCategory === "review-booked") {
+                  return (
+                    <tr
+                      key={getRowKey(l)}
+                      className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                      onClick={() => onSelectLearner(l)}
+                    >
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected.has(l.id)}
+                          onCheckedChange={() => {
+                            const next = new Set(selected);
+                            next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                            setSelected(next);
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-3.5 font-medium text-[#505050]">
+                        {l.firstName} {l.lastName}
+                      </td>
+                      <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
+                      <td className="px-4 py-3.5 text-[#7C7C7C]">{l.organisation}</td>
+                      <td className="p-3 text-muted-foreground">{l.programme}</td>
+                      <td className="p-3 text-muted-foreground">{l.coach}</td>
+                      <td className="p-3 min-w-[140px]">
+                        {(l as any).bookedPrDate ? (
+                          <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#b27715]">
+                            {(l as any).bookedPrDate}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-[#A0A0A0]">N/A</span>
+                        )}
                       </td>
                     </tr>
                   );

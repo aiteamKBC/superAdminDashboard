@@ -57,6 +57,7 @@ export interface Learner {
 export type KpiCategory =
   | "missed-session"
   | "review-due"
+  | "review-booked"
   | "coaching-due"
   | "coaching-booked"
   | "otj-behind"
