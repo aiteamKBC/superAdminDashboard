@@ -8,6 +8,7 @@ import EmailCentre from "./pages/EmailCentre";
 import ActivityReport from "./pages/ActivityReport";
 import SettingsPage from "./pages/SettingsPage";
 import AdminPage from "./pages/AdminPage";
+import CalendarPage from "./pages/CalendarPage";
 import NotFound from "./pages/NotFound";
 // import DashboardPage from "@/pages/DashboardPage";
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/activity-report" element={<ActivityReport />} />
           <Route path="/administrator" element={<AdminPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="*" element={<NotFound />} />
           {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
         </Routes>

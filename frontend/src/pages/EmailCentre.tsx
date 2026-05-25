@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Mail, Send, Users, Edit, Eye, Clock } from "lucide-react";
 
 import { fetchUiCoaches } from "@/lib/services/kbcDashboard";
 import { renderTemplate, type EmailRecipient } from "@/lib/emailCenter";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
 import { getMissedLearnersFromCoaches } from "@/lib/dashboard/getMissedLearners";
+import { getBookingLinks } from "@/lib/bookingLinks";
 
 const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
@@ -25,6 +26,7 @@ const kpiLabels: Record<string, string> = {
 
 type EmailCentreLocationState = {
   selectedRecipient?: EmailRecipient;
+  selectedRecipients?: EmailRecipient[];
   source?: string;
 };
 
@@ -42,14 +44,17 @@ export default function EmailCentre() {
   const location = useLocation();
   const locationState = (location.state || {}) as EmailCentreLocationState;
   const preselectedRecipient = locationState.selectedRecipient || null;
+  const preselectedRecipients = locationState.selectedRecipients || null;
 
   const [selectedTemplate, setSelectedTemplate] = useState(mockEmailTemplates[0]);
   const [subject, setSubject] = useState(mockEmailTemplates[0].subject);
   const [body, setBody] = useState(mockEmailTemplates[0].body);
-  const [copyLM, setCopyLM] = useState(false);
-  const [copyHR, setCopyHR] = useState(false);
+
 
   const [coaches, setCoaches] = useState<UiCoach[]>([]);
+  const [prRows, setPrRows] = useState<any[]>([]);
+  const [mcrRows, setMcrRows] = useState<any[]>([]);
+  const [otjRows, setOtjRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -65,10 +70,18 @@ export default function EmailCentre() {
     const load = async () => {
       try {
         setLoading(true);
-        const data = await fetchUiCoaches();
-        setCoaches(Array.isArray(data) ? data : []);
+        const [coachData, prData, mcrData, otjData] = await Promise.all([
+          fetchUiCoaches(),
+          fetch("/api/progress-review-summary/").then((r) => r.json()),
+          fetch("/api/mcr-summary/").then((r) => r.json()),
+          fetch("/api/otj-at-risk/").then((r) => r.json()),
+        ]);
+        setCoaches(Array.isArray(coachData) ? coachData : []);
+        setPrRows(Array.isArray(prData) ? prData : []);
+        setMcrRows(Array.isArray(mcrData) ? mcrData : []);
+        setOtjRows(Array.isArray(otjData) ? otjData : []);
       } catch (err) {
-        console.error("Failed to load coaches", err);
+        console.error("Failed to load data", err);
       } finally {
         setLoading(false);
       }
@@ -78,20 +91,27 @@ export default function EmailCentre() {
   }, []);
 
   useEffect(() => {
+    if (preselectedRecipients && preselectedRecipients.length > 0) {
+      setManualRecipients(preselectedRecipients);
+      const firstRisk = preselectedRecipients[0].riskCategories?.[0];
+      const matchedTemplate = firstRisk ? mockEmailTemplates.find((t) => t.kpiCategory === firstRisk) : null;
+      if (matchedTemplate) {
+        setSelectedTemplate(matchedTemplate);
+        setSubject(matchedTemplate.subject);
+        setBody(matchedTemplate.body);
+      }
+      return;
+    }
     if (!preselectedRecipient) return;
-
     setManualRecipients([preselectedRecipient]);
-
     const firstRisk = preselectedRecipient.riskCategories?.[0];
     if (!firstRisk) return;
-
     const matchedTemplate = mockEmailTemplates.find((t) => t.kpiCategory === firstRisk);
     if (!matchedTemplate) return;
-
     setSelectedTemplate(matchedTemplate);
     setSubject(matchedTemplate.subject);
     setBody(matchedTemplate.body);
-  }, [preselectedRecipient]);
+  }, [preselectedRecipient, preselectedRecipients]);
 
   useEffect(() => {
     if (isEditing) {
@@ -107,6 +127,125 @@ export default function EmailCentre() {
     return getMissedLearnersFromCoaches(coaches, absenceWeeks);
   }, [coaches, absenceWeeks]);
 
+  const coachEmailMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const coach of coaches) {
+      const email = String((coach as any)?.raw?.OwnerEmail || "").trim().toLowerCase();
+      if (coach.name && email) map.set(coach.name.toLowerCase(), email);
+    }
+    return map;
+  }, [coaches]);
+
+  // All learner emails known to the dashboard (from coach data)
+  const dashboardLearnerEmails = useMemo(() => {
+    const set = new Set<string>();
+    const clean = (e: string) => String(e || "").replace(/[‪-‮]/g, "").trim().toLowerCase();
+    for (const coach of coaches) {
+      const raw = (coach as any)?.raw ?? {};
+      // from attendance.learners
+      const attLearners = Array.isArray(raw?.attendance?.learners) ? raw.attendance.learners : [];
+      for (const l of attLearners) {
+        const e = clean(l?.Email);
+        if (e) set.add(e);
+      }
+      // from learners_json
+      const ljLearners = Array.isArray(raw?.learners_json) ? raw.learners_json : [];
+      for (const l of ljLearners) {
+        const e = clean(l?.Email || l?.email);
+        if (e) set.add(e);
+      }
+      // from students
+      const students = Array.isArray(raw?.students) ? raw.students : [];
+      for (const s of students) {
+        const e = clean(s?.Email || s?.email || s?.matched_student_email);
+        if (e) set.add(e);
+      }
+    }
+    return set;
+  }, [coaches]);
+
+  const prReviewRecipients = useMemo<EmailRecipient[]>(() => {
+    const seen = new Set<string>();
+    return prRows
+      .filter((r) => Number(r.overduePrCount ?? 0) > 0)
+      .map((r) => {
+        const coachName = String(r.caseOwner || "").trim();
+        const coachEmail = coachEmailMap.get(coachName.toLowerCase()) ?? "";
+        const prLink = getBookingLinks(coachName).pr ?? "";
+        return {
+          learnerName: String(r.fullName || "").trim(),
+          learnerEmail: String(r.email || "").trim().toLowerCase(),
+          programme: String(r.group || "").trim(),
+          coachName,
+          coachEmail,
+          dueDate: String(r.nextPrDate || "").trim(),
+          bookingLink: prLink,
+          status: "Active",
+          riskCategories: ["review-due"],
+        };
+      })
+      .filter((r) => {
+        if (!r.learnerEmail || seen.has(r.learnerEmail)) return false;
+        if (dashboardLearnerEmails.size > 0 && !dashboardLearnerEmails.has(r.learnerEmail)) return false;
+        seen.add(r.learnerEmail);
+        return true;
+      });
+  }, [prRows, coachEmailMap, dashboardLearnerEmails]);
+
+  const mcrRecipients = useMemo<EmailRecipient[]>(() => {
+    const seen = new Set<string>();
+    return mcrRows
+      .filter((r) => Number(r.overdueMcmCount ?? 0) > 0)
+      .map((r) => {
+        const coachName = String(r.caseOwner || "").trim();
+        const coachEmail = coachEmailMap.get(coachName.toLowerCase()) ?? "";
+        const mcmLink = getBookingLinks(coachName).mcm ?? "";
+        return {
+          learnerName: String(r.fullName || "").trim(),
+          learnerEmail: String(r.email || "").trim().toLowerCase(),
+          programme: "",
+          coachName,
+          coachEmail,
+          bookingLink: mcmLink,
+          status: "Active",
+          riskCategories: ["coaching-due"],
+        };
+      })
+      .filter((r) => {
+        if (!r.learnerEmail || seen.has(r.learnerEmail)) return false;
+        if (dashboardLearnerEmails.size > 0 && !dashboardLearnerEmails.has(r.learnerEmail)) return false;
+        seen.add(r.learnerEmail);
+        return true;
+      });
+  }, [mcrRows, coachEmailMap, dashboardLearnerEmails]);
+
+  const otjRecipients = useMemo<EmailRecipient[]>(() => {
+    const seen = new Set<string>();
+    return otjRows
+      .map((r) => {
+        const rawVariance = Number(String(r.progressVariance ?? "0").replace(/[^0-9.-]/g, "") || "0");
+        const behindPct = rawVariance < 0 ? Math.abs(rawVariance) : rawVariance;
+        return {
+          learnerName: String(r.fullName || "").trim(),
+          learnerEmail: String(r.email || "").trim().toLowerCase(),
+          programme: String(r.programName || "").trim(),
+          coachName: String(r.ownerName || "").trim(),
+          coachEmail: String(r.ownerEmail || "").trim().toLowerCase(),
+          expectedHours: String(Math.round(r.otjPlanned ?? 0)),
+          actualHours: String(Math.round(r.otjCompleted ?? 0)),
+          behindPercent: String(Math.round(behindPct)),
+          status: "Active",
+          riskCategories: ["otj-behind"],
+        };
+      })
+      .filter((r) => {
+        if (!r.learnerEmail || seen.has(r.learnerEmail)) return false;
+        if (dashboardLearnerEmails.size > 0 && !dashboardLearnerEmails.has(r.learnerEmail)) return false;
+        seen.add(r.learnerEmail);
+        return true;
+      });
+  }, [otjRows, dashboardLearnerEmails]);
+
   const bulkRecipients = useMemo(() => {
     if (selectedTemplate.kpiCategory === "missed-session") {
       return allRecipients.filter((l: any) => {
@@ -118,6 +257,18 @@ export default function EmailCentre() {
       });
     }
 
+    if (selectedTemplate.kpiCategory === "review-due") {
+      return prReviewRecipients;
+    }
+
+    if (selectedTemplate.kpiCategory === "coaching-due") {
+      return mcrRecipients;
+    }
+
+    if (selectedTemplate.kpiCategory === "otj-behind") {
+      return otjRecipients;
+    }
+
     return allRecipients.filter((l) => {
       return (
         l.status !== "Inactive" &&
@@ -125,7 +276,7 @@ export default function EmailCentre() {
         l.riskCategories.includes(selectedTemplate.kpiCategory)
       );
     });
-  }, [allRecipients, selectedTemplate]);
+  }, [allRecipients, prReviewRecipients, mcrRecipients, otjRecipients, selectedTemplate]);
 
   const effectiveRecipients = manualRecipients.length > 0 ? manualRecipients : bulkRecipients;
 
@@ -195,8 +346,6 @@ export default function EmailCentre() {
         body: JSON.stringify({
           subject,
           body,
-          copyLM,
-          copyHR,
           senderName,
           kpiCategory: selectedTemplate.kpiCategory,
           recipients: renderedRecipients,
@@ -232,7 +381,7 @@ export default function EmailCentre() {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl p-6">
+      <div className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6">
         <h2 className="mb-1 text-xl font-semibold text-foreground">Email Centre</h2>
         <p className="mb-6 text-sm text-muted-foreground">
           Send targeted emails to learners by risk category using pre-built templates.
@@ -266,14 +415,22 @@ export default function EmailCentre() {
           <div className="space-y-4 lg:col-span-2">
             {manualRecipients.length > 0 && (
               <Card className="border-primary/30 bg-primary/5 p-4">
-                <p className="text-sm font-medium text-foreground">Selected learner</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {manualRecipients[0].learnerName}, {manualRecipients[0].learnerEmail}
+                <p className="text-sm font-medium text-foreground">
+                  {manualRecipients.length === 1 ? "Selected learner" : `${manualRecipients.length} learners selected`}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  This email will be sent to the selected learner only.
-                </p>
-
+                {manualRecipients.length === 1 ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {manualRecipients[0].learnerName}, {manualRecipients[0].learnerEmail}
+                  </p>
+                ) : (
+                  <div className="mt-1 max-h-24 overflow-y-auto space-y-0.5">
+                    {manualRecipients.map((r) => (
+                      <p key={r.learnerEmail} className="text-xs text-muted-foreground">
+                        {r.learnerName} — {r.learnerEmail}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -474,18 +631,6 @@ export default function EmailCentre() {
                     Clear
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={copyLM} onCheckedChange={(v) => setCopyLM(!!v)} />
-                  <span className="text-muted-foreground">Copy Line Manager</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={copyHR} onCheckedChange={(v) => setCopyHR(!!v)} />
-                  <span className="text-muted-foreground">Copy HR Manager</span>
-                </label>
               </div>
 
               <div className="flex gap-3">

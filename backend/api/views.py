@@ -598,6 +598,69 @@ def aptem_learners_summary(request):
     return JsonResponse(results, safe=False)
 
 
+def otj_at_risk_summary(request):
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "ID",
+                "FullName",
+                "Email",
+                "Minimum",
+                "Planned",
+                "Submitted",
+                "Completed",
+                "Forecast",
+                "Exepected",
+                "ProgressVariance",
+                "Progress-Hours",
+                "OTJHoursStatus",
+                "Program Name",
+                "Program-Status",
+                "OwnerName",
+                "OwnerEmail",
+                "OrganizationName",
+                "Learner Phone",
+                "Start-Date",
+                "End-Date",
+                "Total Days",
+                "Elapsed-Days"
+            FROM public.aptem_auto_extracting
+            WHERE LOWER(COALESCE("OTJHoursStatus", '')) = 'at risk'
+              AND LOWER(COALESCE("Program-Status", '')) = 'active'
+        """)
+        columns = [col[0] for col in cursor.description]
+        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    results = []
+    for row in raw_rows:
+        results.append({
+            "id": str(row.get("ID") or ""),
+            "fullName": row.get("FullName") or "",
+            "email": (row.get("Email") or "").strip().lower(),
+            "otjMinimum": float(row.get("Minimum") or 0),
+            "otjPlanned": float(row.get("Planned") or 0),
+            "otjSubmitted": float(row.get("Submitted") or 0),
+            "otjCompleted": float(row.get("Completed") or 0),
+            "otjForecast": float(row.get("Forecast") or 0),
+            "otjExpected": float(row.get("Exepected") or 0),
+            "progressVariance": row.get("ProgressVariance") or "",
+            "progressHours": row.get("Progress-Hours") or "",
+            "otjHoursStatus": row.get("OTJHoursStatus") or "",
+            "programName": row.get("Program Name") or "",
+            "programStatus": row.get("Program-Status") or "",
+            "ownerName": row.get("OwnerName") or "",
+            "ownerEmail": (row.get("OwnerEmail") or "").strip().lower(),
+            "organizationName": row.get("OrganizationName") or "",
+            "learnerPhone": row.get("Learner Phone") or "",
+            "startDate": row.get("Start-Date").isoformat() if row.get("Start-Date") else None,
+            "endDate": row.get("End-Date").isoformat() if row.get("End-Date") else None,
+            "totalDays": row.get("Total Days"),
+            "elapsedDays": row.get("Elapsed-Days"),
+        })
+
+    return JsonResponse(results, safe=False)
+
+
 def mcr_summary(request):
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
@@ -636,6 +699,7 @@ def mcr_summary(request):
                 "Manager Name",
                 "Manager Email"
             FROM public."MCR"
+            WHERE LOWER(COALESCE("Status", '')) = 'active'
         """)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -646,6 +710,7 @@ def mcr_summary(request):
     for row in raw_rows:
         overdue_count = 0
         next_due_date = None
+        mcm_dates = []
 
         for i in range(1, 23):
             mcm_date = parse_date_safe(row.get(f"MCM{i}"))
@@ -654,6 +719,12 @@ def mcr_summary(request):
 
             if not mcm_date:
                 continue
+
+            mcm_dates.append({
+                "date": mcm_date.strftime("%Y-%m-%d"),
+                "status": status_raw,
+                "completed": completed,
+            })
 
             if mcm_date < today and not completed:
                 overdue_count += 1
@@ -684,9 +755,55 @@ def mcr_summary(request):
             "overdueMcmCount": overdue_count,
             "nextDueDate": next_due_date.isoformat() if next_due_date else None,
             "mcrStatus": mcr_status,
+            "mcmDates": mcm_dates,
             "managerName": row.get("Manager Name") or "",
             "managerEmail": (row.get("Manager Email") or "").strip().lower(),
         })
+
+    return JsonResponse(results, safe=False)
+
+
+def kbc_attendance_summary(request):
+    from collections import defaultdict
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "FullName",
+                "Email",
+                "date",
+                "Attendance",
+                "module",
+                "key"
+            FROM public.kbc_attendance
+            ORDER BY "Email", "date" ASC
+        """)
+        columns = [col[0] for col in cursor.description]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    grouped = defaultdict(lambda: {"fullName": "", "records": []})
+
+    for row in rows:
+        email = (row.get("Email") or "").strip().lower()
+        if not email:
+            continue
+        if not grouped[email]["fullName"]:
+            grouped[email]["fullName"] = row.get("FullName") or ""
+        grouped[email]["records"].append({
+            "date": row["date"].isoformat() if row.get("date") else None,
+            "attendance": row.get("Attendance"),
+            "module": row.get("module") or "",
+            "key": row.get("key") or "",
+        })
+
+    results = [
+        {
+            "email": email,
+            "fullName": data["fullName"],
+            "records": data["records"],
+        }
+        for email, data in grouped.items()
+        if data["records"]
+    ]
 
     return JsonResponse(results, safe=False)
 
@@ -717,6 +834,8 @@ def require_marking_summary(request):
                 "Status",
                 "LastSubDate"
             FROM public."Require Marking"
+            WHERE LOWER(COALESCE("Status", '')) = 'active'
+              AND "CaseOwner" IS NOT NULL
         """)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -753,6 +872,111 @@ def require_marking_summary(request):
         })
 
     return JsonResponse(results, safe=False)
+
+
+@csrf_exempt
+def dashboard_bookings(request):
+    from .models import DashboardBooking
+
+    if request.method == 'GET':
+        bookings = DashboardBooking.objects.all().values(
+            'id', 'learner_email', 'learner_name', 'coach',
+            'session_type', 'booking_date', 'booking_time',
+            'notes', 'booking_url', 'created_at',
+        )
+        result = [
+            {
+                'id': b['id'],
+                'learnerEmail': b['learner_email'],
+                'learnerName': b['learner_name'],
+                'coach': b['coach'],
+                'sessionType': b['session_type'],
+                'date': b['booking_date'].isoformat(),
+                'time': b['booking_time'].strftime('%H:%M'),
+                'notes': b['notes'],
+                'bookingUrl': b['booking_url'],
+                'createdAt': b['created_at'].isoformat(),
+            }
+            for b in bookings
+        ]
+        return JsonResponse(result, safe=False)
+
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        booking = DashboardBooking.objects.create(
+            learner_email=data.get('learnerEmail', ''),
+            learner_name=data.get('learnerName', ''),
+            coach=data.get('coach', ''),
+            session_type=data.get('sessionType', ''),
+            booking_date=data.get('date'),
+            booking_time=data.get('time'),
+            notes=data.get('notes', ''),
+            booking_url=data.get('bookingUrl', ''),
+        )
+        return JsonResponse({'id': booking.id}, status=201)
+
+    elif request.method == 'PATCH':
+        booking_id = request.GET.get('id')
+        data = json.loads(request.body)
+        updated = DashboardBooking.objects.filter(id=booking_id).first()
+        if not updated:
+            return JsonResponse({'error': 'Not found'}, status=404)
+        if 'date' in data:
+            updated.booking_date = data['date']
+        if 'time' in data:
+            updated.booking_time = data['time']
+        if 'notes' in data:
+            updated.notes = data['notes']
+        updated.save()
+        return JsonResponse({'success': True})
+
+    elif request.method == 'DELETE':
+        booking_id = request.GET.get('id')
+        DashboardBooking.objects.filter(id=booking_id).delete()
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def dashboard_contact_log(request):
+    from .models import DashboardContactLog
+
+    if request.method == 'GET':
+        email = request.GET.get('email', '').strip().lower()
+        qs = DashboardContactLog.objects.all()
+        if email:
+            qs = qs.filter(learner_email__iexact=email)
+        result = [
+            {
+                'id': log.id,
+                'learnerEmail': log.learner_email,
+                'learnerName': log.learner_name,
+                'coach': log.coach,
+                'actionType': log.action_type,
+                'outcome': log.outcome,
+                'notes': log.notes,
+                'source': log.source,
+                'createdAt': log.created_at.isoformat(),
+            }
+            for log in qs.order_by('-created_at')[:200]
+        ]
+        return JsonResponse(result, safe=False)
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        log = DashboardContactLog.objects.create(
+            learner_email=(data.get('learnerEmail') or '').strip().lower(),
+            learner_name=data.get('learnerName') or '',
+            coach=data.get('coach') or '',
+            action_type=data.get('actionType') or 'called',
+            outcome=data.get('outcome') or '',
+            notes=data.get('notes') or '',
+            source=data.get('source') or 'attendance',
+        )
+        return JsonResponse({'id': log.id}, status=201)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 # KBC API Proxy Endpoint

@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Learner, KpiCategory } from "@/types/dashboard";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Download, Phone, Mail, ArrowUpDown } from "lucide-react";
 
 interface LearnerTableProps {
@@ -116,10 +120,87 @@ export default function LearnerTable({
   onSessionTypeFilterChange,
   onUpdateContactAction,
 }: LearnerTableProps) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<string>("lastName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callOutcome, setCallOutcome] = useState("");
+  const [callNotes, setCallNotes] = useState("");
+  const [callSaving, setCallSaving] = useState(false);
+
+  const handleEmailSelected = (sel: Learner[]) => {
+    const recipients = sel.map((l) => {
+      const la = l as any;
+      return {
+        learnerName: `${l.firstName || ""} ${l.lastName || ""}`.trim(),
+        learnerEmail: l.email || "",
+        programme: l.programme || "",
+        coachName: l.coach || "",
+        coachEmail: la.coachEmail || "",
+        lastSessionDate: la.lastMonthlyMeetingDate || l.lastProgressReviewDate || "",
+        lineManagerEmail: l.lineManagerEmail || "",
+        hrEmail: l.hrManagerEmail || "",
+        status: l.status || "Active",
+        riskCategories: Array.isArray(l.riskCategories) ? l.riskCategories : [],
+      };
+    });
+    navigate("/email-centre", { state: { selectedRecipients: recipients, source: "learner-table" } });
+  };
+
+  const SOURCE_MAP: Record<string, string> = {
+    "review-due": "pr-due",
+    "coaching-due": "mcm-due",
+    "otj-behind": "otj-behind",
+    "missed-session": "attendance",
+  };
+
+  const handleSaveCallLog = async (sel: Learner[]) => {
+    if (!callOutcome) return;
+    setCallSaving(true);
+    const logSource = SOURCE_MAP[kpiCategory] || "attendance";
+    for (const learner of sel) {
+      const la = learner as any;
+      const email = la.attendanceEmail || learner.email || "";
+      const date = la.attendanceDate || "";
+      const module = la.attendanceModule || "";
+      if (!email) continue;
+
+      if (date && module) {
+        const note = callNotes ? `${callOutcome} | ${callNotes}` : callOutcome;
+        onUpdateContactAction?.({
+          contactKey: la.attendanceContactKey || "",
+          email,
+          date,
+          module,
+          called: true,
+          emailed: Boolean(la.emailed),
+          resolved: Boolean(la.isResolved),
+          note,
+        });
+      } else {
+        await fetch("/api/contact-log/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            learnerEmail: email,
+            learnerName: `${learner.firstName || ""} ${learner.lastName || ""}`.trim(),
+            coach: learner.coach || "",
+            actionType: "called",
+            outcome: callOutcome,
+            notes: callNotes,
+            source: logSource,
+          }),
+        });
+      }
+    }
+    setCallSaving(false);
+    setShowCallModal(false);
+    setCallOutcome("");
+    setCallNotes("");
+    setSelected(new Set());
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -201,6 +282,7 @@ export default function LearnerTable({
     return data;
   }, [learners, search, sessionTypeFilter, sortField, sortDir, kpiCategory]);
 
+
   const getRowKey = (l: Learner) => {
     const anyLearner = l as any;
 
@@ -239,9 +321,8 @@ export default function LearnerTable({
         "Organisation",
         "Programme",
         "Coach",
-        "Session Type",
-        "Session Date",
-        "Service Name",
+        "Booked MCM Date",
+        "MCM Status",
       ];
 
       rows = filtered.map((l) => [
@@ -250,9 +331,8 @@ export default function LearnerTable({
         l.organisation,
         l.programme,
         l.coach,
-        (l as any).anyBookedSessionType || "Unknown",
-        (l as any).anyBookedSessionDate || "N/A",
-        (l as any).anyBookedServiceName || "N/A",
+        (l as any).bookedMcmDate || "N/A",
+        (l as any).bookedMcmStatus || "",
       ]);
     } else if (kpiCategory === "review-due") {
       headers = [
@@ -351,6 +431,8 @@ export default function LearnerTable({
         "Coach",
         "Email",
         "Due Date",
+        "MCM Status",
+        "Overdue MCMs",
       ];
 
       rows = filtered.map((l) => [
@@ -361,6 +443,8 @@ export default function LearnerTable({
         l.coach,
         l.email,
         String((l as any).nextMonthlyMeetingDue || "Due"),
+        String((l as any).nextMonthlyMeetingStatus || ""),
+        Number((l as any).overdueMcmCount ?? 0),
       ]);
     }
 
@@ -385,9 +469,9 @@ export default function LearnerTable({
         : kpiCategory === "review-due"
           ? 12
           : kpiCategory === "coaching-due"
-            ? 8
+            ? 9
             : kpiCategory === "coaching-booked"
-              ? 9
+              ? 8
               : 7;
 
   return (
@@ -410,23 +494,6 @@ export default function LearnerTable({
             />
           </div>
 
-          {kpiCategory === "coaching-booked" && (
-            <select
-              value={sessionTypeFilter}
-              onChange={(e) =>
-                onSessionTypeFilterChange?.(
-                  e.target.value as "All Session Types" | "Progress Review" | "MCM" | "Support Session"
-                )
-              }
-              className="h-11 w-full rounded-xl border border-[#E4E4E4] bg-white px-3 text-sm text-[#4C4C4C] outline-none sm:w-auto sm:min-w-[220px]"
-            >
-              {SESSION_TYPE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          )}
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
@@ -435,6 +502,7 @@ export default function LearnerTable({
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => handleEmailSelected(filtered.filter((l) => selected.has(l.id)))}
                 className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#644D93] hover:bg-[#FCF3FF] hover:text-[#644D93]"
               >
                 <Mail className="h-3.5 w-3.5" />
@@ -444,6 +512,7 @@ export default function LearnerTable({
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => { setCallOutcome(""); setCallNotes(""); setShowCallModal(true); }}
                 className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#B27715] hover:bg-[#FFF8EE] hover:text-[#B27715]"
               >
                 <Phone className="h-3.5 w-3.5" />
@@ -465,9 +534,9 @@ export default function LearnerTable({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-[#ECECEC] bg-white">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
           <table className="min-w-[980px] w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-[#F0F0F0] bg-[#FAF7FC]">
                 <th className="p-3 w-10">
                   <Checkbox
@@ -539,30 +608,16 @@ export default function LearnerTable({
                 )}
 
                 {kpiCategory === "coaching-due" && (
-                  <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
+                  <>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
+                    <th className="p-3 text-center font-medium text-muted-foreground">Overdue MCMs</th>
+                  </>
                 )}
 
                 {kpiCategory === "coaching-booked" && (
                   <>
-                    <th
-                      className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
-                      onClick={() => toggleSort("sessionType")}
-                    >
-                      <span className="flex items-center gap-1">
-                        Session Type <ArrowUpDown className="w-3 h-3" />
-                      </span>
-                    </th>
-
-                    <th
-                      className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
-                      onClick={() => toggleSort("sessionDate")}
-                    >
-                      <span className="flex items-center gap-1">
-                        Session Date <ArrowUpDown className="w-3 h-3" />
-                      </span>
-                    </th>
-
-                    <th className="p-3 text-left font-medium text-muted-foreground">Service Name</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">Booked MCM Date</th>
+                    <th className="p-3 text-left font-medium text-muted-foreground">MCM Status</th>
                   </>
                 )}
 
@@ -571,7 +626,9 @@ export default function LearnerTable({
                 )}
 
                 {kpiCategory !== "coaching-booked" && kpiCategory !== "review-due" && kpiCategory !== "review-booked" && (
-                  <th className="p-3 text-left font-medium text-muted-foreground">Priority</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">
+                    {kpiCategory === "otj-behind" ? "Status" : "Priority"}
+                  </th>
                 )}
               </tr>
             </thead>
@@ -688,7 +745,7 @@ export default function LearnerTable({
 
                       <td className="p-3 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
                         {Boolean((l as any).anyBooked) && String((l as any).anyBookedSessionDate || "").trim() ? (
-                          <Badge className="rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
+                          <Badge className="pointer-events-none rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
                             {String((l as any).anyBookedSessionDate)}
                           </Badge>
                         ) : (
@@ -722,6 +779,10 @@ export default function LearnerTable({
                 }
 
                 if (kpiCategory === "coaching-booked") {
+                  const mcmStatus = String((l as any).bookedMcmStatus || "");
+                  const mcmStatusLower = mcmStatus.toLowerCase();
+                  const statusBg = mcmStatusLower.includes("not") ? "#F5F5F5" : "#F0FFF6";
+                  const statusColor = mcmStatusLower.includes("not") ? "#666666" : "#2E9E5B";
                   return (
                     <tr
                       key={getRowKey(l)}
@@ -738,7 +799,6 @@ export default function LearnerTable({
                           }}
                         />
                       </td>
-
                       <td className="px-4 py-3.5 font-medium text-[#505050]">
                         {l.firstName} {l.lastName}
                       </td>
@@ -746,14 +806,24 @@ export default function LearnerTable({
                       <td className="px-4 py-3.5 text-[#7C7C7C]">{l.organisation}</td>
                       <td className="p-3 text-muted-foreground">{l.programme}</td>
                       <td className="p-3 text-muted-foreground">{l.coach}</td>
-                      <td className="p-3 text-muted-foreground">
-                        {String((l as any).anyBookedSessionType || "Unknown")}
+                      <td className="p-3 min-w-[140px]">
+                        {(l as any).bookedMcmDate ? (
+                          <Badge className="pointer-events-none rounded-full border-0 bg-[#F0FFF6] px-3 py-1 text-[11px] font-medium text-[#2E9E5B]">
+                            {(l as any).bookedMcmDate}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-[#A0A0A0]">N/A</span>
+                        )}
                       </td>
-                      <td className="p-3 text-muted-foreground">
-                        {String((l as any).anyBookedSessionDate || "N/A")}
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {String((l as any).anyBookedServiceName || "N/A")}
+                      <td className="p-3">
+                        {mcmStatus ? (
+                          <span
+                            className="text-[10px] font-medium px-2 py-0.5 rounded-full w-fit inline-block"
+                            style={{ background: statusBg, color: statusColor }}
+                          >
+                            {mcmStatus}
+                          </span>
+                        ) : null}
                       </td>
                     </tr>
                   );
@@ -785,7 +855,7 @@ export default function LearnerTable({
                       <td className="p-3 text-muted-foreground">{l.coach}</td>
                       <td className="p-3 min-w-[140px]">
                         {(l as any).bookedPrDate ? (
-                          <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#b27715]">
+                          <Badge className="pointer-events-none rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#b27715]">
                             {(l as any).bookedPrDate}
                           </Badge>
                         ) : (
@@ -868,7 +938,7 @@ export default function LearnerTable({
 
                         <td className="p-3 min-w-[140px]">
                           {(l as any).bookedPrDate && (l as any).bookedPrDate !== "N/A" ? (
-                            <Badge className="rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
+                            <Badge className="pointer-events-none rounded-full border-0 bg-[#FCF3FF] px-3 py-1 text-[11px] font-medium text-[#866CB6]">
                               {(l as any).bookedPrDate}
                             </Badge>
                           ) : (
@@ -895,18 +965,77 @@ export default function LearnerTable({
                     )}
 
                     {kpiCategory === "coaching-due" && (
-                      <td className="px-4 py-3.5">
-                        <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#B27715]">
-                          {String((l as any).nextMonthlyMeetingDue || "Due")}
-                        </Badge>
-                      </td>
+                      <>
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-col gap-1">
+                            <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#B27715] pointer-events-none w-fit">
+                              {String((l as any).nextMonthlyMeetingDue || "Due")}
+                            </Badge>
+                            {(l as any).nextMonthlyMeetingStatus && (
+                              <span
+                                className="text-[10px] font-medium px-2 py-0.5 rounded-full w-fit"
+                                style={{
+                                  background:
+                                    String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not scheduled") || String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not started")
+                                      ? "#FFF0F0"
+                                      : String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("scheduled")
+                                        ? "#F0FFF6"
+                                        : "#F5F5F5",
+                                  color:
+                                    String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not scheduled") || String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not started")
+                                      ? "#C0392B"
+                                      : String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("scheduled")
+                                        ? "#2E9E5B"
+                                        : "#666666",
+                                }}
+                              >
+                                {String((l as any).nextMonthlyMeetingStatus)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          {(() => {
+                            const count = Number((l as any).overdueMcmCount ?? 0);
+                            if (count === 0) return <span className="text-xs text-[#A0A0A0]">0</span>;
+                            return (
+                              <span
+                                className="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                style={{
+                                  background: count > 6 ? "#FFF0F0" : count > 3 ? "#FFF8EE" : "#F5F5F5",
+                                  color: count > 6 ? "#C0392B" : count > 3 ? "#B27715" : "#666666",
+                                }}
+                              >
+                                {count}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                      </>
                     )}
 
                     {kpiCategory !== "review-due" && (
                       <td className="p-3">
-                        {kpiCategory === "otj-behind"
-                          ? otjPriorityBadge(String((l as any).otjPriority || "normal"))
-                          : priorityBadge(l.priority)}
+                        {kpiCategory === "otj-behind" ? (
+                          (() => {
+                            const status = String((l as any).otjHoursStatus || "").trim();
+                            if (!status) return null;
+                            const sl = status.toLowerCase();
+                            return (
+                              <span
+                                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                                style={{
+                                  background: sl === "at risk" ? "#FFF0F0" : sl === "on track" ? "#F0FFF6" : "#F5F5F5",
+                                  color: sl === "at risk" ? "#C0392B" : sl === "on track" ? "#2E9E5B" : "#666666",
+                                }}
+                              >
+                                {status}
+                              </span>
+                            );
+                          })()
+                        ) : (
+                          priorityBadge(l.priority)
+                        )}
                       </td>
                     )}
                   </tr>
@@ -928,6 +1057,73 @@ export default function LearnerTable({
           {filtered.length} learner{filtered.length !== 1 ? "s" : ""} • {selected.size} selected
         </p>
       </div>
+
+      {/* Call log modal */}
+      <Dialog open={showCallModal} onOpenChange={(o) => { if (!o) setShowCallModal(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold text-[#4C4C4C]">
+              Log Call — {selected.size} learner{selected.size !== 1 ? "s" : ""}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-1">
+            {(() => { const sel = filtered.filter((l) => selected.has(l.id)); return sel.length > 0 && (
+              <div className="max-h-24 overflow-y-auto rounded-lg bg-[#F8F8F8] px-3 py-2 text-xs text-[#4C4C4C] space-y-0.5">
+                {sel.map((l) => (
+                  <div key={l.id}>{l.firstName} {l.lastName} — {l.email}</div>
+                ))}
+              </div>
+            ); })()}
+
+            <div>
+              <label className="text-xs font-medium text-[#808080] block mb-1">Outcome <span className="text-red-500">*</span></label>
+              <Select value={callOutcome} onValueChange={setCallOutcome}>
+                <SelectTrigger className="h-9 text-sm border-[#E4E4E4]">
+                  <SelectValue placeholder="Select outcome..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Sent email with details">Sent email with details</SelectItem>
+                  <SelectItem value="Booked an appointment with the coach">Booked an appointment with the coach</SelectItem>
+                  <SelectItem value="Escalated to line manager">Escalated to line manager</SelectItem>
+                  <SelectItem value="Escalated to HR">Escalated to HR</SelectItem>
+                  <SelectItem value="No answer – voicemail left">No answer – voicemail left</SelectItem>
+                  <SelectItem value="No answer – will try again">No answer – will try again</SelectItem>
+                  <SelectItem value="Other (specify)">Other (specify)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-[#808080] block mb-1">Notes (optional)</label>
+              <Textarea
+                value={callNotes}
+                onChange={(e) => setCallNotes(e.target.value)}
+                rows={3}
+                placeholder="Add any notes..."
+                className="text-sm resize-none border-[#E4E4E4]"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowCallModal(false)}
+                className="flex-1 h-9 rounded-lg border border-[#E4E4E4] text-sm text-[#808080] hover:bg-[#F8F8F8]"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!callOutcome || callSaving}
+                onClick={() => handleSaveCallLog(filtered.filter((l) => selected.has(l.id)))}
+                className="flex-1 h-9 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
+                style={{ background: "#B27715" }}
+              >
+                {callSaving ? "Saving..." : "Save Log"}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

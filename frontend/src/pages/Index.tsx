@@ -109,12 +109,19 @@ const endOfDay = (date: Date) => {
 
 const getExactWeekRange = (weekIndex: 0 | 1 | 2 | 3) => {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const end = endOfDay(new Date(today));
-  end.setDate(end.getDate() - weekIndex * 7);
+  // Monday-based week: find Monday of current week
+  const dayOfWeek = today.getDay(); // 0=Sun … 6=Sat
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-  const start = startOfDay(new Date(end));
-  start.setDate(start.getDate() - 6);
+  const start = new Date(today);
+  start.setDate(today.getDate() - daysToMonday - weekIndex * 7);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
 
   return { start, end };
 };
@@ -136,6 +143,76 @@ const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
   const { start, end } = getExactWeekRange(weekIndex);
   return `${formatUiDate(start)} → ${formatUiDate(end)}`;
 };
+
+function buildAttendanceMetricsFromRecords(
+  records: Array<{ date: string | null; attendance: number | null; module: string }>,
+  absenceWeeks: "all" | 0 | 1 | 2 | 3 = 0
+) {
+  const empty = {
+    absenceRatio: 0, missedLast10Weeks: 0, missedInRow: 0,
+    missedCountInWindow: 0, lastSessionDate: "N/A",
+    lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
+    latestProgramme: "Unknown", hasAttendanceInWindow: false,
+  };
+  if (!records.length) return empty;
+
+  const sorted = [...records]
+    .filter((r) => r.date != null)
+    .sort((a, b) => a.date!.localeCompare(b.date!));
+
+  if (!sorted.length) return empty;
+
+  const filtered =
+    absenceWeeks === "all"
+      ? sorted
+      : sorted.filter((r) => {
+          const dt = parseBookedDate(r.date);
+          return dt !== null && isDateInExactWeekBucket(dt, absenceWeeks);
+        });
+
+  const hasAttendanceInWindow = filtered.length > 0;
+  const source = filtered.length > 0 ? filtered : sorted;
+  const last = source[source.length - 1];
+  const lastVal = last?.attendance ?? null;
+  const lastStatus = (
+    lastVal == null ? "Unknown" : lastVal === 1 ? "Attended" : "Missed"
+  ) as Learner["lastSessionStatus"];
+
+  const now = new Date();
+  const tenWeeksAgo = startOfDay(new Date(now));
+  tenWeeksAgo.setDate(tenWeeksAgo.getDate() - 69);
+  const missedLast10Weeks = sorted.filter((r) => {
+    const dt = parseBookedDate(r.date);
+    return dt !== null && dt >= tenWeeksAgo && r.attendance === 0;
+  }).length;
+
+  let missedInRow = 0;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (sorted[i].attendance === 0) missedInRow++;
+    else break;
+  }
+
+  const total = filtered.length;
+  const attended = filtered.filter((r) => r.attendance === 1).length;
+  const missedCountInWindow = total - attended;
+
+  // Absence ratio based on all sessions in the learner's current module overall
+  const latestModule = last?.module || "";
+  const moduleRecords = latestModule
+    ? sorted.filter((r) => r.module === latestModule)
+    : sorted;
+  const absenceRatio = safePct(
+    moduleRecords.filter((r) => r.attendance === 0).length,
+    moduleRecords.length
+  );
+  const latestProgramme = last?.module ? parseProgrammeFromModule(last.module) : "Unknown";
+
+  return {
+    absenceRatio, missedLast10Weeks, missedInRow, missedCountInWindow,
+    lastSessionDate: last?.date || "N/A", lastSessionStatus: lastStatus,
+    latestProgramme, hasAttendanceInWindow,
+  };
+}
 
 const kpiAccentClass: Record<KpiCategory, string> = {
   "missed-session": "border-l-4 border-l-[#80560F]",
@@ -994,7 +1071,7 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
   const handleExport = () => {
     const headers = [
       "Coach Name",
-      "Total Evidence",
+      "Pending Evidence",
       "Today marking",
       "Yesterday marking",
       "-2 marking",
@@ -1075,7 +1152,7 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-[#E4E4E4] bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-[#808080]">Total Evidence</p>
+          <p className="text-xs font-medium text-[#808080]">Pending Evidence</p>
           <p className="mt-2 text-2xl font-bold text-[#4C4C4C]">{totals.totalEvidence}</p>
         </div>
 
@@ -1098,7 +1175,7 @@ function CoachMarkingTable({ rows }: { rows: CoachMarkingRow[] }) {
             <thead>
               <tr className="border-b border-[#EDEDED] bg-[#FCF3FF]">
                 <th className="text-left p-3 font-medium text-[#808080]">Coach Name</th>
-                <th className="text-right p-3 font-medium text-[#808080]">Total Evidence</th>
+                <th className="text-right p-3 font-medium text-[#808080]">Pending Evidence</th>
                 <th className="text-right p-3 font-medium text-[#808080]">Today marking</th>
                 <th className="text-right p-3 font-medium text-[#808080]">Yesterday marking</th>
                 <th className="text-right p-3 font-medium text-[#808080]">-2 marking</th>
@@ -1616,10 +1693,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [absenceWeeks, setAbsenceWeeks] = useState<"all" | 0 | 1 | 2 | 3>(0);
   const [prMonthOffset, setPrMonthOffset] = useState(0);
+  const [mcrMonthOffset, setMcrMonthOffset] = useState(0);
 
   // PR
   const [progressReviewRows, setProgressReviewRows] = useState<ProgressReviewSummaryRow[]>([]);
   const [prBookedData, setPrBookedData] = useState<any[]>([]);
+  const [mcrData, setMcrData] = useState<any[]>([]);
+  const [otjAtRiskData, setOtjAtRiskData] = useState<any[]>([]);
+  const [requireMarkingData, setRequireMarkingData] = useState<any[]>([]);
+  const [kbcAttendanceData, setKbcAttendanceData] = useState<any[]>([]);
 
   const [filters, setFilters] = useState<DashboardFilters>({
     coach: "All Coaches",
@@ -1727,6 +1809,70 @@ export default function Dashboard() {
     void loadPrBookedData();
   }, [loadPrBookedData]);
 
+  const loadMcrData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/mcr-summary/");
+      if (!res.ok) throw new Error("Failed to load MCR data");
+      const data = await res.json();
+      setMcrData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setMcrData([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadMcrData();
+  }, [loadMcrData]);
+
+  const loadOtjAtRiskData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/otj-at-risk/");
+      if (!res.ok) throw new Error("Failed to load OTJ at risk data");
+      const data = await res.json();
+      setOtjAtRiskData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setOtjAtRiskData([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadOtjAtRiskData();
+  }, [loadOtjAtRiskData]);
+
+  const loadRequireMarkingData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/require-marking/");
+      if (!res.ok) throw new Error("Failed to load require marking data");
+      const data = await res.json();
+      setRequireMarkingData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setRequireMarkingData([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRequireMarkingData();
+  }, [loadRequireMarkingData]);
+
+  const loadKbcAttendanceData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/kbc-attendance/");
+      if (!res.ok) throw new Error("Failed to load KBC attendance data");
+      const data = await res.json();
+      setKbcAttendanceData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+      setKbcAttendanceData([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadKbcAttendanceData();
+  }, [loadKbcAttendanceData]);
+
   const updateContactAction = useCallback(
     async (payload: {
       contactKey: string;
@@ -1794,6 +1940,16 @@ export default function Dashboard() {
   );
 
   const filteredRows = useMemo(() => applyDashboardFilters(rows, filters), [rows, filters]);
+
+  const kbcAttMetrics = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildAttendanceMetricsFromRecords>>();
+    for (const rec of kbcAttendanceData) {
+      const email = normEmail(rec.email);
+      if (!email) continue;
+      map.set(email, buildAttendanceMetricsFromRecords(rec.records || [], absenceWeeks));
+    }
+    return map;
+  }, [kbcAttendanceData, absenceWeeks]);
 
   const progressReviewIndex = useMemo(() => {
     const byEmail = new Map<string, ProgressReviewSummaryRow>();
@@ -1887,25 +2043,6 @@ export default function Dashboard() {
             prIndex.rows
           ) ||
           null;
-
-        if (!reviewRow) {
-          console.log("PR NO MATCH", {
-            learnerId: id,
-            learnerEmail: emailKey,
-            learnerName: fullName,
-          });
-        } else {
-          console.log("PR MATCH OK", {
-            learnerId: id,
-            reviewId: reviewRow?.id,
-            learnerEmail: emailKey,
-            reviewEmail: reviewRow?.email,
-            learnerName: fullName,
-            reviewName: reviewRow?.fullName,
-            nextReviewStatus: reviewRow?.nextReviewStatus,
-            overduePrCount: reviewRow?.overduePrCount,
-          });
-        }
 
         const overduePrCount = getOverduePrCountFromRow(reviewRow);
         const reviewFlag: "none" | "overdue" = overduePrCount > 0 ? "overdue" : "none";
@@ -2250,29 +2387,65 @@ export default function Dashboard() {
   }, [filteredRows, absenceWeeks, filters, progressReviewIndex]);
 
   const coachMarkingRows = useMemo<CoachMarkingRow[]>(() => {
-    return filteredRows
-      .map((coach) => {
-        const raw = coach.raw as any;
-        return getCoachMarkingSummary(raw);
-      })
-      .filter((row) => {
-        return (
-          row.totalOverdue > 0 ||
-          row.todayMarking > 0 ||
-          row.actuallyMonthlyDone > 0 ||
-          row.monthlyTotalPrRequired > 0
-        );
-      })
-      .sort((a, b) => b.totalOverdue - a.totalOverdue);
-  }, [filteredRows]);
+    const grouped = new Map<string, CoachMarkingRow>();
+
+    const EXCLUDED_OWNERS = new Set(["default owner", "enrolment team"]);
+
+    for (const row of requireMarkingData) {
+      const caseOwner = String(row.caseOwner || "").trim();
+      if (!caseOwner) continue;
+      if (EXCLUDED_OWNERS.has(caseOwner.toLowerCase())) continue;
+
+      if (filters.coach !== "All Coaches" && caseOwner !== filters.coach) continue;
+
+      const existing = grouped.get(caseOwner);
+      const n = (v: unknown) => Number(v) || 0;
+
+      if (!existing) {
+        grouped.set(caseOwner, {
+          coachId: String(row.caseOwnerId || caseOwner),
+          coachName: caseOwner,
+          totalOverdue: n(row.countEvidencePending),
+          todayMarking: n(row.todayCount),
+          yesterdayMarking: n(row.yesterdayCount),
+          minus2Marking: n(row.day2Count),
+          minus3Marking: n(row.day3Count),
+          minus4Marking: n(row.day4Count),
+          minus5Marking: n(row.day5Count),
+          minus6Marking: n(row.day6Count),
+          minus7Marking: n(row.day7Count),
+          lastWeekPr: 0,
+          secondWeekPr: 0,
+          thirdWeekPr: 0,
+          fourthWeekPr: 0,
+          monthlyTotalPrDoneOld: 0,
+          actuallyMonthlyDone: 0,
+          monthlyTotalPrRequired: 0,
+          completionRate: 0,
+        });
+      } else {
+        existing.totalOverdue += n(row.countEvidencePending);
+        existing.todayMarking += n(row.todayCount);
+        existing.yesterdayMarking += n(row.yesterdayCount);
+        existing.minus2Marking += n(row.day2Count);
+        existing.minus3Marking += n(row.day3Count);
+        existing.minus4Marking += n(row.day4Count);
+        existing.minus5Marking += n(row.day5Count);
+        existing.minus6Marking += n(row.day6Count);
+        existing.minus7Marking += n(row.day7Count);
+      }
+    }
+
+    return Array.from(grouped.values()).sort((a, b) => b.totalOverdue - a.totalOverdue);
+  }, [requireMarkingData, filters.coach]);
 
   const kpiCards = useMemo<KpiCardData[]>(() => {
     const total = activeLearners.length;
 
-    const missed = activeLearners.filter(
-      (l) =>
-        Boolean((l as any).hasAttendanceInWindow) &&
-        l.lastSessionStatus === "Missed"
+    const activeEmailSet = new Set(activeLearners.map((l) => normEmail(l.email)));
+    const missed = [...kbcAttMetrics.entries()].filter(
+      ([email, m]) =>
+        activeEmailSet.has(email) && m.hasAttendanceInWindow && m.lastSessionStatus === "Missed"
     ).length;
 
     const dueEmails = new Set(
@@ -2297,23 +2470,52 @@ export default function Dashboard() {
       bookedInMonthEmails.has(normEmail(l.email))
     ).length;
 
-    const coachingDue = activeLearners.filter((l) => {
-      const hasData = Boolean((l as any).monthlyCoachingHasData);
-      const booked = Boolean((l as any).monthlyCoachingBooked);
-      return hasData && !booked;
-    }).length;
-
-    const coachingBookedRows = buildBookedLearnerRows(
-      activeLearners,
-      bookedSessionTypeFilter
+    const { start: mcrStart, end: mcrEnd } = getPrMonthRange(mcrMonthOffset);
+    const mcrToday = new Date();
+    mcrToday.setHours(0, 0, 0, 0);
+    const mcrDueEmails = new Set(
+      mcrData
+        .filter((row: any) =>
+          (row.mcmDates || []).some((d: any) => {
+            const dt = parseBookedDate(d.date);
+            if (dt === null || !(dt >= mcrStart && dt <= mcrEnd) || d.completed) return false;
+            const statusLower = String(d.status || "").toLowerCase();
+            const isScheduled = statusLower.includes("scheduled") && !statusLower.includes("not");
+            if (dt > mcrToday && isScheduled) return false;
+            return true;
+          })
+        )
+        .map((row: any) => normEmail(row.email))
     );
+    const coachingDue = activeLearners.filter((l) =>
+      mcrDueEmails.has(normEmail(l.email))
+    ).length;
 
-    const coachingBooked = coachingBookedRows.length;
+    const mcrBookedEmails = new Set(
+      mcrData
+        .filter((row: any) =>
+          (row.mcmDates || []).some((d: any) => {
+            const dt = parseBookedDate(d.date);
+            if (dt === null || !(dt >= mcrStart && dt <= mcrEnd)) return false;
+            const statusLower = String(d.status || "").toLowerCase();
+            return statusLower.includes("scheduled") && !statusLower.includes("not");
+          })
+        )
+        .map((row: any) => normEmail(row.email))
+    );
+    const coachingBooked = activeLearners.filter((l) =>
+      mcrBookedEmails.has(normEmail(l.email))
+    ).length;
 
-    const otjBehind = activeLearners.filter((l) => Boolean((l as any).hasOtjBehind)).length;
+    const otjAtRiskEmails = new Set(
+      otjAtRiskData.map((row: any) => normEmail(row.email))
+    );
+    const otjBehind = activeLearners.filter((l) =>
+      otjAtRiskEmails.has(normEmail(l.email))
+    ).length;
 
     const coachMarkingOverdue = coachMarkingRows.filter((r) => r.totalOverdue > 0).length;
-    const coachMarkingTotal = filteredRows.length;
+    const coachMarkingTotal = coachMarkingRows.length;
 
     const mk = (
       id: KpiCategory,
@@ -2332,11 +2534,11 @@ export default function Dashboard() {
       }) as KpiCardData;
 
     return [
-      mk("missed-session", "Missed Session", missed),
+      mk("missed-session", "Attendance (Missed Session)", missed),
       mk("review-due", "Progress Review Due", reviewDue),
       mk("review-booked", "Progress Review Booked", reviewBooked),
-      mk("coaching-due", "Monthly Meeting Due - Not Booked", coachingDue),
-      mk("coaching-booked", "Monthly Meeting - Booked", coachingBooked),
+      mk("coaching-due", "Monthly Coaching Meeting Due", coachingDue),
+      mk("coaching-booked", "Monthly Coaching Meeting Booked", coachingBooked),
       mk("otj-behind", "OTJ Behind", otjBehind),
       mk(
         "coach-marking-overdue",
@@ -2345,7 +2547,7 @@ export default function Dashboard() {
         coachMarkingTotal
       ),
     ];
-  }, [activeLearners, coachMarkingRows, activeKpi, bookedSessionTypeFilter, filteredRows.length, prMonthOffset, prBookedData, progressReviewRows]);
+  }, [activeLearners, coachMarkingRows, kbcAttMetrics, prMonthOffset, prBookedData, progressReviewRows, mcrData, mcrMonthOffset, otjAtRiskData]);
 
   const filteredLearners = useMemo(() => {
     if (!activeKpi) return [];
@@ -2353,11 +2555,23 @@ export default function Dashboard() {
     let result: Learner[] = [];
 
     if (activeKpi === "missed-session") {
-      result = activeLearners.filter(
-        (l) =>
-          Boolean((l as any).hasAttendanceInWindow) &&
-          l.lastSessionStatus === "Missed"
-      );
+      result = activeLearners
+        .filter((l) => {
+          const m = kbcAttMetrics.get(normEmail(l.email));
+          return m?.hasAttendanceInWindow && m?.lastSessionStatus === "Missed";
+        })
+        .map((l) => {
+          const m = kbcAttMetrics.get(normEmail(l.email));
+          if (!m) return l;
+          return {
+            ...l,
+            absenceRatio: m.absenceRatio,
+            missedLast10Weeks: m.missedLast10Weeks,
+            missedInRow: m.missedInRow,
+            lastSessionDate: m.lastSessionDate,
+            lastSessionStatus: m.lastSessionStatus,
+          };
+        });
     } else if (activeKpi === "review-due") {
       const dueByEmail = new Map<string, any>(
         progressReviewRows
@@ -2414,18 +2628,119 @@ export default function Dashboard() {
           return aDate.localeCompare(bDate);
         });
     } else if (activeKpi === "coaching-due") {
+      const { start: mcrStart, end: mcrEnd } = getPrMonthRange(mcrMonthOffset);
+      const mcrTodayFL = new Date();
+      mcrTodayFL.setHours(0, 0, 0, 0);
+      const mcrDueByEmail = new Map<string, any>();
+      for (const row of mcrData) {
+        const email = normEmail(row.email);
+        if (!email) continue;
+        const matchDate = (row.mcmDates || []).find((d: any) => {
+          const dt = parseBookedDate(d.date);
+          if (dt === null || !(dt >= mcrStart && dt <= mcrEnd) || d.completed) return false;
+          const statusLower = String(d.status || "").toLowerCase();
+          const isScheduled = statusLower.includes("scheduled") && !statusLower.includes("not");
+          if (dt > mcrTodayFL && isScheduled) return false;
+          return true;
+        });
+        if (matchDate && !mcrDueByEmail.has(email)) {
+          const accumulatedOverdue = (row.mcmDates || []).filter((d: any) => {
+            const dt = parseBookedDate(d.date);
+            return dt !== null && dt < mcrTodayFL && !d.completed;
+          }).length;
+          mcrDueByEmail.set(email, {
+            ...row,
+            matchedDate: matchDate.date,
+            matchedStatus: matchDate.status,
+            accumulatedOverdue,
+          });
+        }
+      }
       result = activeLearners
-        .filter(
-          (l) =>
-            Boolean((l as any).monthlyCoachingHasData) &&
-            !Boolean((l as any).monthlyCoachingBooked)
-        )
-        .sort((a, b) => (a.coach || "").localeCompare(b.coach || ""));
+        .filter((l) => mcrDueByEmail.has(normEmail(l.email)))
+        .map((l) => {
+          const mcr = mcrDueByEmail.get(normEmail(l.email));
+          const accumulatedOverdue = mcr?.accumulatedOverdue ?? 0;
+          const mcmPriority: Learner["priority"] =
+            accumulatedOverdue > 6 ? "critical" : accumulatedOverdue > 3 ? "high" : "normal";
+          return {
+            ...l,
+            priority: mcmPriority,
+            nextMonthlyMeetingDue: mcr?.matchedDate ?? mcr?.nextDueDate ?? (l as any).nextMonthlyMeetingDue,
+            nextMonthlyMeetingStatus: mcr?.matchedStatus ?? "",
+            overdueMcmCount: accumulatedOverdue,
+          } as typeof l;
+        })
+        .sort((a, b) =>
+          Number((b as any).overdueMcmCount ?? 0) - Number((a as any).overdueMcmCount ?? 0)
+        );
     } else if (activeKpi === "coaching-booked") {
-      result = buildBookedLearnerRows(activeLearners, bookedSessionTypeFilter);
-    } else if (activeKpi === "otj-behind") {
+      const { start: mcrStartB, end: mcrEndB } = getPrMonthRange(mcrMonthOffset);
+      const mcrBookedByEmail = new Map<string, any>();
+      for (const row of mcrData) {
+        const email = normEmail(row.email);
+        if (!email) continue;
+        const matchDate = (row.mcmDates || []).find((d: any) => {
+          const dt = parseBookedDate(d.date);
+          if (dt === null || !(dt >= mcrStartB && dt <= mcrEndB)) return false;
+          const statusLower = String(d.status || "").toLowerCase();
+          return statusLower.includes("scheduled") && !statusLower.includes("not");
+        });
+        if (matchDate && !mcrBookedByEmail.has(email)) {
+          mcrBookedByEmail.set(email, { ...row, matchedDate: matchDate.date, matchedStatus: matchDate.status });
+        }
+      }
       result = activeLearners
-        .filter((l) => Boolean((l as any).hasOtjBehind))
+        .filter((l) => mcrBookedByEmail.has(normEmail(l.email)))
+        .map((l) => {
+          const mcr = mcrBookedByEmail.get(normEmail(l.email));
+          return {
+            ...l,
+            bookedMcmDate: mcr?.matchedDate ?? "",
+            bookedMcmStatus: mcr?.matchedStatus ?? "",
+          } as typeof l;
+        })
+        .sort((a, b) => {
+          const aDate = String((a as any).bookedMcmDate || "");
+          const bDate = String((b as any).bookedMcmDate || "");
+          return aDate.localeCompare(bDate);
+        });
+    } else if (activeKpi === "otj-behind") {
+      const otjByEmail = new Map<string, any>();
+      for (const row of otjAtRiskData) {
+        const email = normEmail(row.email);
+        if (email) otjByEmail.set(email, row);
+      }
+      result = activeLearners
+        .filter((l) => otjByEmail.has(normEmail(l.email)))
+        .map((l) => {
+          const aptem = otjByEmail.get(normEmail(l.email));
+          const progressVariance = toNum(aptem?.progressVariance);
+          const otjBehindPct =
+            progressVariance !== null && progressVariance < 0
+              ? Math.abs(progressVariance)
+              : 0;
+          const aptemPlanned = Number(aptem?.otjPlanned ?? 0);
+          const aptemTotalDays = Number(aptem?.totalDays ?? 0);
+          const aptemElapsedDays = Number(aptem?.elapsedDays ?? 0);
+          const aptemTargetNow =
+            aptemPlanned && aptemTotalDays && aptemElapsedDays
+              ? Math.round((aptemElapsedDays / aptemTotalDays) * aptemPlanned)
+              : Number((l as any).targetNow || 0);
+          return {
+            ...l,
+            plannedOtjHours: aptem?.otjPlanned ?? (l as any).plannedOtjHours,
+            actualOtjHours: aptem?.otjCompleted ?? (l as any).actualOtjHours,
+            expectedOtjHours: aptem?.otjExpected ?? (l as any).expectedOtjHours,
+            targetNow: aptemTargetNow,
+            otjBehindPct,
+            otjHoursStatus: aptem?.otjHoursStatus ?? "",
+            requiredHoursToSubmit: aptem?.progressHours
+              ? String(aptem.progressHours).replace(/^\s*-\s*/, "").trim()
+              : (l as any).requiredHoursToSubmit,
+            otjPriority: getOtjPriority(otjBehindPct),
+          } as typeof l;
+        })
         .sort(
           (a, b) =>
             Number((b as any).otjBehindPct ?? 0) -
@@ -2444,7 +2759,7 @@ export default function Dashboard() {
         note: contactActions[contactKey]?.note ?? "",
       };
     });
-  }, [activeLearners, activeKpi, bookedSessionTypeFilter, contactActions, prMonthOffset, prBookedData, progressReviewRows]);
+  }, [activeLearners, activeKpi, contactActions, kbcAttMetrics, prMonthOffset, prBookedData, progressReviewRows, mcrData, mcrMonthOffset, otjAtRiskData]);
 
   useEffect(() => {
     setSelectedLearner((prev) => {
@@ -2468,6 +2783,13 @@ export default function Dashboard() {
             prMonthOffset={prMonthOffset}
             onPrMonthOffsetChange={setPrMonthOffset}
             getPrMonthLabel={getPrMonthLabel}
+            showMcrMonthFilter={activeKpi === "coaching-due" || activeKpi === "coaching-booked"}
+            mcrMonthOffset={mcrMonthOffset}
+            onMcrMonthOffsetChange={setMcrMonthOffset}
+            showAbsenceFilter={activeKpi === "missed-session"}
+            absenceWeeks={absenceWeeks}
+            onAbsenceWeeksChange={setAbsenceWeeks}
+            getWeekLabel={getWeekLabel}
           />
         </div>
 
@@ -2509,39 +2831,17 @@ export default function Dashboard() {
                   {filteredLearners.length !== 1 ? "s" : ""}
                 </h3>
 
-                {activeKpi === "missed-session" && (
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <span className="text-sm text-[#808080]">Absence Window</span>
-                    <select
-                      value={absenceWeeks}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setAbsenceWeeks(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3));
-                      }}
-                      className="h-10 w-full sm:w-auto rounded-xl border border-[#E4E4E4] bg-white px-3 text-sm text-[#4C4C4C]"
-                    >
-                      <option value="all">All</option>
-                      <option value={0}>This week , {getWeekLabel(0)}</option>
-                      <option value={1}>Previous week , {getWeekLabel(1)}</option>
-                      <option value={2}>2 weeks ago , {getWeekLabel(2)}</option>
-                      <option value={3}>3 weeks ago , {getWeekLabel(3)}</option>
-                    </select>
-                  </div>
-                )}
-
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-[#E4E4E4] bg-white">
-                <LearnerTable
-                  key={`${activeKpi}-${bookedSessionTypeFilter}-${absenceWeeks}`}
-                  learners={filteredLearners}
-                  kpiCategory={activeKpi}
-                  onSelectLearner={setSelectedLearner}
-                  sessionTypeFilter={bookedSessionTypeFilter}
-                  onSessionTypeFilterChange={setBookedSessionTypeFilter}
-                  onUpdateContactAction={updateContactAction}
-                />
-              </div>
+              <LearnerTable
+                key={`${activeKpi}-${absenceWeeks}`}
+                learners={filteredLearners}
+                kpiCategory={activeKpi}
+                onSelectLearner={setSelectedLearner}
+                sessionTypeFilter={bookedSessionTypeFilter}
+                onSessionTypeFilterChange={setBookedSessionTypeFilter}
+                onUpdateContactAction={updateContactAction}
+              />
             </div>
           )}
 
@@ -2562,6 +2862,10 @@ export default function Dashboard() {
           open={!!selectedLearner}
           onClose={() => setSelectedLearner(null)}
           onUpdateContactAction={updateContactAction}
+          otjAtRiskData={otjAtRiskData}
+          mcrData={mcrData}
+          progressReviewRows={progressReviewRows}
+          prBookedData={prBookedData}
           onResolve={({ contactKey, email, date, module, resolved, note }) => {
             void updateContactAction({
               contactKey,

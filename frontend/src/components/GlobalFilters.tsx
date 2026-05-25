@@ -1,4 +1,4 @@
-import { useMemo,useEffect } from "react";
+import { useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -29,6 +29,13 @@ type Props = {
   prMonthOffset?: number;
   onPrMonthOffsetChange?: (v: number) => void;
   getPrMonthLabel?: (offset: number) => string;
+  showMcrMonthFilter?: boolean;
+  mcrMonthOffset?: number;
+  onMcrMonthOffsetChange?: (v: number) => void;
+  showAbsenceFilter?: boolean;
+  absenceWeeks?: "all" | 0 | 1 | 2 | 3;
+  onAbsenceWeeksChange?: (v: "all" | 0 | 1 | 2 | 3) => void;
+  getWeekLabel?: (index: 0 | 1 | 2 | 3) => string;
 };
 
 /********************************** Helpers ***************************/
@@ -178,6 +185,12 @@ const pickStatus = (student: any) =>
     ""
   ).trim();
 
+const getMonthLabel = (offset: number) => {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  return d.toLocaleString("en-GB", { month: "long", year: "numeric" });
+};
+
 export default function GlobalFilters({
   rows,
   loading,
@@ -188,14 +201,23 @@ export default function GlobalFilters({
   prMonthOffset = 0,
   onPrMonthOffsetChange,
   getPrMonthLabel,
+  showMcrMonthFilter,
+  mcrMonthOffset = 0,
+  onMcrMonthOffsetChange,
+  showAbsenceFilter,
+  absenceWeeks = 0,
+  onAbsenceWeeksChange,
+  getWeekLabel,
 }: Props) {
   const lastRefreshed = useMemo(() => new Date(), []);
   const safeRows = Array.isArray(rows) ? rows : [];
 
+  const EXCLUDED_COACHES = new Set(["unknown", "api do not delete", "phone 1", "phone 2", "ella steven", "elaf mansour"]);
+
   const coachOptions = useMemo(() => {
     const names = safeRows
       .map((r) => String(r.name || "").trim())
-      .filter((n) => n && n !== "Unknown" && n !== "API Do Not Delete");
+      .filter((n) => n && !EXCLUDED_COACHES.has(n.toLowerCase()));
 
     return withAllFirst(ALL_COACHES, names);
   }, [safeRows]);
@@ -215,41 +237,7 @@ export default function GlobalFilters({
     return withAllFirst(ALL_PROGRAMMES, all);
   }, [safeRows]);
 
-  const latestProgrammeAudit = useMemo(() => {
-  const expectedModules: string[] = [];
 
-  safeRows.forEach((row) => {
-    const attendanceLearners = getAttendanceLearnersFromRaw(row.raw);
-
-    attendanceLearners.forEach((learner: any) => {
-      const latestModule = getLatestAttendanceModule(learner?.Attendance);
-      if (latestModule) expectedModules.push(latestModule);
-    });
-  });
-
-  const expectedUnique = withAllFirst(ALL_PROGRAMMES, expectedModules);
-  const actualUnique = programmeOptions;
-
-  const extraInFilter = actualUnique.filter((x) => !expectedUnique.includes(x));
-  const missingFromFilter = expectedUnique.filter((x) => !actualUnique.includes(x));
-
-  return {
-    expectedUnique,
-    actualUnique,
-    extraInFilter,
-    missingFromFilter,
-  };
-}, [safeRows, programmeOptions]);
-
-useEffect(() => {
-  console.log("Programme filter audit", latestProgrammeAudit);
-  console.table(
-    latestProgrammeAudit.expectedUnique.map((module) => ({
-      module,
-      inFilter: latestProgrammeAudit.actualUnique.includes(module),
-    }))
-  );
-}, [latestProgrammeAudit]);
 
   const ratingOptions = useMemo(() => {
     const ratings = safeRows.map((r) => String(r.rating || "Unknown").trim() || "Unknown");
@@ -445,6 +433,67 @@ useEffect(() => {
                 <SelectItem value="3">{getPrMonthLabel(3)}</SelectItem>
                 <SelectItem value="4">{getPrMonthLabel(4)}</SelectItem>
                 <SelectItem value="5">{getPrMonthLabel(5)}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {showAbsenceFilter && onAbsenceWeeksChange && getWeekLabel && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-3 py-1"
+            style={{ background: "#F9F4EC", border: "1.5px solid #b27715" }}
+          >
+            <span className="text-xs font-semibold" style={{ color: "#80560F" }}>
+              Absence Window
+            </span>
+            <Select
+              value={String(absenceWeeks)}
+              onValueChange={(v) =>
+                onAbsenceWeeksChange(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3))
+              }
+            >
+              <SelectTrigger
+                className="h-7 w-[210px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
+                style={{ color: "#64430C", fontWeight: 600 }}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="0">This week , {getWeekLabel(0)}</SelectItem>
+                <SelectItem value="1">Previous week , {getWeekLabel(1)}</SelectItem>
+                <SelectItem value="2">2 weeks ago , {getWeekLabel(2)}</SelectItem>
+                <SelectItem value="3">3 weeks ago , {getWeekLabel(3)}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {showMcrMonthFilter && onMcrMonthOffsetChange && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-3 py-1"
+            style={{ background: "#FCF3FF", border: "1.5px solid #644d93" }}
+          >
+            <span className="text-xs font-semibold" style={{ color: "#442F73" }}>
+              MCM Month
+            </span>
+            <Select
+              value={String(mcrMonthOffset)}
+              onValueChange={(v) => onMcrMonthOffsetChange(Number(v))}
+            >
+              <SelectTrigger
+                className="h-7 w-[170px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
+                style={{ color: "#442F73", fontWeight: 600 }}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">This Month — {getMonthLabel(0)}</SelectItem>
+                <SelectItem value="1">{getMonthLabel(1)}</SelectItem>
+                <SelectItem value="2">{getMonthLabel(2)}</SelectItem>
+                <SelectItem value="3">{getMonthLabel(3)}</SelectItem>
+                <SelectItem value="4">{getMonthLabel(4)}</SelectItem>
+                <SelectItem value="5">{getMonthLabel(5)}</SelectItem>
               </SelectContent>
             </Select>
           </div>

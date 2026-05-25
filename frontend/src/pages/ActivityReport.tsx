@@ -337,7 +337,7 @@ export default function ActivityReport() {
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-foreground">
@@ -432,13 +432,14 @@ export default function ActivityReport() {
           </Card>
         </div>
 
-        <Card className="overflow-x-auto">
+        <Card>
           <div className="border-b p-4">
             <p className="text-sm font-medium text-foreground">
               Daily Activity Log
             </p>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="min-w-[640px] w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="p-3 text-left font-medium text-muted-foreground">
@@ -512,15 +513,17 @@ export default function ActivityReport() {
               )}
             </tbody>
           </table>
+          </div>
         </Card>
 
-        <Card className="overflow-x-auto">
+        <Card>
           <div className="border-b p-4">
             <p className="text-sm font-medium text-foreground">
               Recent Call Details
             </p>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="min-w-[700px] w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="p-3 text-left font-medium text-muted-foreground">
@@ -593,6 +596,7 @@ export default function ActivityReport() {
               )}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
     </AppLayout>

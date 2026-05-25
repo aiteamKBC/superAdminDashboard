@@ -17,6 +17,13 @@ export interface EmailRecipient {
 
   lineManagerEmail?: string;
   hrEmail?: string;
+
+  dueDate?: string;
+  bookingLink?: string;
+  lineManagerName?: string;
+  expectedHours?: string;
+  actualHours?: string;
+  behindPercent?: string;
 }
 
 type AttendanceSession = {

@@ -10,6 +10,10 @@ from .views import (
     aptem_learners_summary,
     mcr_summary,
     require_marking_summary,
+    otj_at_risk_summary,
+    kbc_attendance_summary,
+    dashboard_bookings,
+    dashboard_contact_log,
 )
 
 urlpatterns = [
@@ -23,4 +27,8 @@ urlpatterns = [
     path("aptem-learners/", aptem_learners_summary, name="aptem-learners-summary"),
     path("mcr-summary/", mcr_summary, name="mcr-summary"),
     path("require-marking/", require_marking_summary, name="require-marking-summary"),
+    path("otj-at-risk/", otj_at_risk_summary, name="otj-at-risk-summary"),
+    path("kbc-attendance/", kbc_attendance_summary, name="kbc-attendance-summary"),
+    path("bookings/", dashboard_bookings, name="dashboard-bookings"),
+    path("contact-log/", dashboard_contact_log, name="dashboard-contact-log"),
 ]
