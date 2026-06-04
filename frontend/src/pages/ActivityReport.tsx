@@ -473,7 +473,7 @@ export default function ActivityReport() {
                 .slice(-14)
                 .reverse()
                 .map((d) => (
-                  <tr key={d.date} className="border-b hover:bg-muted/30">
+                  <tr key={d.date} className="border-b">
                     <td className="p-3 font-medium text-foreground">
                       {formatTableDate(d.date)}
                     </td>
@@ -555,7 +555,7 @@ export default function ActivityReport() {
                 .reverse()
                 .slice(0, 30)
                 .map((row) => (
-                  <tr key={row.id} className="border-b hover:bg-muted/30">
+                  <tr key={row.id} className="border-b">
                     <td className="p-3 font-medium text-foreground">
                       {formatTableDate(row.date)}
                     </td>

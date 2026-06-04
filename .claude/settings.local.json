@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python manage.py check)",
+      "Bash(curl -s http://localhost:8000/api/require-marking/)"
     ]
   }
 }

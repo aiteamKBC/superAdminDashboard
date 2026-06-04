@@ -72,7 +72,7 @@ interface LearnerDrawerProps {
 const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
   "review-due": "Review Due",
-  "coaching-due": "Coaching Due",
+  "coaching-due": "Coaching Required",
   "otj-behind": "OTJ Behind",
 };
 
@@ -293,6 +293,16 @@ export default function LearnerDrawer({
 
   const toEmailRecipient = (learner: Learner) => {
     const learnerAny = learner as any;
+    const risks = Array.isArray(learner.riskCategories)
+      ? learner.riskCategories
+      : [];
+    const links = getBookingLinks(learner.coach || "");
+    const bookingLink =
+      risks.includes("review-due")
+        ? links.pr || ""
+        : risks.includes("coaching-due")
+          ? links.mcm || ""
+          : links.support || "";
 
     return {
       learnerName: `${learner.firstName || ""} ${learner.lastName || ""}`.trim(),
@@ -307,10 +317,9 @@ export default function LearnerDrawer({
       senderName: "Progress Coordinator",
       lineManagerEmail: learner.lineManagerEmail || "",
       hrEmail: learner.hrManagerEmail || "",
+      bookingLink,
       status: learner.status || "Active",
-      riskCategories: Array.isArray(learner.riskCategories)
-        ? learner.riskCategories
-        : [],
+      riskCategories: risks,
     };
   };
 
@@ -787,7 +796,7 @@ export default function LearnerDrawer({
               {contactLogs.map((log: any) => {
                 const sourceLabels: Record<string, string> = {
                   "pr-due": "PR Due",
-                  "mcm-due": "MCM Due",
+                  "mcm-due": "MCM Required",
                   "otj-behind": "OTJ Behind",
                   "attendance": "Attendance",
                 };

@@ -9,6 +9,7 @@ export interface EmailRecipient {
   coachName: string;
   coachEmail: string;
   lastSessionDate?: string;
+  periodDate?: string;
   status?: string;
   riskCategories?: string[];
 

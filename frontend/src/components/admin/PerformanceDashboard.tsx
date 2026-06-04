@@ -6,12 +6,37 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getCoordinatorPerformance } from '@/data/adminMockData';
 import { Activity, TrendingUp, AlertCircle } from 'lucide-react';
+import { Coordinator, CoordinatorPerformance, LearnerAssignment } from '@/types/admin';
+import { Learner } from '@/types/dashboard';
+import { AdminPerformanceRange, buildAdminPerformance } from '@/data/adminRealData';
 
-type DateRange = 'today' | '7days' | '30days';
+type DateRange = AdminPerformanceRange;
 
-export default function PerformanceDashboard() {
+interface PerformanceDashboardProps {
+  coordinators?: Coordinator[];
+  learners?: Learner[];
+  assignments?: LearnerAssignment[];
+  contactLogs?: Record<string, any>[];
+  performance?: CoordinatorPerformance[];
+}
+
+export default function PerformanceDashboard({
+  coordinators,
+  learners,
+  assignments,
+  contactLogs,
+  performance,
+}: PerformanceDashboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>('7days');
-  const perfData = useMemo(() => getCoordinatorPerformance(dateRange), [dateRange]);
+  const perfData = useMemo(
+    () => {
+      if (coordinators?.length && learners?.length && assignments?.length && contactLogs) {
+        return buildAdminPerformance(coordinators, learners, assignments, contactLogs, dateRange);
+      }
+      return performance?.length ? performance : getCoordinatorPerformance(dateRange);
+    },
+    [coordinators, learners, assignments, contactLogs, performance, dateRange]
+  );
 
   const chartData = perfData.map(p => ({
     name: p.coordinatorName.split(' ')[0],
@@ -141,7 +166,7 @@ export default function PerformanceDashboard() {
                 <TableHead>Coordinator</TableHead>
                 <TableHead className="text-right">Missed Sess.</TableHead>
                 <TableHead className="text-right">PR Due</TableHead>
-                <TableHead className="text-right">MCM Due</TableHead>
+                <TableHead className="text-right">MCM Required</TableHead>
                 <TableHead className="text-right">OTJ Behind</TableHead>
                 <TableHead className="text-right">High Priority</TableHead>
                 <TableHead className="text-right">0–2d</TableHead>

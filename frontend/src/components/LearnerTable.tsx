@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Download, Phone, Mail, ArrowUpDown } from "lucide-react";
+import { Search, Download, Phone, Mail, ArrowUpDown, X } from "lucide-react";
 
 interface LearnerTableProps {
   learners: Learner[];
@@ -18,6 +18,7 @@ interface LearnerTableProps {
   onSessionTypeFilterChange?: (
     value: "All Session Types" | "Progress Review" | "MCM" | "Support Session"
   ) => void;
+  isPastMcrMonth?: boolean;
   onUpdateContactAction?: (payload: {
     contactKey: string;
     email: string;
@@ -93,6 +94,53 @@ const calcBehindPct = (learner: Learner) => {
 const getRequiredHoursToSubmit = (learner: Learner) =>
   String((learner as any).requiredHoursToSubmit || "N/A");
 
+const cleanPrStatusLabel = (value: unknown) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const parenthesized = raw.match(/\(([^)]+)\)\s*$/);
+  const withoutDate = parenthesized?.[1] || raw;
+
+  return withoutDate.replace(/^\((.*)\)$/, "$1").trim();
+};
+
+const splitDateStatusLabel = (value: unknown) => {
+  const raw = String(value || "").trim();
+  if (!raw || raw === "N/A") return { date: raw || "N/A", status: "" };
+  const match = raw.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (!match) return { date: raw, status: "" };
+  return { date: match[1].trim(), status: cleanPrStatusLabel(match[2]) };
+};
+
+const getStatusPillStyle = (status: unknown) => {
+  const s = String(status || "").toLowerCase();
+  if (s.includes("completed")) return { bg: "#EDFAF3", color: "#1A7A4A" };
+  if (s.includes("in progress")) return { bg: "#FFF8EE", color: "#B27715" };
+  if (s.includes("awaiting signature")) return { bg: "#F5EEFF", color: "#644D93" };
+  if (s.includes("scheduled") && !s.includes("not")) return { bg: "#EEF4FF", color: "#3B6FD4" };
+  if (s.includes("not")) return { bg: "#FFF0F0", color: "#C0392B" };
+  return { bg: "#F5F5F5", color: "#666666" };
+};
+
+const DateStatusCell = ({ value }: { value: unknown }) => {
+  const { date, status } = splitDateStatusLabel(value);
+  if (!date || date === "N/A") return <span className="text-xs text-[#A0A0A0]">N/A</span>;
+  const style = getStatusPillStyle(status);
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <span className="text-sm text-[#6F6F6F]">{date}</span>
+      {status && (
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          style={{ background: style.bg, color: style.color }}
+        >
+          {status}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const splitNoteParts = (noteValue: unknown) => {
   const note = String(noteValue || "").trim();
   if (!note) return { outcome: "", details: "" };
@@ -118,6 +166,7 @@ export default function LearnerTable({
   onSelectLearner,
   sessionTypeFilter = "All Session Types",
   onSessionTypeFilterChange,
+  isPastMcrMonth = false,
   onUpdateContactAction,
 }: LearnerTableProps) {
   const navigate = useNavigate();
@@ -269,6 +318,17 @@ export default function LearnerTable({
             kpiCategory === "coaching-booked"
               ? String((b as any).anyBookedSessionDate || "")
               : String((b as any).monthlyCoachingSessionDate || "");
+        } else if (sortField === "nextMonthlyMeetingDue") {
+          const parseDMY = (val: string) => {
+            const parts = String(val || "").split("-");
+            if (parts.length === 3) {
+              const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+              if (!isNaN(dt.getTime())) return dt.getTime();
+            }
+            return 0;
+          };
+          av = parseDMY(String((a as any).nextMonthlyMeetingDue || ""));
+          bv = parseDMY(String((b as any).nextMonthlyMeetingDue || ""));
         } else {
           av = (a as any)[sortField] || "";
           bv = (b as any)[sortField] || "";
@@ -293,6 +353,8 @@ export default function LearnerTable({
       anyLearner.anyBookedSessionType || "",
       anyLearner.anyBookedSessionDate || "",
       anyLearner.anyBookedServiceName || "",
+      anyLearner.nextMonthlyMeetingDue || "",
+      anyLearner.nextMonthlyMeetingStatus || "",
     ].join("::");
   };
 
@@ -310,7 +372,7 @@ export default function LearnerTable({
     else setSelected(new Set(filtered.map((l) => l.id)));
   };
 
-  const handleExport = () => {
+  const handleExport = (rowsToExport: Learner[] = filtered, suffix = "learners") => {
     let headers: string[] = [];
     let rows: any[][] = [];
 
@@ -325,7 +387,7 @@ export default function LearnerTable({
         "MCM Status",
       ];
 
-      rows = filtered.map((l) => [
+      rows = rowsToExport.map((l) => [
         `${l.firstName} ${l.lastName}`,
         l.phone || "N/A",
         l.organisation,
@@ -333,6 +395,28 @@ export default function LearnerTable({
         l.coach,
         (l as any).bookedMcmDate || "N/A",
         (l as any).bookedMcmStatus || "",
+      ]);
+    } else if (kpiCategory === "review-booked") {
+      headers = [
+        "Name",
+        "Phone",
+        "Organisation",
+        "Programme",
+        "Coach",
+        "Email",
+        "Booked PR Date",
+        "PR Status",
+      ];
+
+      rows = rowsToExport.map((l) => [
+        `${l.firstName} ${l.lastName}`,
+        l.phone || "N/A",
+        l.organisation,
+        l.programme,
+        l.coach,
+        l.email,
+        (l as any).bookedPrDate || "N/A",
+        cleanPrStatusLabel((l as any).bookedPrStatus) || "N/A",
       ]);
     } else if (kpiCategory === "review-due") {
       headers = [
@@ -343,13 +427,14 @@ export default function LearnerTable({
         "Coach",
         "Email",
         "Last Progress Review",
+        "Why shown",
         "Next PR",
         "No. of overdue PR",
         "Booked Date",
         "Review Status",
       ];
 
-      rows = filtered.map((l) => [
+      rows = rowsToExport.map((l) => [
         `${l.firstName} ${l.lastName}`,
         l.phone || "N/A",
         l.organisation,
@@ -357,6 +442,7 @@ export default function LearnerTable({
         l.coach,
         l.email,
         l.lastProgressReviewDate || "N/A",
+        (l as any).prMatchReason || "N/A",
         (l as any).nextPrDate || (l as any).nextProgressReviewDue || "N/A",
         Number((l as any).overduePrCount ?? 0),
         (l as any).bookedPrDate || "N/A",
@@ -377,7 +463,7 @@ export default function LearnerTable({
         "Last Progress Review",
       ];
 
-      rows = filtered.map((l) => [
+      rows = rowsToExport.map((l) => [
         `${l.firstName} ${l.lastName}`,
         l.phone || "N/A",
         l.organisation,
@@ -407,7 +493,7 @@ export default function LearnerTable({
         "Priority",
       ];
 
-      rows = filtered.map((l) => [
+      rows = rowsToExport.map((l) => [
         `${l.firstName} ${l.lastName}`,
         l.phone || "N/A",
         Boolean((l as any).called) ? "Yes" : "No",
@@ -430,21 +516,21 @@ export default function LearnerTable({
         "Programme",
         "Coach",
         "Email",
-        "Due Date",
+        isPastMcrMonth ? "Meeting Date" : "Required Date",
         "MCM Status",
-        "Overdue MCMs",
+        ...(isPastMcrMonth ? [] : ["Overdue MCMs"]),
       ];
 
-      rows = filtered.map((l) => [
+      rows = rowsToExport.map((l) => [
         `${l.firstName} ${l.lastName}`,
         l.phone || "N/A",
         l.organisation,
         l.programme,
         l.coach,
         l.email,
-        String((l as any).nextMonthlyMeetingDue || "Due"),
+        String((l as any).nextMonthlyMeetingDue || (isPastMcrMonth ? "N/A" : "Required")),
         String((l as any).nextMonthlyMeetingStatus || ""),
-        Number((l as any).overdueMcmCount ?? 0),
+        ...(isPastMcrMonth ? [] : [Number((l as any).overdueMcmCount ?? 0)]),
       ]);
     }
 
@@ -456,9 +542,148 @@ export default function LearnerTable({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${kpiCategory}-learners.csv`;
+    a.download = `${kpiCategory}-${suffix}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const selectedRows = filtered.filter((l) => selected.has(l.id));
+
+  const tableSummary = useMemo(() => {
+    const statusIncludes = (value: unknown, text: string) =>
+      String(value || "").toLowerCase().includes(text);
+
+    if (kpiCategory === "review-due") {
+      return [
+        {
+          label: "Scheduled",
+          value: filtered.filter((l) =>
+            statusIncludes((l as any).prMatchReason || (l as any).nextPrState, "scheduled") &&
+            !statusIncludes((l as any).prMatchReason, "not scheduled")
+          ).length,
+          tone: "blue",
+        },
+        {
+          label: "Not Scheduled",
+          value: filtered.filter((l) =>
+            statusIncludes((l as any).prMatchReason || (l as any).nextPrState, "not scheduled")
+          ).length,
+          tone: "red",
+        },
+        {
+          label: "Overdue PR",
+          value: filtered.filter((l) => Number((l as any).overduePrCount ?? 0) > 0).length,
+          tone: "amber",
+        },
+      ];
+    }
+
+    if (kpiCategory === "review-booked") {
+      return [
+        {
+          label: "Completed",
+          value: filtered.filter((l) => statusIncludes((l as any).bookedPrStatus, "completed")).length,
+          tone: "green",
+        },
+        {
+          label: "Awaiting Signature",
+          value: filtered.filter((l) => statusIncludes((l as any).bookedPrStatus, "awaiting signature")).length,
+          tone: "purple",
+        },
+        {
+          label: "Scheduled",
+          value: filtered.filter((l) =>
+            statusIncludes((l as any).bookedPrStatus, "scheduled") &&
+            !statusIncludes((l as any).bookedPrStatus, "not")
+          ).length,
+          tone: "blue",
+        },
+      ];
+    }
+
+    if (kpiCategory === "coaching-due") {
+      return [
+        {
+          label: isPastMcrMonth ? "Meetings in period" : "Required",
+          value: filtered.length,
+          tone: "purple",
+        },
+        {
+          label: "Scheduled",
+          value: filtered.filter((l) =>
+            statusIncludes((l as any).nextMonthlyMeetingStatus, "scheduled") &&
+            !statusIncludes((l as any).nextMonthlyMeetingStatus, "not")
+          ).length,
+          tone: "blue",
+        },
+        {
+          label: "Not Scheduled",
+          value: filtered.filter((l) => statusIncludes((l as any).nextMonthlyMeetingStatus, "not scheduled")).length,
+          tone: "red",
+        },
+      ];
+    }
+
+    if (kpiCategory === "coaching-booked") {
+      return [
+        {
+          label: "Completed",
+          value: filtered.filter((l) => statusIncludes((l as any).bookedMcmStatus, "completed")).length,
+          tone: "green",
+        },
+        {
+          label: "In Progress",
+          value: filtered.filter((l) => statusIncludes((l as any).bookedMcmStatus, "in progress")).length,
+          tone: "amber",
+        },
+        {
+          label: "Scheduled",
+          value: filtered.filter((l) =>
+            statusIncludes((l as any).bookedMcmStatus, "scheduled") &&
+            !statusIncludes((l as any).bookedMcmStatus, "not")
+          ).length,
+          tone: "blue",
+        },
+      ];
+    }
+
+    if (kpiCategory === "missed-session") {
+      return [
+        { label: "Called", value: filtered.filter((l) => Boolean((l as any).called)).length, tone: "green" },
+        { label: "Emailed", value: filtered.filter((l) => Boolean((l as any).emailed)).length, tone: "blue" },
+        { label: "Unresolved", value: filtered.filter((l) => !Boolean((l as any).isResolved)).length, tone: "red" },
+      ];
+    }
+
+    if (kpiCategory === "otj-behind") {
+      return [
+        { label: "At Risk", value: filtered.filter((l) => String((l as any).otjHoursStatus || "").toLowerCase() === "at risk").length, tone: "red" },
+        { label: "Need Attention", value: filtered.filter((l) => String((l as any).otjHoursStatus || "").toLowerCase() === "need attention").length, tone: "amber" },
+        {
+          label: "Avg behind",
+          value: filtered.length ? `${Math.round(filtered.reduce((sum, l) => sum + calcBehindPct(l), 0) / filtered.length)}%` : "0%",
+          tone: "purple",
+        },
+      ];
+    }
+
+    return [];
+  }, [filtered, kpiCategory, isPastMcrMonth]);
+
+  const summaryToneClass = (tone: string) => {
+    switch (tone) {
+      case "green":
+        return "bg-[#EDFAF3] text-[#1A7A4A] ring-[#C9F1DC]";
+      case "blue":
+        return "bg-[#EEF4FF] text-[#3B6FD4] ring-[#D9E6FF]";
+      case "red":
+        return "bg-[#FFF0F0] text-[#C0392B] ring-[#FFD6D6]";
+      case "amber":
+        return "bg-[#FFF8EE] text-[#B27715] ring-[#F2DEC0]";
+      case "purple":
+      default:
+        return "bg-[#FCF3FF] text-[#644D93] ring-[#E7DAF4]";
+    }
   };
 
   const colSpan =
@@ -467,12 +692,15 @@ export default function LearnerTable({
       : kpiCategory === "missed-session"
         ? 14
         : kpiCategory === "review-due"
-          ? 12
-          : kpiCategory === "coaching-due"
-            ? 9
+          ? 13
+        : kpiCategory === "coaching-due"
+            ? isPastMcrMonth ? 8 : 9
             : kpiCategory === "coaching-booked"
               ? 8
               : 7;
+  const headerCellClass = "sticky top-0 z-40 bg-[#FAF7FC] p-3 text-left font-medium text-muted-foreground";
+  const headerCellCenterClass = "sticky top-0 z-40 bg-[#FAF7FC] p-3 text-center font-medium text-muted-foreground";
+  const headerCellRightClass = "sticky top-0 z-40 bg-[#FAF7FC] p-3 text-right font-medium text-muted-foreground";
 
   return (
     <div className="animate-fade-in rounded-2xl border border-[#E8E8E8] bg-white p-3 sm:p-4 shadow-sm">
@@ -497,34 +725,10 @@ export default function LearnerTable({
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
-          {selected.size > 0 && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleEmailSelected(filtered.filter((l) => selected.has(l.id)))}
-                className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#644D93] hover:bg-[#FCF3FF] hover:text-[#644D93]"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                Email {selected.size}
-              </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => { setCallOutcome(""); setCallNotes(""); setShowCallModal(true); }}
-                className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#B27715] hover:bg-[#FFF8EE] hover:text-[#B27715]"
-              >
-                <Phone className="h-3.5 w-3.5" />
-                Call {selected.size}
-              </Button>
-            </>
-          )}
-
           <Button
             size="sm"
             variant="outline"
-            onClick={handleExport}
+            onClick={() => handleExport()}
             className="h-11 gap-1.5 rounded-xl border-[#E4E4E4] bg-[#FCF3FF] text-[#866CB6] hover:bg-[#F7ECFF] hover:text-[#644D93]"
           >
             <Download className="h-3.5 w-3.5" />
@@ -533,20 +737,79 @@ export default function LearnerTable({
         </div>
       </div>
 
+      {tableSummary.length > 0 && (
+        <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {tableSummary.map((item) => (
+            <div
+              key={item.label}
+              className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ${summaryToneClass(item.tone)}`}
+            >
+              <span className="font-medium">{item.label}</span>
+              <span className="text-base font-bold tabular-nums">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-[#E7DAF4] bg-[#FCF8FF] p-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="px-2 text-sm font-semibold text-[#644D93]">
+            {selected.size} selected
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleEmailSelected(selectedRows)}
+              className="h-9 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#644D93] hover:bg-[#FCF3FF] hover:text-[#644D93]"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Email
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setCallOutcome(""); setCallNotes(""); setShowCallModal(true); }}
+              className="h-9 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#B27715] hover:bg-[#FFF8EE] hover:text-[#B27715]"
+            >
+              <Phone className="h-3.5 w-3.5" />
+              Call
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleExport(selectedRows, "selected-learners")}
+              className="h-9 gap-1.5 rounded-xl border-[#E4E4E4] bg-white text-[#866CB6] hover:bg-[#F7ECFF] hover:text-[#644D93]"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export selected
+            </Button>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+              className="h-9 gap-1.5 rounded-xl text-[#808080] hover:bg-white hover:text-[#4C4C4C]"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-[#ECECEC] bg-white">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
-          <table className="min-w-[980px] w-full text-sm">
-            <thead className="sticky top-0 z-10">
+          <table className="min-w-[1120px] w-full text-sm">
+            <thead>
               <tr className="border-b border-[#F0F0F0] bg-[#FAF7FC]">
-                <th className="p-3 w-10">
-                  <Checkbox
-                    checked={selected.size === filtered.length && filtered.length > 0}
-                    onCheckedChange={toggleAll}
-                  />
-                </th>
+                <th className="sticky left-0 top-0 z-50 w-12 bg-[#FAF7FC] p-3" aria-label="Select learners" />
 
                 <th
-                  className="p-3 text-left font-medium text-muted-foreground cursor-pointer"
+                  className="sticky left-12 top-0 z-50 min-w-[180px] bg-[#FAF7FC] p-3 text-left font-medium text-muted-foreground cursor-pointer shadow-[6px_0_12px_-10px_rgba(60,40,90,0.55),1px_0_0_#E8DFF2]"
                   onClick={() => toggleSort("lastName")}
                 >
                   <span className="flex items-center gap-1">
@@ -554,37 +817,37 @@ export default function LearnerTable({
                   </span>
                 </th>
 
-                <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
+                <th className="sticky top-0 z-40 bg-[#FAF7FC] px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">
                   Learner Phone
                 </th>
 
                 {kpiCategory === "missed-session" && (
                   <>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Called</th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Emailed</th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Resolved</th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Note</th>
-                    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#8A8A8A]">Booked Meeting</th>
+                    <th className={headerCellClass}>Called</th>
+                    <th className={headerCellClass}>Emailed</th>
+                    <th className={headerCellClass}>Resolved</th>
+                    <th className={headerCellClass}>Note</th>
+                    <th className={headerCellClass}>Booked Meeting</th>
                   </>
                 )}
 
-                <th className="p-3 text-left font-medium text-muted-foreground">Organisation</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Programme</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Coach</th>
+                <th className={headerCellClass}>Organisation</th>
+                <th className={headerCellClass}>Programme</th>
+                <th className={headerCellClass}>Coach</th>
 
                 {kpiCategory === "otj-behind" && (
                   <>
                     <th
-                      className="p-3 text-right font-medium text-muted-foreground cursor-pointer"
+                      className={`${headerCellRightClass} cursor-pointer`}
                       onClick={() => toggleSort("otjBehind")}
                     >
                       <span className="flex items-center gap-1 justify-end">
                         Behind % <ArrowUpDown className="w-3 h-3" />
                       </span>
                     </th>
-                    <th className="p-3 text-right font-medium text-muted-foreground">Planned</th>
-                    <th className="p-3 text-right font-medium text-muted-foreground">Completed</th>
-                    <th className="p-3 text-right font-medium text-muted-foreground">
+                    <th className={headerCellRightClass}>Planned</th>
+                    <th className={headerCellRightClass}>Completed</th>
+                    <th className={headerCellRightClass}>
                       Required Hours to submit
                     </th>
                   </>
@@ -592,41 +855,55 @@ export default function LearnerTable({
 
                 {kpiCategory === "missed-session" && (
                   <>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Last Session</th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
+                    <th className={headerCellClass}>Last Session</th>
+                    <th className={headerCellClass}>Status</th>
                   </>
                 )}
 
                 {kpiCategory === "review-due" && (
                   <>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Last Progress Review</th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Next PR</th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">No. of overdue PR</th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Booked Date</th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Review Status</th>
+                    <th className={headerCellClass}>Last Progress Review</th>
+                    <th className={headerCellClass}>Why shown</th>
+                    <th className={headerCellClass}>Next PR</th>
+                    <th className={headerCellClass}>No. of overdue PR</th>
+                    <th className={headerCellClass}>Booked Date</th>
+                    <th className={headerCellClass}>Review Status</th>
                   </>
                 )}
 
                 {kpiCategory === "coaching-due" && (
                   <>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Due Date</th>
-                    <th className="p-3 text-center font-medium text-muted-foreground">Overdue MCMs</th>
+                    <th
+                      className={`${headerCellClass} cursor-pointer`}
+                      onClick={() => toggleSort("nextMonthlyMeetingDue")}
+                    >
+                      <span className="flex items-center gap-1">
+                        {isPastMcrMonth ? "Meeting Date" : "Required Date"} <ArrowUpDown className="w-3 h-3" />
+                      </span>
+                    </th>
+                    <th className={headerCellClass}>MCM Status</th>
+                    {!isPastMcrMonth && (
+                      <th className={headerCellCenterClass}>Overdue MCMs</th>
+                    )}
                   </>
                 )}
 
                 {kpiCategory === "coaching-booked" && (
                   <>
-                    <th className="p-3 text-left font-medium text-muted-foreground">Booked MCM Date</th>
-                    <th className="p-3 text-left font-medium text-muted-foreground">MCM Status</th>
+                    <th className={headerCellClass}>Booked MCM Date</th>
+                    <th className={headerCellClass}>MCM Status</th>
                   </>
                 )}
 
                 {kpiCategory === "review-booked" && (
-                  <th className="p-3 text-left font-medium text-muted-foreground">Booked PR Date</th>
+                  <>
+                    <th className={headerCellClass}>Booked PR Date</th>
+                    <th className={headerCellClass}>PR Status</th>
+                  </>
                 )}
 
-                {kpiCategory !== "coaching-booked" && kpiCategory !== "review-due" && kpiCategory !== "review-booked" && (
-                  <th className="p-3 text-left font-medium text-muted-foreground">
+                {kpiCategory !== "coaching-booked" && kpiCategory !== "coaching-due" && kpiCategory !== "review-due" && kpiCategory !== "review-booked" && (
+                  <th className={headerCellClass}>
                     {kpiCategory === "otj-behind" ? "Status" : "Priority"}
                   </th>
                 )}
@@ -642,10 +919,10 @@ export default function LearnerTable({
                   return (
                     <tr
                       key={getRowKey(l)}
-                      className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                      className="group cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
                       onClick={() => onSelectLearner(l)}
                     >
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="sticky left-0 z-10 w-12 bg-white p-3 transition-colors group-hover:bg-[#FCFCFC]" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selected.has(l.id)}
                           onCheckedChange={() => {
@@ -656,7 +933,7 @@ export default function LearnerTable({
                         />
                       </td>
 
-                      <td className="px-4 py-3.5 font-medium text-[#505050]">
+                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#505050] shadow-[6px_0_12px_-10px_rgba(60,40,90,0.45),1px_0_0_#EFEAF4] transition-colors group-hover:bg-[#FCFCFC]">
                         <div className="flex items-center gap-2">
                           {l.firstName} {l.lastName}
                           {(l as any).isResolved && (
@@ -779,17 +1056,13 @@ export default function LearnerTable({
                 }
 
                 if (kpiCategory === "coaching-booked") {
-                  const mcmStatus = String((l as any).bookedMcmStatus || "");
-                  const mcmStatusLower = mcmStatus.toLowerCase();
-                  const statusBg = mcmStatusLower.includes("not") ? "#F5F5F5" : "#F0FFF6";
-                  const statusColor = mcmStatusLower.includes("not") ? "#666666" : "#2E9E5B";
                   return (
                     <tr
                       key={getRowKey(l)}
-                      className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                      className="group cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
                       onClick={() => onSelectLearner(l)}
                     >
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="sticky left-0 z-10 w-12 bg-white p-3 transition-colors group-hover:bg-[#FCFCFC]" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selected.has(l.id)}
                           onCheckedChange={() => {
@@ -799,7 +1072,7 @@ export default function LearnerTable({
                           }}
                         />
                       </td>
-                      <td className="px-4 py-3.5 font-medium text-[#505050]">
+                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#505050] shadow-[6px_0_12px_-10px_rgba(60,40,90,0.45),1px_0_0_#EFEAF4] transition-colors group-hover:bg-[#FCFCFC]">
                         {l.firstName} {l.lastName}
                       </td>
                       <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
@@ -815,15 +1088,30 @@ export default function LearnerTable({
                           <span className="text-xs text-[#A0A0A0]">N/A</span>
                         )}
                       </td>
-                      <td className="p-3">
-                        {mcmStatus ? (
-                          <span
-                            className="text-[10px] font-medium px-2 py-0.5 rounded-full w-fit inline-block"
-                            style={{ background: statusBg, color: statusColor }}
-                          >
-                            {mcmStatus}
-                          </span>
-                        ) : null}
+                      <td className="p-3 min-w-[160px]">
+                        {(() => {
+                          const st = String((l as any).bookedMcmStatus || "").trim();
+                          if (!st) return <span className="text-xs text-[#A0A0A0]">—</span>;
+                          const stL = st.toLowerCase();
+                          const { bg, color } =
+                            stL.includes("completed")
+                              ? { bg: "#EDFAF3", color: "#1A7A4A" }
+                              : stL.includes("in progress")
+                              ? { bg: "#FFF8EE", color: "#b27715" }
+                              : stL.includes("awaiting signature")
+                              ? { bg: "#F5EEFF", color: "#644D93" }
+                              : stL.includes("scheduled") && !stL.includes("not")
+                              ? { bg: "#EEF4FF", color: "#3B6FD4" }
+                              : { bg: "#F5F5F5", color: "#666" };
+                          return (
+                            <span
+                              className="inline-flex rounded-xl px-3 py-1 text-[11px] font-medium"
+                              style={{ background: bg, color }}
+                            >
+                              {st}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );
@@ -833,10 +1121,10 @@ export default function LearnerTable({
                   return (
                     <tr
                       key={getRowKey(l)}
-                      className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                      className="group cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
                       onClick={() => onSelectLearner(l)}
                     >
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="sticky left-0 z-10 w-12 bg-white p-3 transition-colors group-hover:bg-[#FCFCFC]" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selected.has(l.id)}
                           onCheckedChange={() => {
@@ -846,7 +1134,7 @@ export default function LearnerTable({
                           }}
                         />
                       </td>
-                      <td className="px-4 py-3.5 font-medium text-[#505050]">
+                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#505050] shadow-[6px_0_12px_-10px_rgba(60,40,90,0.45),1px_0_0_#EFEAF4] transition-colors group-hover:bg-[#FCFCFC]">
                         {l.firstName} {l.lastName}
                       </td>
                       <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
@@ -862,6 +1150,31 @@ export default function LearnerTable({
                           <span className="text-xs text-[#A0A0A0]">N/A</span>
                         )}
                       </td>
+                      <td className="p-3 min-w-[160px]">
+                        {(() => {
+                          const st = cleanPrStatusLabel((l as any).bookedPrStatus);
+                          if (!st) return <span className="text-xs text-[#A0A0A0]">—</span>;
+                          const stL = st.toLowerCase();
+                          const { bg, color } =
+                            stL.includes("completed")
+                              ? { bg: "#EDFAF3", color: "#1A7A4A" }
+                              : stL.includes("in progress")
+                              ? { bg: "#FFF8EE", color: "#b27715" }
+                              : stL.includes("awaiting signature")
+                              ? { bg: "#F5EEFF", color: "#644D93" }
+                              : (stL.includes("scheduled") && !stL.includes("not"))
+                              ? { bg: "#EEF4FF", color: "#3B6FD4" }
+                              : { bg: "#F5F5F5", color: "#666" };
+                          return (
+                            <span
+                              className="inline-flex rounded-xl px-3 py-1 text-[11px] font-medium"
+                              style={{ background: bg, color }}
+                            >
+                              {st}
+                            </span>
+                          );
+                        })()}
+                      </td>
                     </tr>
                   );
                 }
@@ -869,10 +1182,10 @@ export default function LearnerTable({
                 return (
                   <tr
                     key={getRowKey(l)}
-                    className="cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
+                    className="group cursor-pointer border-b border-[#F4F4F4] transition-colors hover:bg-[#FCFCFC]"
                     onClick={() => onSelectLearner(l)}
                   >
-                    <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="sticky left-0 z-10 w-12 bg-white p-3 transition-colors group-hover:bg-[#FCFCFC]" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selected.has(l.id)}
                         onCheckedChange={() => {
@@ -883,7 +1196,7 @@ export default function LearnerTable({
                       />
                     </td>
 
-                    <td className="px-4 py-3.5 font-medium text-[#505050]">
+                    <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#505050] shadow-[6px_0_12px_-10px_rgba(60,40,90,0.45),1px_0_0_#EFEAF4] transition-colors group-hover:bg-[#FCFCFC]">
                       <div className="flex items-center gap-2">
                         {l.firstName} {l.lastName}
                         {(l as any).isResolved && (
@@ -926,10 +1239,18 @@ export default function LearnerTable({
                       <>
                         <td className="p-3 text-muted-foreground">{l.lastProgressReviewDate || "N/A"}</td>
 
-                        <td className="p-3 text-muted-foreground">
-                          {(l as any).nextPrDate
-                            ? `${(l as any).nextPrDate}${(l as any).nextPrState ? ` (${(l as any).nextPrState})` : ""}`
-                            : "N/A"}
+                        <td className="p-3 min-w-[130px]">
+                          <DateStatusCell value={(l as any).prMatchReason || "N/A"} />
+                        </td>
+
+                        <td className="p-3 min-w-[130px]">
+                          <DateStatusCell
+                            value={
+                              (l as any).nextPrDate
+                                ? `${(l as any).nextPrDate}${(l as any).nextPrState ? ` (${(l as any).nextPrState})` : ""}`
+                                : "N/A"
+                            }
+                          />
                         </td>
 
                         <td className="p-3 text-muted-foreground">
@@ -967,34 +1288,37 @@ export default function LearnerTable({
                     {kpiCategory === "coaching-due" && (
                       <>
                         <td className="px-4 py-3.5">
-                          <div className="flex flex-col gap-1">
-                            <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#B27715] pointer-events-none w-fit">
-                              {String((l as any).nextMonthlyMeetingDue || "Due")}
-                            </Badge>
-                            {(l as any).nextMonthlyMeetingStatus && (
-                              <span
-                                className="text-[10px] font-medium px-2 py-0.5 rounded-full w-fit"
-                                style={{
-                                  background:
-                                    String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not scheduled") || String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not started")
-                                      ? "#FFF0F0"
-                                      : String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("scheduled")
-                                        ? "#F0FFF6"
-                                        : "#F5F5F5",
-                                  color:
-                                    String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not scheduled") || String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not started")
-                                      ? "#C0392B"
-                                      : String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("scheduled")
-                                        ? "#2E9E5B"
-                                        : "#666666",
-                                }}
-                              >
-                                {String((l as any).nextMonthlyMeetingStatus)}
-                              </span>
-                            )}
-                          </div>
+                          <Badge className="rounded-full border-0 bg-[#FFF8EE] px-3 py-1 text-[11px] font-medium text-[#B27715] pointer-events-none w-fit">
+                            {String((l as any).nextMonthlyMeetingDue || (isPastMcrMonth ? "N/A" : "Required"))}
+                          </Badge>
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3">
+                          {(l as any).nextMonthlyMeetingStatus ? (
+                            <span
+                              className="text-[10px] font-medium px-2 py-0.5 rounded-full w-fit"
+                              style={{
+                                background:
+                                  String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not scheduled") || String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not started")
+                                    ? "#FFF0F0"
+                                    : String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("scheduled")
+                                      ? "#F0FFF6"
+                                      : "#F5F5F5",
+                                color:
+                                  String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not scheduled") || String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("not started")
+                                    ? "#C0392B"
+                                    : String((l as any).nextMonthlyMeetingStatus).toLowerCase().includes("scheduled")
+                                      ? "#2E9E5B"
+                                      : "#666666",
+                              }}
+                            >
+                              {String((l as any).nextMonthlyMeetingStatus)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[#A0A0A0]">N/A</span>
+                          )}
+                        </td>
+                        {!isPastMcrMonth && (
+                          <td className="p-3 text-center">
                           {(() => {
                             const count = Number((l as any).overdueMcmCount ?? 0);
                             if (count === 0) return <span className="text-xs text-[#A0A0A0]">0</span>;
@@ -1010,11 +1334,12 @@ export default function LearnerTable({
                               </span>
                             );
                           })()}
-                        </td>
+                          </td>
+                        )}
                       </>
                     )}
 
-                    {kpiCategory !== "review-due" && (
+                    {kpiCategory !== "review-due" && kpiCategory !== "coaching-due" && (
                       <td className="p-3">
                         {kpiCategory === "otj-behind" ? (
                           (() => {
@@ -1044,8 +1369,13 @@ export default function LearnerTable({
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={colSpan} className="p-8 text-center text-muted-foreground">
-                    No learners found
+                  <td colSpan={colSpan} className="p-10 text-center">
+                    <div className="mx-auto max-w-sm">
+                      <p className="text-sm font-semibold text-[#4C4C4C]">No learners found</p>
+                      <p className="mt-1 text-xs text-[#8C8C8C]">
+                        Try changing the period, coach, status, or search filters.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

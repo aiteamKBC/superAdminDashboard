@@ -5,15 +5,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Download, FileText, Calendar } from 'lucide-react';
 import { mockCoordinators, getCoordinatorPerformance } from '@/data/adminMockData';
+import { Coordinator, CoordinatorPerformance } from '@/types/admin';
 
 type ReportType = 'daily-activity' | 'weekly-summary' | 'risk-snapshot';
 
-export default function AdminReports() {
+interface AdminReportsProps {
+  coordinators?: Coordinator[];
+  performance?: CoordinatorPerformance[];
+}
+
+export default function AdminReports({ coordinators, performance }: AdminReportsProps) {
   const [reportType, setReportType] = useState<ReportType>('daily-activity');
   const [selectedCoordinator, setSelectedCoordinator] = useState('all');
 
-  const activeCoordinators = mockCoordinators.filter(c => c.active);
-  const perfData = useMemo(() => getCoordinatorPerformance('7days'), []);
+  const activeCoordinators = (coordinators?.length ? coordinators : mockCoordinators).filter(c => c.active);
+  const perfData = useMemo(() => performance?.length ? performance : getCoordinatorPerformance('7days'), [performance]);
 
   const exportCSV = (data: Record<string, any>[], filename: string) => {
     if (data.length === 0) return;
@@ -65,7 +71,7 @@ export default function AdminReports() {
     Coordinator: p.coordinatorName,
     'Missed Session': p.caseloadHealth.missedSession,
     'PR Due': p.caseloadHealth.reviewDue,
-    'MCM Due': p.caseloadHealth.coachingDue,
+    'MCM Required': p.caseloadHealth.coachingDue,
     'OTJ Behind': p.caseloadHealth.otjBehind,
     'High Priority': p.caseloadHealth.highPriority,
     'Not contacted 0-2d': p.ageingBuckets['0-2'],

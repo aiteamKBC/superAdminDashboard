@@ -50,12 +50,36 @@ function getKpiSoftBg(id: KpiCardData["id"]) {
   }
 }
 
+function getKpiSubtitle(id: KpiCardData["id"]) {
+  switch (id) {
+    case "missed-session":
+      return "Latest missed attendance signals";
+    case "review-due":
+      return "Learners matching PR rules";
+    case "review-booked":
+      return "Scheduled or completed PR activity";
+    case "coaching-due":
+      return "MCM activity required by period";
+    case "coaching-booked":
+      return "Scheduled or completed MCM activity";
+    case "otj-behind":
+      return "Learners behind OTJ target";
+    case "coach-marking-overdue":
+      return "Evidence awaiting marking";
+    default:
+      return "";
+  }
+}
+
 export default function KpiCard({ data, onClick, active }: KpiCardProps) {
   const accent = getKpiColor(data.id);
   const softBg = getKpiSoftBg(data.id);
+  const subtitle = getKpiSubtitle(data.id);
 
   const trendIcon =
-    data.trend > 0 ? (
+    data.trend == null ? (
+      <Minus className="h-3.5 w-3.5 text-[#8A8A8A]" />
+    ) : data.trend > 0 ? (
       <TrendingUp className="h-3.5 w-3.5" style={{ color: "#D9485F" }} />
     ) : data.trend < 0 ? (
       <TrendingDown className="h-3.5 w-3.5" style={{ color: "#2E9E5B" }} />
@@ -64,23 +88,30 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
     );
 
   const trendText =
-    data.trend > 0 ? `+${data.trend}` : data.trend < 0 ? `${data.trend}` : "0";
+    data.trend == null ? "Live" : data.trend > 0 ? `+${data.trend}` : data.trend < 0 ? `${data.trend}` : "No change";
 
   return (
     <Card
       onClick={onClick}
-      className="cursor-pointer rounded-2xl border-0 p-4 sm:p-5 transition-all duration-200 hover:-translate-y-0.5"
+      className="cursor-pointer rounded-2xl border-0 p-4 transition-all duration-200 hover:-translate-y-0.5"
       style={{
         backgroundColor: active ? softBg : "#FFFFFF",
         boxShadow: active
-          ? `0 0 0 1px ${accent}35, 0 10px 24px rgba(20,20,20,0.08)`
+          ? `0 0 0 1px ${accent}55, inset 4px 0 0 ${accent}, 0 10px 24px rgba(20,20,20,0.08)`
           : "0 4px 14px rgba(20,20,20,0.04)",
       }}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <p className="min-h-[40px] min-w-0 pr-2 text-sm font-medium leading-5 text-[#757575] line-clamp-2">
-          {data.title}
-        </p>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-h-[46px] min-w-0 pr-2">
+          <p className="text-sm font-semibold leading-5 text-[#686868] line-clamp-2">
+            {data.title}
+          </p>
+          {subtitle && (
+            <p className="mt-1 text-[11px] leading-4 text-[#9A9A9A] line-clamp-1">
+              {subtitle}
+            </p>
+          )}
+        </div>
 
         <div
           className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium"
@@ -94,8 +125,8 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
         </div>
       </div>
 
-      <div className="mb-4 flex items-end gap-2">
-        <span className="text-3xl font-bold leading-none text-[#2F2F2F]">
+      <div className="mb-3 flex items-end gap-2">
+        <span className="text-[28px] font-bold leading-none text-[#2F2F2F]">
           {data.count}
         </span>
         <span className="mb-1 text-sm text-[#969696]">/ {data.total}</span>
@@ -117,7 +148,7 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
         </span>
       </div>
 
-      <div className="mt-4 text-right">
+      <div className="mt-3 text-right">
         <span
           className="text-[11px] font-semibold"
           style={{ color: active ? accent : "#A78AD8" }}

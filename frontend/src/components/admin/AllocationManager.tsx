@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,11 +12,13 @@ import {
 import { Users, RefreshCw, UserCheck } from 'lucide-react';
 import { mockLearners } from '@/data/mockData';
 import { mockCoordinators, mockAssignments, getLastContactDate, getNextFollowUpDate } from '@/data/adminMockData';
+import { Coordinator, LearnerAssignment } from '@/types/admin';
+import { Learner } from '@/types/dashboard';
 
 const kpiLabels: Record<string, string> = {
   'missed-session': 'Missed Session',
   'review-due': 'PR Due',
-  'coaching-due': 'MCM Due',
+  'coaching-due': 'MCM Required',
   'otj-behind': 'OTJ Behind',
 };
 
@@ -26,11 +28,28 @@ const workloadColors: Record<string, string> = {
   heavy: 'bg-severity-critical-bg text-severity-critical-foreground',
 };
 
-export default function AllocationManager() {
+interface AllocationManagerProps {
+  learners?: Learner[];
+  coordinators?: Coordinator[];
+  initialAssignments?: LearnerAssignment[];
+  lastContactByLearner?: Record<string, string | null>;
+  nextFollowUpByLearner?: Record<string, string | null>;
+}
+
+export default function AllocationManager({
+  learners: liveLearners,
+  coordinators: liveCoordinators,
+  initialAssignments,
+  lastContactByLearner = {},
+  nextFollowUpByLearner = {},
+}: AllocationManagerProps) {
+  const learners = liveLearners?.length ? liveLearners : mockLearners;
+  const coordinators = liveCoordinators?.length ? liveCoordinators : mockCoordinators;
+  const assignmentRows = initialAssignments?.length ? initialAssignments : mockAssignments;
   const [selectedLearners, setSelectedLearners] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
-    mockAssignments.forEach(a => { map[a.learnerId] = a.coordinatorId; });
+    assignmentRows.forEach(a => { map[a.learnerId] = a.coordinatorId; });
     return map;
   });
   const [filterProgramme, setFilterProgramme] = useState('all');
@@ -42,12 +61,24 @@ export default function AllocationManager() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [showRebalanceConfirm, setShowRebalanceConfirm] = useState(false);
 
-  const programmes = useMemo(() => [...new Set(mockLearners.map(l => l.programme))], []);
-  const organisations = useMemo(() => [...new Set(mockLearners.map(l => l.organisation))], []);
-  const activeCoordinators = mockCoordinators.filter(c => c.active);
+  const handleCoordinatorCardClick = (coordId: string) => {
+    setFilterCoordinator((current) => (current === coordId ? 'all' : coordId));
+    setSelectedLearners(new Set());
+  };
+
+  useEffect(() => {
+    const map: Record<string, string> = {};
+    assignmentRows.forEach(a => { map[a.learnerId] = a.coordinatorId; });
+    setAssignments(map);
+    setSelectedLearners(new Set());
+  }, [assignmentRows]);
+
+  const programmes = useMemo(() => [...new Set(learners.map(l => l.programme).filter(Boolean))], [learners]);
+  const organisations = useMemo(() => [...new Set(learners.map(l => l.organisation).filter(Boolean))], [learners]);
+  const activeCoordinators = coordinators.filter(c => c.active);
 
   const filteredLearners = useMemo(() => {
-    return mockLearners.filter(l => {
+    return learners.filter(l => {
       if (filterProgramme !== 'all' && l.programme !== filterProgramme) return false;
       if (filterOrg !== 'all' && l.organisation !== filterOrg) return false;
       if (filterCoordinator !== 'all' && assignments[l.id] !== filterCoordinator) return false;
@@ -55,7 +86,7 @@ export default function AllocationManager() {
       if (filterRisk !== 'all' && !l.riskCategories.includes(filterRisk as any)) return false;
       return true;
     });
-  }, [filterProgramme, filterOrg, filterCoordinator, filterPriority, filterRisk, assignments]);
+  }, [learners, filterProgramme, filterOrg, filterCoordinator, filterPriority, filterRisk, assignments]);
 
   const toggleSelect = (id: string) => {
     setSelectedLearners(prev => {
@@ -90,7 +121,7 @@ export default function AllocationManager() {
   };
 
   const handleRebalance = () => {
-    const learnerIds = mockLearners.map(l => l.id);
+    const learnerIds = learners.map(l => l.id);
     const coords = activeCoordinators.map(c => c.id);
     setAssignments(() => {
       const next: Record<string, string> = {};
@@ -103,10 +134,10 @@ export default function AllocationManager() {
   // Compute caseload sizes from current assignments
   const caseloadSizes = useMemo(() => {
     const sizes: Record<string, number> = {};
-    mockCoordinators.forEach(c => { sizes[c.id] = 0; });
+    coordinators.forEach(c => { sizes[c.id] = 0; });
     Object.values(assignments).forEach(cId => { sizes[cId] = (sizes[cId] || 0) + 1; });
     return sizes;
-  }, [assignments]);
+  }, [assignments, coordinators]);
 
   return (
     <div className="space-y-6 mt-4">
@@ -117,8 +148,21 @@ export default function AllocationManager() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-            {mockCoordinators.map(coord => (
-              <div key={coord.id} className={`rounded-lg border p-3 space-y-2 ${!coord.active ? 'opacity-50' : ''}`}>
+            {coordinators.map(coord => {
+              const selectedCoord = filterCoordinator === coord.id;
+
+              return (
+              <button
+                key={coord.id}
+                type="button"
+                onClick={() => handleCoordinatorCardClick(coord.id)}
+                className={`rounded-lg border p-3 space-y-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm ${
+                  selectedCoord
+                    ? 'border-[#866CB6] bg-[#FCF3FF] shadow-[0_0_0_1px_rgba(134,108,182,0.18)]'
+                    : 'bg-white hover:border-[#D8C9EE]'
+                } ${!coord.active ? 'opacity-50' : ''}`}
+                aria-pressed={selectedCoord}
+              >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-foreground">{coord.name}</p>
                   <Badge variant={coord.active ? 'default' : 'secondary'} className="text-[10px]">{coord.active ? 'Active' : 'Inactive'}</Badge>
@@ -130,14 +174,27 @@ export default function AllocationManager() {
                     pct > 0 && <span key={key} className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{kpiLabels[key]}: {pct}%</span>
                   ))}
                 </div>
-              </div>
-            ))}
+              </button>
+            );
+            })}
           </div>
         </CardContent>
       </Card>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        {filterCoordinator !== 'all' && (
+          <div className="flex h-11 items-center gap-2 rounded-xl border border-[#E7DAF4] bg-[#FCF3FF] px-3 text-sm font-medium text-[#644D93]">
+            Showing {coordinators.find((c) => c.id === filterCoordinator)?.name || 'selected coordinator'}
+            <button
+              type="button"
+              onClick={() => setFilterCoordinator('all')}
+              className="rounded-full px-2 py-0.5 text-xs text-[#866CB6] hover:bg-white"
+            >
+              Clear
+            </button>
+          </div>
+        )}
         <Select value={filterProgramme} onValueChange={setFilterProgramme}>
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Programme" /></SelectTrigger>
           <SelectContent>
@@ -156,7 +213,7 @@ export default function AllocationManager() {
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Coordinator" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Coordinators</SelectItem>
-            {mockCoordinators.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            {coordinators.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
@@ -174,7 +231,7 @@ export default function AllocationManager() {
             <SelectItem value="all">All Risk Flags</SelectItem>
             <SelectItem value="missed-session">Missed Session</SelectItem>
             <SelectItem value="review-due">PR Due</SelectItem>
-            <SelectItem value="coaching-due">MCM Due</SelectItem>
+            <SelectItem value="coaching-due">MCM Required</SelectItem>
             <SelectItem value="otj-behind">OTJ Behind</SelectItem>
           </SelectContent>
         </Select>
@@ -256,15 +313,20 @@ export default function AllocationManager() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Select value={assignments[learner.id] || ''} onValueChange={v => handleSingleAssign(learner.id, v)}>
+                    <Select value={assignments[learner.id] || 'unassigned'} onValueChange={v => handleSingleAssign(learner.id, v)}>
                       <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
                         {activeCoordinators.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{getLastContactDate(learner.id)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{getNextFollowUpDate(learner.id)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {lastContactByLearner[learner.id] || getLastContactDate(learner.id) || "N/A"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {nextFollowUpByLearner[learner.id] || getNextFollowUpDate(learner.id) || "N/A"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

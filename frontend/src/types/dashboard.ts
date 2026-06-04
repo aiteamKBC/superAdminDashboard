@@ -61,7 +61,8 @@ export type KpiCategory =
   | "coaching-due"
   | "coaching-booked"
   | "otj-behind"
-  | "coach-marking-overdue";
+  | "coach-marking-overdue"
+  | "status-view";
   
 export interface EngagementAction {
   id: string;
@@ -105,7 +106,7 @@ export interface KpiCardData {
   count: number;
   total: number;
   percentage: number;
-  trend: number; // positive = worsening, negative = improving
+  trend: number | null; // positive = worsening, negative = improving, null = live/no baseline
   accentClass: string;
 }
 

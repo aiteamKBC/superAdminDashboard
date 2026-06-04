@@ -221,11 +221,16 @@ const matchesValue = (candidate: unknown, selected: string) => lower(candidate) 
 const anyMatch = (values: unknown[], selected: string) =>
   values.some((value) => matchesValue(value, selected));
 
+const EXCLUDED_COACHES = new Set(["marwa mahmoud", "omar ham"]);
+
 export function applyDashboardFilters(rows: UiCoach[], filters: DashboardFilters): UiCoach[] {
   const safeRows = Array.isArray(rows) ? rows : [];
 
   return safeRows.filter((row) => {
     const raw = (row as any)?.raw;
+
+    const coachNameLower = lower((row as any)?.name);
+    if (EXCLUDED_COACHES.has(coachNameLower)) return false;
 
     if (filters.coach !== ALL_COACHES) {
       const coachName = norm((row as any)?.name);

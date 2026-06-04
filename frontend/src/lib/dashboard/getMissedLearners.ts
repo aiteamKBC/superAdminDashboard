@@ -55,12 +55,14 @@ function endOfDay(date: Date) {
 
 function getExactWeekRange(weekIndex: 0 | 1 | 2 | 3) {
   const today = new Date();
+  const day = today.getDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
 
-  const end = endOfDay(new Date(today));
-  end.setDate(end.getDate() - weekIndex * 7);
+  const start = startOfDay(new Date(today));
+  start.setDate(today.getDate() - daysSinceMonday - weekIndex * 7);
 
-  const start = startOfDay(new Date(end));
-  start.setDate(start.getDate() - 6);
+  const end = endOfDay(new Date(start));
+  end.setDate(start.getDate() + 6);
 
   return { start, end };
 }

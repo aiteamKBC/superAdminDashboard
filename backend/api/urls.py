@@ -1,5 +1,9 @@
 from django.urls import path
 from .views import (
+    auth_login,
+    auth_logout,
+    auth_microsoft_login,
+    auth_session,
     test_kbc_attendance,
     learner_contact_actions,
     progress_review_summary,
@@ -17,6 +21,10 @@ from .views import (
 )
 
 urlpatterns = [
+    path("auth/session/", auth_session, name="auth-session"),
+    path("auth/login/", auth_login, name="auth-login"),
+    path("auth/microsoft-login/", auth_microsoft_login, name="auth-microsoft-login"),
+    path("auth/logout/", auth_logout, name="auth-logout"),
     path("test-kbc-attendance/", test_kbc_attendance),
     path("learner-contact-actions/", learner_contact_actions),
     path("progress-review-summary/", progress_review_summary, name="progress-review-summary"),

@@ -186,7 +186,7 @@ export function getKpiCards(learners: Learner[]): KpiCardData[] {
     },
     {
       id: 'coaching-due',
-      title: 'Monthly Coaching Due – Not Booked',
+      title: 'Monthly Coaching Required - Not Booked',
       count: coachingDue.length,
       total,
       percentage: total ? Math.round((coachingDue.length / total) * 100) : 0,

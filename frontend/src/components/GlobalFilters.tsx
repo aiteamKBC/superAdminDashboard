@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -7,7 +7,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { RefreshCcw, Settings2 } from "lucide-react";
 
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
@@ -15,7 +20,6 @@ import type { DashboardFilters } from "@/lib/filters/dashboardFilters";
 
 const ALL_PROGRAMMES = "All Programmes";
 const ALL_COACHES = "All Coaches";
-const ALL_RATINGS = "All Ratings";
 const ALL_ORGANIZATIONS = "All Organizations";
 const ALL_STATUSES = "All Statuses";
 
@@ -24,11 +28,15 @@ type Props = {
   loading: boolean;
   filters: DashboardFilters;
   onChange: (next: DashboardFilters) => void;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<void>;
   showPrMonthFilter?: boolean;
-  prMonthOffset?: number;
-  onPrMonthOffsetChange?: (v: number) => void;
-  getPrMonthLabel?: (offset: number) => string;
+  prMonthOffset?: number | "last12weeks";
+  onPrMonthOffsetChange?: (v: number | "last12weeks") => void;
+  getPrMonthLabel?: (offset: number | "last12weeks") => string;
+  showPrStatusFilter?: boolean;
+  prStatusFilter?: string;
+  onPrStatusFilterChange?: (v: string) => void;
+  prStatusOptions?: string[];
   showMcrMonthFilter?: boolean;
   mcrMonthOffset?: number;
   onMcrMonthOffsetChange?: (v: number) => void;
@@ -198,9 +206,13 @@ export default function GlobalFilters({
   onChange,
   onRefresh,
   showPrMonthFilter,
-  prMonthOffset = 0,
+  prMonthOffset = 0 as number | "last12weeks",
   onPrMonthOffsetChange,
   getPrMonthLabel,
+  showPrStatusFilter,
+  prStatusFilter = "All",
+  onPrStatusFilterChange,
+  prStatusOptions = ["All"],
   showMcrMonthFilter,
   mcrMonthOffset = 0,
   onMcrMonthOffsetChange,
@@ -209,10 +221,30 @@ export default function GlobalFilters({
   onAbsenceWeeksChange,
   getWeekLabel,
 }: Props) {
-  const lastRefreshed = useMemo(() => new Date(), []);
+  const [lastRefreshed, setLastRefreshed] = useState(() => new Date());
+  const [refreshing, setRefreshing] = useState(false);
+  const [thresholdsOpen, setThresholdsOpen] = useState(false);
   const safeRows = Array.isArray(rows) ? rows : [];
 
-  const EXCLUDED_COACHES = new Set(["unknown", "api do not delete", "phone 1", "phone 2", "ella steven", "elaf mansour"]);
+  useEffect(() => {
+    if (!loading && !refreshing) {
+      setLastRefreshed(new Date());
+    }
+  }, [loading, refreshing]);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || refreshing) return;
+
+    setRefreshing(true);
+    try {
+      await onRefresh();
+      setLastRefreshed(new Date());
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const EXCLUDED_COACHES = new Set(["unknown", "api do not delete", "phone 1", "phone 2", "ella steven", "elaf mansour", "marwa mahmoud", "omar ham"]);
 
   const coachOptions = useMemo(() => {
     const names = safeRows
@@ -238,11 +270,6 @@ export default function GlobalFilters({
   }, [safeRows]);
 
 
-
-  const ratingOptions = useMemo(() => {
-    const ratings = safeRows.map((r) => String(r.rating || "Unknown").trim() || "Unknown");
-    return withAllFirst(ALL_RATINGS, ratings);
-  }, [safeRows]);
 
   const organisationOptions = useMemo(() => {
     const all: string[] = [];
@@ -272,7 +299,11 @@ export default function GlobalFilters({
     return withAllFirst(ALL_STATUSES, all);
   }, [safeRows]);
 
-  const riskOptions = ["All", "On track", "At risk", "Overdue", "Unknown"];
+  const hasActivePrimaryFilters =
+    filters.programme !== ALL_PROGRAMMES ||
+    filters.coach !== ALL_COACHES ||
+    filters.organisation !== ALL_ORGANIZATIONS ||
+    filters.status !== ALL_STATUSES;
 
   return (
     <div className="border-b bg-card px-6 py-4">
@@ -294,13 +325,19 @@ export default function GlobalFilters({
             size="sm"
             variant="ghost"
             className="gap-1.5 text-muted-foreground"
-            onClick={() => onRefresh?.()}
+            disabled={loading || refreshing}
+            onClick={handleRefresh}
           >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            Refresh
+            <RefreshCcw className={`h-3.5 w-3.5 ${loading || refreshing ? "animate-spin" : ""}`} />
+            {loading || refreshing ? "Refreshing" : "Refresh"}
           </Button>
 
-          <Button size="sm" variant="outline" className="gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => setThresholdsOpen(true)}
+          >
             <Settings2 className="h-3.5 w-3.5" />
             Thresholds
           </Button>
@@ -341,38 +378,6 @@ export default function GlobalFilters({
         </Select>
 
         <Select
-          value={filters.rating}
-          onValueChange={(v) => onChange({ ...filters, rating: v })}
-        >
-          <SelectTrigger className="h-9 w-[160px] text-sm">
-            <SelectValue placeholder={loading ? "Loading..." : undefined} />
-          </SelectTrigger>
-          <SelectContent>
-            {ratingOptions.map((rating) => (
-              <SelectItem key={rating} value={rating}>
-                {rating}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.risk}
-          onValueChange={(v) => onChange({ ...filters, risk: v })}
-        >
-          <SelectTrigger className="h-9 w-[150px] text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {riskOptions.map((risk) => (
-              <SelectItem key={risk} value={risk}>
-                {risk}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
           value={filters.organisation}
           onValueChange={(v) => onChange({ ...filters, organisation: v })}
         >
@@ -404,35 +409,60 @@ export default function GlobalFilters({
           </SelectContent>
         </Select>
 
-        <Badge variant="secondary" className="text-xs">
-          Last 30 days
-        </Badge>
-
         {showPrMonthFilter && onPrMonthOffsetChange && getPrMonthLabel && (
           <div
             className="flex items-center gap-2 rounded-xl px-3 py-1"
             style={{ background: "#FCF3FF", border: "1.5px solid #866cb6" }}
           >
             <span className="text-xs font-semibold" style={{ color: "#644d93" }}>
-              PR Month
+              PR Quarter
             </span>
             <Select
               value={String(prMonthOffset)}
-              onValueChange={(v) => onPrMonthOffsetChange(Number(v))}
+              onValueChange={(v) =>
+                onPrMonthOffsetChange(v === "last12weeks" ? "last12weeks" : Number(v))
+              }
             >
               <SelectTrigger
-                className="h-7 w-[170px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
+                className="h-7 w-[165px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
                 style={{ color: "#442F73", fontWeight: 600 }}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">This Month — {getPrMonthLabel(0)}</SelectItem>
+                <SelectItem value="last12weeks">Last 12 Weeks</SelectItem>
+                <SelectItem value="-2">{getPrMonthLabel(-2)}</SelectItem>
+                <SelectItem value="-1">{getPrMonthLabel(-1)}</SelectItem>
+                <SelectItem value="0">Current — {getPrMonthLabel(0)}</SelectItem>
                 <SelectItem value="1">{getPrMonthLabel(1)}</SelectItem>
                 <SelectItem value="2">{getPrMonthLabel(2)}</SelectItem>
-                <SelectItem value="3">{getPrMonthLabel(3)}</SelectItem>
-                <SelectItem value="4">{getPrMonthLabel(4)}</SelectItem>
-                <SelectItem value="5">{getPrMonthLabel(5)}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {showPrStatusFilter && onPrStatusFilterChange && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-3 py-1"
+            style={{ background: "#FCF3FF", border: "1.5px solid #866cb6" }}
+          >
+            <span className="text-xs font-semibold" style={{ color: "#644d93" }}>
+              PR Status
+            </span>
+            <Select
+              value={prStatusFilter}
+              onValueChange={(v) => onPrStatusFilterChange(v)}
+            >
+              <SelectTrigger
+                className="h-7 w-[140px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
+                style={{ color: "#442F73", fontWeight: 600 }}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {prStatusOptions.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -475,7 +505,7 @@ export default function GlobalFilters({
             style={{ background: "#FCF3FF", border: "1.5px solid #644d93" }}
           >
             <span className="text-xs font-semibold" style={{ color: "#442F73" }}>
-              MCM Month
+              MCM Period
             </span>
             <Select
               value={String(mcrMonthOffset)}
@@ -488,6 +518,7 @@ export default function GlobalFilters({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="-1">Last 30 days</SelectItem>
                 <SelectItem value="0">This Month — {getMonthLabel(0)}</SelectItem>
                 <SelectItem value="1">{getMonthLabel(1)}</SelectItem>
                 <SelectItem value="2">{getMonthLabel(2)}</SelectItem>
@@ -498,7 +529,64 @@ export default function GlobalFilters({
             </Select>
           </div>
         )}
+
+        {hasActivePrimaryFilters && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-9 rounded-xl px-3 text-xs font-semibold text-[#866CB6] hover:bg-[#FCF3FF] hover:text-[#644D93]"
+            onClick={() =>
+              onChange({
+                ...filters,
+                programme: ALL_PROGRAMMES,
+                coach: ALL_COACHES,
+                organisation: ALL_ORGANIZATIONS,
+                status: ALL_STATUSES,
+              })
+            }
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
+
+      <Dialog open={thresholdsOpen} onOpenChange={setThresholdsOpen}>
+        <DialogContent className="max-w-xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold text-[#3F3F46]">
+              Dashboard Thresholds
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-[#EEE7F7] bg-[#FCF8FF] p-3">
+              <p className="font-semibold text-[#442F73]">Progress Review</p>
+              <ul className="mt-2 space-y-1 text-xs text-[#686868]">
+                <li>Review required is based on the selected PR period.</li>
+                <li>Last 12 Weeks excludes Personal Support Plan and Gateway Review.</li>
+                <li>Scheduled PR meetings today or later are excluded from Last 12 Weeks.</li>
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-[#EEE7F7] bg-white p-3">
+              <p className="font-semibold text-[#442F73]">Monthly Coaching Meeting</p>
+              <ul className="mt-2 space-y-1 text-xs text-[#686868]">
+                <li>Last 30 days includes today.</li>
+                <li>Required counts learners with matching MCM activity in the selected period.</li>
+                <li>Scheduled counts scheduled or completed MCM activity by period.</li>
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-[#F2DEC0] bg-[#FFF8EE] p-3">
+              <p className="font-semibold text-[#80560F]">Attendance and OTJ</p>
+              <ul className="mt-2 space-y-1 text-xs text-[#686868]">
+                <li>Missed attendance uses the selected absence window.</li>
+                <li>OTJ Behind uses learners flagged as at risk in the OTJ source data.</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

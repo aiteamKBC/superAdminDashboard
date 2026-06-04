@@ -5,9 +5,127 @@ import json
 import requests
 from django.http import JsonResponse
 from django.db import connection, connections
+from django.contrib.auth import authenticate, get_user_model, login as django_login, logout as django_logout
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, date
 from django.conf import settings
+
+
+def _json_body(request):
+    try:
+        return json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return {}
+
+
+def _auth_user_payload(user):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "fullName": (user.get_full_name() or user.username or user.email).strip(),
+        "isStaff": user.is_staff,
+        "isSuperuser": user.is_superuser,
+    }
+
+
+def _find_auth_user_by_identifier(identifier):
+    User = get_user_model()
+    value = str(identifier or "").strip()
+    if not value:
+        return None
+
+    user = User.objects.filter(email__iexact=value).first()
+    if user:
+        return user
+
+    return User.objects.filter(username__iexact=value).first()
+
+
+def auth_session(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"authenticated": False, "user": None})
+
+    return JsonResponse({
+        "authenticated": True,
+        "user": _auth_user_payload(request.user),
+    })
+
+
+@csrf_exempt
+def auth_login(request):
+    if request.method != "POST":
+        return JsonResponse({"detail": "POST required"}, status=405)
+
+    body = _json_body(request)
+    identifier = str(body.get("identifier") or body.get("email") or body.get("username") or "").strip()
+    password = str(body.get("password") or "")
+
+    if not identifier or not password:
+        return JsonResponse({"detail": "Username/email and password are required."}, status=400)
+
+    user_record = _find_auth_user_by_identifier(identifier)
+    if not user_record:
+        return JsonResponse({"detail": "No active KBC account was found for this email or username."}, status=401)
+
+    user = authenticate(request, username=user_record.username, password=password)
+    if not user:
+        return JsonResponse({"detail": "Invalid username/email or password."}, status=401)
+
+    if not user.is_active:
+        return JsonResponse({"detail": "This KBC account is inactive."}, status=403)
+
+    django_login(request, user)
+    return JsonResponse({"authenticated": True, "user": _auth_user_payload(user)})
+
+
+@csrf_exempt
+def auth_microsoft_login(request):
+    if request.method != "POST":
+        return JsonResponse({"detail": "POST required"}, status=405)
+
+    body = _json_body(request)
+    access_token = str(body.get("accessToken") or "").strip()
+    if not access_token:
+        return JsonResponse({"detail": "Microsoft access token is required."}, status=400)
+
+    try:
+        graph_res = requests.get(
+            "https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=15,
+        )
+    except Exception as exc:
+        return JsonResponse({"detail": f"Could not contact Microsoft Graph: {exc}"}, status=502)
+
+    if graph_res.status_code >= 400:
+        return JsonResponse({"detail": "Microsoft sign-in could not be verified."}, status=401)
+
+    profile = graph_res.json()
+    email = str(profile.get("mail") or profile.get("userPrincipalName") or "").strip()
+    if not email:
+        return JsonResponse({"detail": "Microsoft account did not return an email address."}, status=401)
+
+    user = _find_auth_user_by_identifier(email)
+    if not user:
+        return JsonResponse({"detail": "This Microsoft email is not registered in KBC auth_user."}, status=403)
+
+    if not user.is_active:
+        return JsonResponse({"detail": "This KBC account is inactive."}, status=403)
+
+    django_login(request, user)
+    return JsonResponse({"authenticated": True, "user": _auth_user_payload(user)})
+
+
+@csrf_exempt
+def auth_logout(request):
+    if request.method != "POST":
+        return JsonResponse({"detail": "POST required"}, status=405)
+
+    django_logout(request)
+    return JsonResponse({"authenticated": False, "user": None})
 
 # Next PR 
 def split_next_review_status(value):
@@ -74,6 +192,14 @@ def is_completed_status(status_value):
     return "completed" in s
 
 
+def is_countable_progress_review_slot(planned_value):
+    planned_text = str(planned_value or "").strip().lower()
+    if "personal support plan" in planned_text or "gateway review" in planned_text:
+        return False
+
+    return True
+
+
 def progress_review_summary(request):
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
@@ -114,17 +240,33 @@ def progress_review_summary(request):
         overdue_count = 0
         next_due_date_from_planned = None
         next_due_state_from_planned = ""
+        all_planned_dates = []
+        last_progress_review = row.get("Last Progress Review") or ""
+        excluded_planned_dates = set()
+        countable_planned_dates = set()
 
         for i in range(1, 17):
             planned_key = f"Review Planned Date{i}"
             status_key = f"Review Status{i}"
 
-            planned_date = parse_date_safe(row.get(planned_key))
+            planned_value = row.get(planned_key)
+            planned_date = parse_date_safe(planned_value)
             planned_status_raw = str(row.get(status_key) or "").strip()
             completed = is_completed_status(planned_status_raw)
 
             if not planned_date:
                 continue
+            if not is_countable_progress_review_slot(planned_value):
+                excluded_planned_dates.add(planned_date)
+                continue
+            countable_planned_dates.add(planned_date)
+
+            all_planned_dates.append({
+                "date": planned_date.strftime("%Y-%m-%d"),
+                "status": planned_status_raw,
+                "completed": completed,
+                "isPast": planned_date < today,
+            })
 
             if planned_date < today and not completed:
                 overdue_count += 1
@@ -144,10 +286,18 @@ def progress_review_summary(request):
             review_status = "Normal"
 
         next_review_raw = row.get("Next Review (Status)") or ""
-        next_pr_date, next_pr_state = split_next_review_status(next_review_raw)
+        next_pr_date_raw, next_pr_state = split_next_review_status(next_review_raw)
 
-        if not next_pr_date and next_due_date_from_planned:
+        # Normalize nextPrDate to YYYY-MM-DD regardless of source format
+        parsed_field_date = parse_date_safe(next_pr_date_raw) if next_pr_date_raw else None
+        if parsed_field_date and parsed_field_date not in excluded_planned_dates and (
+            not countable_planned_dates or parsed_field_date in countable_planned_dates
+        ):
+            next_pr_date = parsed_field_date.strftime("%Y-%m-%d")
+        elif next_due_date_from_planned:
             next_pr_date = next_due_date_from_planned.strftime("%Y-%m-%d")
+        else:
+            next_pr_date = ""
 
         if not next_pr_state and next_due_state_from_planned:
             next_pr_state = next_due_state_from_planned
@@ -158,12 +308,13 @@ def progress_review_summary(request):
             "email": (row.get("Email") or "").strip().lower(),
             "group": row.get("Group") or "",
             "caseOwner": row.get("CaseOwner") or "",
-            "lastProgressReview": row.get("Last Progress Review") or "",
+            "lastProgressReview": last_progress_review,
             "nextReviewStatus": next_review_raw,
             "nextPrDate": next_pr_date,
             "nextPrState": next_pr_state,
             "overduePrCount": overdue_count,
             "reviewStatus": review_status,
+            "plannedDates": all_planned_dates,
         })
 
     return JsonResponse(results, safe=False)
@@ -422,11 +573,16 @@ def employer_tables_debug(request):
     )
 
 def progress_review_booked_summary(request):
+    planned_cols = ", ".join(
+        f'"Review Planned Date{i}", "Review Status{i}"' for i in range(1, 17)
+    )
     with connections["aptem"].cursor() as cursor:
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 "ID", "FullName", "Email", "CaseOwner", "case_owner_id",
-                "Next Review (Status)"
+                "Last Progress Review",
+                "Next Review (Status)",
+                {planned_cols}
             FROM public.progress_review
             WHERE LOWER(COALESCE("Status", '')) = 'active'
         """)
@@ -435,15 +591,44 @@ def progress_review_booked_summary(request):
 
     results = []
     for row in raw_rows:
+        # Must have a currently scheduled next review
         next_review_raw = row.get("Next Review (Status)") or ""
         date_part, state_part = split_next_review_status(next_review_raw)
-
         if state_part.strip().lower() != "scheduled":
             continue
-
-        parsed_date = parse_date_safe(date_part)
-        if not parsed_date:
+        parsed_next = parse_date_safe(date_part)
+        if not parsed_next:
             continue
+
+        # Collect all 16 planned review slots for quarter filtering
+        all_dates = []
+        last_progress_review = row.get("Last Progress Review") or ""
+        excluded_planned_dates = set()
+        for i in range(1, 17):
+            planned_value = row.get(f"Review Planned Date{i}")
+            planned_date = parse_date_safe(planned_value)
+            status_raw = str(row.get(f"Review Status{i}") or "").strip()
+            if not planned_date:
+                continue
+            if not is_countable_progress_review_slot(planned_value):
+                excluded_planned_dates.add(planned_date)
+                continue
+            all_dates.append({
+                "date": planned_date.strftime("%Y-%m-%d"),
+                "status": status_raw,
+                "completed": is_completed_status(status_raw),
+            })
+
+        # Ensure the next scheduled date is present
+        next_date_str = parsed_next.strftime("%Y-%m-%d")
+        if parsed_next in excluded_planned_dates:
+            continue
+        if not any(d["date"] == next_date_str for d in all_dates):
+            all_dates.append({
+                "date": next_date_str,
+                "status": state_part,
+                "completed": False,
+            })
 
         results.append({
             "id": row.get("ID"),
@@ -451,11 +636,8 @@ def progress_review_booked_summary(request):
             "email": (row.get("Email") or "").strip().lower(),
             "caseOwner": row.get("CaseOwner") or "",
             "caseOwnerId": row.get("case_owner_id"),
-            "bookedDates": [{
-                "date": parsed_date.strftime("%Y-%m-%d"),
-                "status": state_part,
-                "completed": False,
-            }],
+            "bookedDates": all_dates,
+            "nextBookedDate": next_date_str,
         })
 
     return JsonResponse(results, safe=False)
