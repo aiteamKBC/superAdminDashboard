@@ -22,6 +22,7 @@ const ALL_PROGRAMMES = "All Programmes";
 const ALL_COACHES = "All Coaches";
 const ALL_ORGANIZATIONS = "All Organizations";
 const ALL_STATUSES = "All Statuses";
+const DEFAULT_STATUS = "Active";
 
 type Props = {
   rows: UiCoach[];
@@ -29,6 +30,7 @@ type Props = {
   filters: DashboardFilters;
   onChange: (next: DashboardFilters) => void;
   onRefresh?: () => void | Promise<void>;
+  learnerStatusOptions?: string[];
   showPrMonthFilter?: boolean;
   prMonthOffset?: number | "last12weeks";
   onPrMonthOffsetChange?: (v: number | "last12weeks") => void;
@@ -205,6 +207,7 @@ export default function GlobalFilters({
   filters,
   onChange,
   onRefresh,
+  learnerStatusOptions = [],
   showPrMonthFilter,
   prMonthOffset = 0 as number | "last12weeks",
   onPrMonthOffsetChange,
@@ -288,32 +291,44 @@ export default function GlobalFilters({
   const statusOptions = useMemo(() => {
     const all: string[] = [];
 
-    safeRows.forEach((row) => {
-      const learnersJsonStudents = getLearnersJsonStudentsFromRaw(row.raw);
-      learnersJsonStudents.forEach((student: any) => {
-        const status = pickStatus(student);
-        if (status) all.push(status);
+    if (learnerStatusOptions.length) {
+      all.push(...learnerStatusOptions);
+    } else {
+      safeRows.forEach((row) => {
+        const learnersJsonStudents = getLearnersJsonStudentsFromRaw(row.raw);
+        learnersJsonStudents.forEach((student: any) => {
+          const status = pickStatus(student);
+          if (status) all.push(status);
+        });
       });
-    });
+    }
 
     return withAllFirst(ALL_STATUSES, all);
-  }, [safeRows]);
+  }, [safeRows, learnerStatusOptions]);
 
   const hasActivePrimaryFilters =
     filters.programme !== ALL_PROGRAMMES ||
     filters.coach !== ALL_COACHES ||
     filters.organisation !== ALL_ORGANIZATIONS ||
-    filters.status !== ALL_STATUSES;
+    filters.status !== DEFAULT_STATUS;
 
   return (
-    <div className="border-b bg-card px-6 py-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">
-          Engagement Coordinator , Learner Risk & Actions
-        </h2>
+    <div className="border-b border-[#DDE7F0] bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
+      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase text-[#2D73D5]">
+            Engagment Dashboard
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-normal text-[#14264A]">
+            Learner Risk & Actions
+          </h2>
+          <p className="mt-1 text-sm text-[#71849A]">
+            Filter the live cohort, then open a KPI to see the learners behind each signal.
+          </p>
+        </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-[#DDE7F0] bg-[#F8FBFE] px-3 py-1.5 text-xs font-semibold text-[#5F748B]">
             Last refreshed:{" "}
             {lastRefreshed.toLocaleTimeString([], {
               hour: "2-digit",
@@ -323,8 +338,8 @@ export default function GlobalFilters({
 
           <Button
             size="sm"
-            variant="ghost"
-            className="gap-1.5 text-muted-foreground"
+            variant="outline"
+            className="h-9 gap-1.5 rounded-lg border-[#BFD4E7] bg-white text-[#24486D] hover:bg-[#EEF7FF] hover:text-[#14264A]"
             disabled={loading || refreshing}
             onClick={handleRefresh}
           >
@@ -335,7 +350,7 @@ export default function GlobalFilters({
           <Button
             size="sm"
             variant="outline"
-            className="gap-1.5"
+            className="h-9 gap-1.5 rounded-lg border-[#BFD4E7] bg-[#EEF7FF] text-[#1E6ACB] hover:bg-[#DFF0FF] hover:text-[#184D91]"
             onClick={() => setThresholdsOpen(true)}
           >
             <Settings2 className="h-3.5 w-3.5" />
@@ -344,12 +359,12 @@ export default function GlobalFilters({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <Select
           value={filters.programme}
           onValueChange={(v) => onChange({ ...filters, programme: v })}
         >
-          <SelectTrigger className="h-9 w-[220px] text-sm">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[240px]">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
@@ -365,7 +380,7 @@ export default function GlobalFilters({
           value={filters.coach}
           onValueChange={(v) => onChange({ ...filters, coach: v })}
         >
-          <SelectTrigger className="h-9 w-[190px] text-sm">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[200px]">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
@@ -381,7 +396,7 @@ export default function GlobalFilters({
           value={filters.organisation}
           onValueChange={(v) => onChange({ ...filters, organisation: v })}
         >
-          <SelectTrigger className="h-9 w-[190px] text-sm">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[210px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -397,7 +412,7 @@ export default function GlobalFilters({
           value={filters.status}
           onValueChange={(v) => onChange({ ...filters, status: v })}
         >
-          <SelectTrigger className="h-9 w-[170px] text-sm">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -410,11 +425,8 @@ export default function GlobalFilters({
         </Select>
 
         {showPrMonthFilter && onPrMonthOffsetChange && getPrMonthLabel && (
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-1"
-            style={{ background: "#FCF3FF", border: "1.5px solid #866cb6" }}
-          >
-            <span className="text-xs font-semibold" style={{ color: "#644d93" }}>
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] px-3">
+            <span className="text-xs font-bold text-[#184D91]">
               PR Quarter
             </span>
             <Select
@@ -423,17 +435,14 @@ export default function GlobalFilters({
                 onPrMonthOffsetChange(v === "last12weeks" ? "last12weeks" : Number(v))
               }
             >
-              <SelectTrigger
-                className="h-7 w-[165px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
-                style={{ color: "#442F73", fontWeight: 600 }}
-              >
+              <SelectTrigger className="h-7 w-[165px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="last12weeks">Last 12 Weeks</SelectItem>
                 <SelectItem value="-2">{getPrMonthLabel(-2)}</SelectItem>
                 <SelectItem value="-1">{getPrMonthLabel(-1)}</SelectItem>
-                <SelectItem value="0">Current — {getPrMonthLabel(0)}</SelectItem>
+                <SelectItem value="0">Current - {getPrMonthLabel(0)}</SelectItem>
                 <SelectItem value="1">{getPrMonthLabel(1)}</SelectItem>
                 <SelectItem value="2">{getPrMonthLabel(2)}</SelectItem>
               </SelectContent>
@@ -442,21 +451,15 @@ export default function GlobalFilters({
         )}
 
         {showPrStatusFilter && onPrStatusFilterChange && (
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-1"
-            style={{ background: "#FCF3FF", border: "1.5px solid #866cb6" }}
-          >
-            <span className="text-xs font-semibold" style={{ color: "#644d93" }}>
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] px-3">
+            <span className="text-xs font-bold text-[#184D91]">
               PR Status
             </span>
             <Select
               value={prStatusFilter}
               onValueChange={(v) => onPrStatusFilterChange(v)}
             >
-              <SelectTrigger
-                className="h-7 w-[140px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
-                style={{ color: "#442F73", fontWeight: 600 }}
-              >
+              <SelectTrigger className="h-7 w-[140px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -469,11 +472,8 @@ export default function GlobalFilters({
         )}
 
         {showAbsenceFilter && onAbsenceWeeksChange && getWeekLabel && (
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-1"
-            style={{ background: "#F9F4EC", border: "1.5px solid #b27715" }}
-          >
-            <span className="text-xs font-semibold" style={{ color: "#80560F" }}>
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#F1D79D] bg-[#FFF8E8] px-3">
+            <span className="text-xs font-bold text-[#94610A]">
               Absence Window
             </span>
             <Select
@@ -482,44 +482,35 @@ export default function GlobalFilters({
                 onAbsenceWeeksChange(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3))
               }
             >
-              <SelectTrigger
-                className="h-7 w-[210px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
-                style={{ color: "#64430C", fontWeight: 600 }}
-              >
+              <SelectTrigger className="h-7 w-[210px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="0">This week , {getWeekLabel(0)}</SelectItem>
-                <SelectItem value="1">Previous week , {getWeekLabel(1)}</SelectItem>
-                <SelectItem value="2">2 weeks ago , {getWeekLabel(2)}</SelectItem>
-                <SelectItem value="3">3 weeks ago , {getWeekLabel(3)}</SelectItem>
+                <SelectItem value="0">This week - {getWeekLabel(0)}</SelectItem>
+                <SelectItem value="1">Previous week - {getWeekLabel(1)}</SelectItem>
+                <SelectItem value="2">2 weeks ago - {getWeekLabel(2)}</SelectItem>
+                <SelectItem value="3">3 weeks ago - {getWeekLabel(3)}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
 
         {showMcrMonthFilter && onMcrMonthOffsetChange && (
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-1"
-            style={{ background: "#FCF3FF", border: "1.5px solid #644d93" }}
-          >
-            <span className="text-xs font-semibold" style={{ color: "#442F73" }}>
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] px-3">
+            <span className="text-xs font-bold text-[#184D91]">
               MCM Period
             </span>
             <Select
               value={String(mcrMonthOffset)}
               onValueChange={(v) => onMcrMonthOffsetChange(Number(v))}
             >
-              <SelectTrigger
-                className="h-7 w-[170px] text-xs border-0 bg-transparent shadow-none p-0 focus:ring-0"
-                style={{ color: "#442F73", fontWeight: 600 }}
-              >
+              <SelectTrigger className="h-7 w-[170px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="-1">Last 30 days</SelectItem>
-                <SelectItem value="0">This Month — {getMonthLabel(0)}</SelectItem>
+                <SelectItem value="0">This Month - {getMonthLabel(0)}</SelectItem>
                 <SelectItem value="1">{getMonthLabel(1)}</SelectItem>
                 <SelectItem value="2">{getMonthLabel(2)}</SelectItem>
                 <SelectItem value="3">{getMonthLabel(3)}</SelectItem>
@@ -534,14 +525,14 @@ export default function GlobalFilters({
           <Button
             size="sm"
             variant="ghost"
-            className="h-9 rounded-xl px-3 text-xs font-semibold text-[#866CB6] hover:bg-[#FCF3FF] hover:text-[#644D93]"
+            className="h-10 rounded-lg px-3 text-xs font-bold text-[#1E6ACB] hover:bg-[#EEF7FF] hover:text-[#184D91]"
             onClick={() =>
               onChange({
                 ...filters,
                 programme: ALL_PROGRAMMES,
                 coach: ALL_COACHES,
                 organisation: ALL_ORGANIZATIONS,
-                status: ALL_STATUSES,
+                status: DEFAULT_STATUS,
               })
             }
           >
@@ -551,35 +542,35 @@ export default function GlobalFilters({
       </div>
 
       <Dialog open={thresholdsOpen} onOpenChange={setThresholdsOpen}>
-        <DialogContent className="max-w-xl rounded-2xl">
+        <DialogContent className="max-w-xl rounded-lg border-[#DDE7F0]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#3F3F46]">
+            <DialogTitle className="text-base font-semibold text-[#14264A]">
               Dashboard Thresholds
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
-            <div className="rounded-xl border border-[#EEE7F7] bg-[#FCF8FF] p-3">
-              <p className="font-semibold text-[#442F73]">Progress Review</p>
-              <ul className="mt-2 space-y-1 text-xs text-[#686868]">
+            <div className="rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] p-3">
+              <p className="font-semibold text-[#184D91]">Progress Review</p>
+              <ul className="mt-2 space-y-1 text-xs text-[#5F748B]">
                 <li>Review required is based on the selected PR period.</li>
                 <li>Last 12 Weeks excludes Personal Support Plan and Gateway Review.</li>
                 <li>Scheduled PR meetings today or later are excluded from Last 12 Weeks.</li>
               </ul>
             </div>
 
-            <div className="rounded-xl border border-[#EEE7F7] bg-white p-3">
-              <p className="font-semibold text-[#442F73]">Monthly Coaching Meeting</p>
-              <ul className="mt-2 space-y-1 text-xs text-[#686868]">
+            <div className="rounded-lg border border-[#DDE7F0] bg-white p-3">
+              <p className="font-semibold text-[#24486D]">Monthly Coaching Meeting</p>
+              <ul className="mt-2 space-y-1 text-xs text-[#5F748B]">
                 <li>Last 30 days includes today.</li>
                 <li>Required counts learners with matching MCM activity in the selected period.</li>
                 <li>Scheduled counts scheduled or completed MCM activity by period.</li>
               </ul>
             </div>
 
-            <div className="rounded-xl border border-[#F2DEC0] bg-[#FFF8EE] p-3">
-              <p className="font-semibold text-[#80560F]">Attendance and OTJ</p>
-              <ul className="mt-2 space-y-1 text-xs text-[#686868]">
+            <div className="rounded-lg border border-[#F1D79D] bg-[#FFF8E8] p-3">
+              <p className="font-semibold text-[#94610A]">Attendance and OTJ</p>
+              <ul className="mt-2 space-y-1 text-xs text-[#5F748B]">
                 <li>Missed attendance uses the selected absence window.</li>
                 <li>OTJ Behind uses learners flagged as at risk in the OTJ source data.</li>
               </ul>

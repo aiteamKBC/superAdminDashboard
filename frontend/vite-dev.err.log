@@ -1,0 +1,42 @@
+[2m2:24:15 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/aptem-learners/[39m
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/coaches/all[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/learner-contact-actions/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/progress-review-summary/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/progress-review-booked/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/mcr-summary/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/otj-at-risk/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/aptem-learners/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/kbc-attendance/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:24:46 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/require-marking/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:28:17 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/session/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:35:28 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/session/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:37:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/session/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[2m2:55:47 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login/[39m
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)

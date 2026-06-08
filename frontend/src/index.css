@@ -4,38 +4,36 @@
 
 @layer base {
   :root {
-    /* Core palette mapped from your color schema */
-    --background: 0 0% 97%;          /* #F8F8F8 */
-    --foreground: 0 0% 30%;          /* #4C4C4C */
+    --background: 207 45% 96%;
+    --foreground: 214 47% 18%;
 
-    --card: 0 0% 100%;               /* #FFFFFF */
-    --card-foreground: 0 0% 30%;     /* #4C4C4C */
+    --card: 0 0% 100%;
+    --card-foreground: 214 47% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 30%;
+    --popover-foreground: 214 47% 18%;
 
-    --primary: 37 79% 39%;           /* #B27715 */
+    --primary: 213 77% 46%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 285 100% 98%;       /* قريب من #FCF3FF */
-    --secondary-foreground: 260 31% 44%; /* قريب من #644D93 */
+    --secondary: 205 100% 97%;
+    --secondary-foreground: 211 61% 27%;
 
-    --muted: 0 0% 95%;               /* قريب من #F1F1F1 */
-    --muted-foreground: 0 0% 50%;    /* قريب من #808080 */
+    --muted: 207 40% 94%;
+    --muted-foreground: 209 25% 45%;
 
-    --accent: 285 100% 98%;          /* #FCF3FF feel */
-    --accent-foreground: 261 34% 57%; /* قريب من #866CB6 */
+    --accent: 205 100% 97%;
+    --accent-foreground: 213 77% 46%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 0 0% 89%;              /* #E4E4E4 */
-    --input: 0 0% 89%;
-    --ring: 37 79% 39%;
+    --border: 208 39% 88%;
+    --input: 208 39% 88%;
+    --ring: 213 77% 46%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Severity tokens */
     --severity-normal: 142 71% 45%;
     --severity-normal-foreground: 142 76% 15%;
     --severity-normal-bg: 142 76% 95%;
@@ -52,44 +50,36 @@
     --severity-critical-foreground: 0 72% 20%;
     --severity-critical-bg: 0 84% 96%;
 
-    /* KPI card accent colors */
-    --kpi-missed: 38 79% 28%;        /* darker gold */
-    --kpi-review: 261 34% 57%;       /* purple */
-    --kpi-coaching: 260 31% 44%;     /* deeper purple */
-    --kpi-otj: 37 79% 39%;           /* base gold */
+    --kpi-missed: 354 71% 55%;
+    --kpi-review: 213 77% 46%;
+    --kpi-coaching: 253 55% 62%;
+    --kpi-otj: 39 82% 50%;
 
-    /* ── Color schema palette (raw hex, for direct var() usage) ── */
-    /* Warm amber */
+    /* Legacy raw palette, kept for screens that still reference these variables. */
     --c-1: #F9F4EC; --c-2: #F3E9DA; --c-3: #E9D9BD; --c-4: #DDC398;
     --c-5: #CEA869; --c-6: #b27715; --c-7: #9D6912; --c-8: #80560F;
     --c-9: #64430C; --c-10: #473008;
-    /* Purple */
     --c-11: #a88cd9; --c-12: #866cb6; --c-13: #644d93;
     --c-14: #442F73; --c-15: #241453; --c-16: #f9f5ff; --c-17: #aaaaaa;
-    /* Neutral greys */
     --c-50: #F8F8F8; --c-100: #F1F1F1; --c-200: #E4E4E4; --c-300: #D6D6D6;
     --c-400: #c5c5c5; --c-500: #aaaaaa; --c-600: #999999; --c-700: #808080;
     --c-800: #666666; --c-900: #4C4C4C;
-    /* Purple tints */
     --c-p-50: #FEF9FF; --c-p-100: #FCF3FF; --c-p-200: #FAEBFF;
     --c-p-300: #F8DFFF; --c-p-400: #F3CEFF; --c-p-500: #EEB7FF;
     --c-p-600: #D6A5E6; --c-p-700: #BA8FC7; --c-p-800: #9875A3; --c-p-900: #72587A;
 
-    /* Extra aliases for custom usage */
-    --dashboard-bg: 0 0% 97%;
+    --dashboard-bg: 207 45% 96%;
     --dashboard-surface: 0 0% 100%;
-    --dashboard-surface-soft: 285 100% 98%;
-    --dashboard-text: 0 0% 30%;
-    --dashboard-text-soft: 0 0% 50%;
+    --dashboard-surface-soft: 205 100% 97%;
+    --dashboard-text: 214 47% 18%;
+    --dashboard-text-soft: 209 25% 45%;
 
-    /* Chart colors */
-    --chart-1: 37 79% 39%;
-    --chart-2: 261 34% 57%;
-    --chart-3: 260 31% 44%;
-    --chart-4: 262 50% 70%;
-    --chart-5: 38 79% 28%;
+    --chart-1: 213 77% 46%;
+    --chart-2: 173 73% 34%;
+    --chart-3: 39 82% 50%;
+    --chart-4: 253 55% 62%;
+    --chart-5: 354 71% 55%;
 
-    /* Sidebar */
     --sidebar-background: 217 71% 18%;
     --sidebar-foreground: 210 40% 92%;
     --sidebar-primary: 210 40% 98%;
@@ -111,7 +101,7 @@
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
-    --primary-foreground: 37 79% 39%;
+    --primary-foreground: 213 77% 46%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -151,12 +141,11 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Better defaults for dashboard elements */
   input,
   select,
   button,
@@ -183,21 +172,21 @@
 
 @layer components {
   .dashboard-panel {
-    @apply rounded-2xl border bg-card shadow-sm;
+    @apply rounded-lg border bg-card shadow-sm;
   }
 
   .dashboard-soft-panel {
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
-    @apply rounded-2xl border shadow-sm;
+    @apply rounded-lg border shadow-sm;
   }
 
   .dashboard-input {
-    @apply h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none;
+    @apply h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none;
   }
 
   .dashboard-btn {
-    @apply h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium text-foreground transition-colors;
+    @apply h-10 rounded-lg border border-input bg-background px-4 text-sm font-medium text-foreground transition-colors;
   }
 
   .dashboard-btn:hover {
@@ -235,7 +224,6 @@
     border-color: hsl(var(--border));
   }
 
-  /* Generic responsiveness helpers */
   .responsive-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -245,21 +233,9 @@
     min-width: 980px;
   }
 
-  @media (max-width: 1024px) {
-    .dashboard-panel,
-    .dashboard-soft-panel {
-      border-radius: 1rem;
-    }
-  }
-
   @media (max-width: 768px) {
     body {
       font-size: 14px;
-    }
-
-    .dashboard-panel,
-    .dashboard-soft-panel {
-      border-radius: 0.875rem;
     }
 
     table th,
@@ -276,7 +252,6 @@
   }
 }
 
-/* ── Custom scrollbar ── */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -287,20 +262,19 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c4b0e8;
+  background: #B8D7F2;
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a88cd9;
+  background: #7EA6CF;
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c4b0e8 transparent;
+  scrollbar-color: #B8D7F2 transparent;
 }

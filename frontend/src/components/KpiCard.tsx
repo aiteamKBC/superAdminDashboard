@@ -1,6 +1,19 @@
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { KpiCardData } from "@/types/dashboard";
+import {
+  AlertTriangle,
+  CalendarCheck2,
+  CheckCircle2,
+  ClipboardCheck,
+  FileClock,
+  LucideIcon,
+  Minus,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  UsersRound,
+} from "lucide-react";
+
 import { Card } from "@/components/ui/card";
+import type { KpiCardData } from "@/types/dashboard";
 
 interface KpiCardProps {
   data: KpiCardData;
@@ -8,116 +21,130 @@ interface KpiCardProps {
   active: boolean;
 }
 
-function getKpiColor(id: KpiCardData["id"]) {
-  switch (id) {
-    case "missed-session":
-      return "#9A6A13";
-    case "review-due":
-      return "#866CB6";
-    case "coaching-due":
-      return "#6D53A3";
-    case "coaching-booked":
-      return "#A78AD8";
-    case "otj-behind":
-      return "#C58412";
-    case "review-booked":
-      return "#b27715";
-    case "coach-marking-overdue":
-      return "#866CB6";
-    default:
-      return "#866CB6";
-  }
-}
+type KpiVisual = {
+  accent: string;
+  soft: string;
+  text: string;
+  icon: LucideIcon;
+  subtitle: string;
+};
 
-function getKpiSoftBg(id: KpiCardData["id"]) {
-  switch (id) {
-    case "missed-session":
-      return "#FFF9F0";
-    case "review-due":
-      return "#FCF8FF";
-    case "review-booked":
-      return "#F9F4EC";
-    case "coaching-due":
-      return "#F8F3FF";
-    case "coaching-booked":
-      return "#F8F3FF";
-    case "otj-behind":
-      return "#FFF8EE";
-    case "coach-marking-overdue":
-      return "#FCF8FF";
-    default:
-      return "#FCF8FF";
-  }
-}
-
-function getKpiSubtitle(id: KpiCardData["id"]) {
-  switch (id) {
-    case "missed-session":
-      return "Latest missed attendance signals";
-    case "review-due":
-      return "Learners matching PR rules";
-    case "review-booked":
-      return "Scheduled or completed PR activity";
-    case "coaching-due":
-      return "MCM activity required by period";
-    case "coaching-booked":
-      return "Scheduled or completed MCM activity";
-    case "otj-behind":
-      return "Learners behind OTJ target";
-    case "coach-marking-overdue":
-      return "Evidence awaiting marking";
-    default:
-      return "";
-  }
-}
+const kpiVisuals: Record<KpiCardData["id"], KpiVisual> = {
+  "missed-session": {
+    accent: "#E05C68",
+    soft: "#FFF1F3",
+    text: "#B42332",
+    icon: AlertTriangle,
+    subtitle: "Learners needing attendance follow-up",
+  },
+  "review-due": {
+    accent: "#2D73D5",
+    soft: "#EEF5FF",
+    text: "#184D91",
+    icon: FileClock,
+    subtitle: "Progress reviews due in the selected period",
+  },
+  "review-booked": {
+    accent: "#1C9B7A",
+    soft: "#ECFAF6",
+    text: "#0F6F57",
+    icon: CalendarCheck2,
+    subtitle: "Progress review sessions already planned",
+  },
+  "coaching-due": {
+    accent: "#7A61D1",
+    soft: "#F3F0FF",
+    text: "#5440A3",
+    icon: UsersRound,
+    subtitle: "Monthly coaching actions required",
+  },
+  "coaching-booked": {
+    accent: "#0E8EC7",
+    soft: "#ECF9FF",
+    text: "#076B96",
+    icon: CheckCircle2,
+    subtitle: "Monthly coaching sessions booked",
+  },
+  "otj-behind": {
+    accent: "#E4A11B",
+    soft: "#FFF8E8",
+    text: "#94610A",
+    icon: Target,
+    subtitle: "Learners behind their OTJ target",
+  },
+  "coach-marking-overdue": {
+    accent: "#31506F",
+    soft: "#EDF4FA",
+    text: "#243F5A",
+    icon: ClipboardCheck,
+    subtitle: "Evidence waiting for coach marking",
+  },
+  "status-view": {
+    accent: "#31506F",
+    soft: "#EDF4FA",
+    text: "#243F5A",
+    icon: UsersRound,
+    subtitle: "Learners matching the selected status",
+  },
+};
 
 export default function KpiCard({ data, onClick, active }: KpiCardProps) {
-  const accent = getKpiColor(data.id);
-  const softBg = getKpiSoftBg(data.id);
-  const subtitle = getKpiSubtitle(data.id);
+  const visual = kpiVisuals[data.id];
+  const Icon = visual.icon;
 
   const trendIcon =
     data.trend == null ? (
-      <Minus className="h-3.5 w-3.5 text-[#8A8A8A]" />
+      <Minus className="h-3.5 w-3.5" />
     ) : data.trend > 0 ? (
-      <TrendingUp className="h-3.5 w-3.5" style={{ color: "#D9485F" }} />
+      <TrendingUp className="h-3.5 w-3.5" />
     ) : data.trend < 0 ? (
-      <TrendingDown className="h-3.5 w-3.5" style={{ color: "#2E9E5B" }} />
+      <TrendingDown className="h-3.5 w-3.5" />
     ) : (
-      <Minus className="h-3.5 w-3.5 text-[#9A9A9A]" />
+      <Minus className="h-3.5 w-3.5" />
     );
 
   const trendText =
-    data.trend == null ? "Live" : data.trend > 0 ? `+${data.trend}` : data.trend < 0 ? `${data.trend}` : "No change";
+    data.trend == null
+      ? "Live"
+      : data.trend > 0
+        ? `+${data.trend}`
+        : data.trend < 0
+          ? `${data.trend}`
+          : "Stable";
 
   return (
     <Card
       onClick={onClick}
-      className="cursor-pointer rounded-2xl border-0 p-4 transition-all duration-200 hover:-translate-y-0.5"
+      className="group h-full cursor-pointer rounded-lg border border-[#DDE7F0] bg-white p-4 shadow-[0_8px_22px_rgba(20,38,74,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B9C9DA] hover:shadow-[0_14px_30px_rgba(20,38,74,0.10)]"
       style={{
-        backgroundColor: active ? softBg : "#FFFFFF",
+        background: active ? visual.soft : "#FFFFFF",
         boxShadow: active
-          ? `0 0 0 1px ${accent}55, inset 4px 0 0 ${accent}, 0 10px 24px rgba(20,20,20,0.08)`
-          : "0 4px 14px rgba(20,20,20,0.04)",
+          ? `inset 0 0 0 1px ${visual.accent}55, inset 4px 0 0 ${visual.accent}, 0 16px 34px rgba(20,38,74,0.12)`
+          : undefined,
       }}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-h-[46px] min-w-0 pr-2">
-          <p className="text-sm font-semibold leading-5 text-[#686868] line-clamp-2">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div
+            className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg"
+            style={{ backgroundColor: visual.soft, color: visual.text }}
+          >
+            <Icon className="h-[18px] w-[18px]" />
+          </div>
+          <p className="line-clamp-2 text-sm font-semibold leading-5 text-[#20344D]">
             {data.title}
           </p>
-          {subtitle && (
-            <p className="mt-1 text-[11px] leading-4 text-[#9A9A9A] line-clamp-1">
-              {subtitle}
-            </p>
-          )}
+          <p className="mt-1 line-clamp-2 text-xs leading-4 text-[#71849A]">
+            {visual.subtitle}
+          </p>
         </div>
 
         <div
-          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium"
+          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ring-1"
           style={{
-            backgroundColor: active ? "#FFFFFF" : "#F5F1FA",
-            color: active ? accent : "#8A8A8A",
+            backgroundColor: active ? "#FFFFFF" : visual.soft,
+            color: data.trend && data.trend > 0 ? "#B42332" : visual.text,
+            borderColor: `${visual.accent}33`,
           }}
         >
           {trendIcon}
@@ -125,36 +152,36 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
         </div>
       </div>
 
-      <div className="mb-3 flex items-end gap-2">
-        <span className="text-[28px] font-bold leading-none text-[#2F2F2F]">
-          {data.count}
-        </span>
-        <span className="mb-1 text-sm text-[#969696]">/ {data.total}</span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#E8E8E8]">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${data.percentage}%`,
-              backgroundColor: accent,
-            }}
-          />
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold leading-none tracking-normal text-[#10233F]">
+              {data.count}
+            </span>
+            <span className="text-sm font-medium text-[#8292A6]">of {data.total}</span>
+          </div>
+          <p className="mt-1 text-xs font-medium text-[#71849A]">{data.percentage}% of cohort</p>
         </div>
 
-        <span className="min-w-[38px] text-right text-xs font-semibold text-[#8A8A8A]">
-          {data.percentage}%
+        <span
+          className="rounded-full px-2.5 py-1 text-xs font-bold"
+          style={{
+            backgroundColor: active ? "#FFFFFF" : visual.soft,
+            color: visual.text,
+          }}
+        >
+          {active ? "Selected" : "Open"}
         </span>
       </div>
 
-      <div className="mt-3 text-right">
-        <span
-          className="text-[11px] font-semibold"
-          style={{ color: active ? accent : "#A78AD8" }}
-        >
-          {active ? "Selected" : "View"}
-        </span>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8EEF5]">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${Math.max(0, Math.min(data.percentage, 100))}%`,
+            backgroundColor: visual.accent,
+          }}
+        />
       </div>
     </Card>
   );

@@ -184,23 +184,23 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#F8F8F8_0%,#F5F0FC_48%,#FBF4EA_100%)] p-4">
-      <Card className="grid w-full max-w-[920px] overflow-hidden rounded-2xl border-[#E6DDF4] bg-white shadow-[0_24px_80px_rgba(68,47,115,0.18)] md:grid-cols-[1fr_1.08fr]">
-        <section className="relative hidden min-h-[560px] flex-col justify-between bg-gradient-to-b from-[#241453] via-[#442F73] to-[#866CB6] p-8 text-white md:flex">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.24),transparent_28%),linear-gradient(135deg,rgba(178,119,21,0.28),transparent_44%)]" />
+    <main className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#F4F8FC_0%,#EEF7FF_48%,#E8F1FA_100%)] p-4">
+      <Card className="grid w-full max-w-[920px] overflow-hidden rounded-2xl border-[#DDE7F0] bg-white shadow-[0_24px_80px_rgba(20,38,74,0.16)] md:grid-cols-[1fr_1.08fr]">
+        <section className="relative hidden min-h-[560px] flex-col justify-between bg-gradient-to-b from-[#14264A] via-[#184D91] to-[#1E6ACB] p-8 text-white md:flex">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.22),transparent_28%),linear-gradient(135deg,rgba(28,155,122,0.22),transparent_44%)]" />
           <div className="relative">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/14 ring-1 ring-white/20">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/14 ring-1 ring-white/24">
               <GraduationCap className="h-7 w-7" />
             </div>
             <h1 className="mt-6 text-3xl font-bold leading-tight">Kent Business College</h1>
-            <p className="mt-2 max-w-[280px] text-sm font-medium text-[#E9D9BD]">
+            <p className="mt-2 max-w-[280px] text-sm font-medium text-[#D7EAFB]">
               Engagement workspace for learner risk, reviews, and actions.
             </p>
           </div>
 
-          <div className="relative rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+          <div className="relative rounded-2xl border border-white/18 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-[#F3D29B]" />
+              <ShieldCheck className="h-5 w-5 text-[#BFEDE4]" />
               <div>
                 <p className="text-sm font-bold">KBC authenticated access</p>
                 <p className="mt-0.5 text-xs text-white/72">Accounts are checked against auth_user.</p>
@@ -212,19 +212,19 @@ export default function LoginPage() {
         <section className="p-6 sm:p-9">
           <div className="mx-auto max-w-[410px]">
             <div className="mb-7 flex items-center gap-3 md:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#442F73] text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#184D91] text-white">
                 <GraduationCap className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-bold text-[#2F2F2F]">Kent Business College</p>
-                <p className="text-xs text-[#808080]">Engagement Workspace</p>
+                <p className="font-bold text-[#14264A]">Kent Business College</p>
+                <p className="text-xs text-[#71849A]">Engagement Workspace</p>
               </div>
             </div>
 
             <div className="mb-7">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#B27715]">Sign in</p>
-              <h2 className="mt-2 text-2xl font-bold text-[#2F2F2F]">Access your dashboard</h2>
-              <p className="mt-2 text-sm text-[#6F6F6F]">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#1E6ACB]">Sign in</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#14264A]">Access your dashboard</h2>
+              <p className="mt-2 text-sm text-[#5F7288]">
                 Use your KBC Microsoft email or your existing dashboard account.
               </p>
             </div>
@@ -233,12 +233,12 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <Label htmlFor="identifier">Username or Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A9A9A]" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7EA6CF]" />
                   <Input
                     id="identifier"
                     value={identifier}
                     onChange={(event) => setIdentifier(event.target.value)}
-                    className="h-12 rounded-xl pl-10"
+                    className="h-12 rounded-xl border-[#DDE7F0] bg-[#F8FBFE] pl-10 text-[#20344D] placeholder:text-[#8AA0B6] focus-visible:ring-[#1E6ACB]"
                     placeholder="Enter your username or email"
                     autoComplete="username"
                   />
@@ -248,12 +248,12 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A9A9A]" />
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7EA6CF]" />
                   <Input
                     id="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="h-12 rounded-xl pl-10"
+                    className="h-12 rounded-xl border-[#DDE7F0] bg-[#F8FBFE] pl-10 text-[#20344D] placeholder:text-[#8AA0B6] focus-visible:ring-[#1E6ACB]"
                     placeholder="Enter your password"
                     type="password"
                     autoComplete="current-password"
@@ -269,7 +269,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="h-12 w-full rounded-xl bg-[#241453] text-base font-bold text-white hover:bg-[#342061]"
+                className="h-12 w-full rounded-xl bg-[#14264A] text-base font-bold text-white hover:bg-[#184D91]"
                 disabled={submitting || microsoftLoading}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -278,15 +278,15 @@ export default function LoginPage() {
             </form>
 
             <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-[#E4E4E4]" />
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9A9A9A]">or</span>
-              <div className="h-px flex-1 bg-[#E4E4E4]" />
+              <div className="h-px flex-1 bg-[#DDE7F0]" />
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#71849A]">or</span>
+              <div className="h-px flex-1 bg-[#DDE7F0]" />
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="h-12 w-full rounded-xl border-[#D6D6D6] bg-white text-sm font-bold text-[#343434] hover:bg-[#F9F4EC]"
+              className="h-12 w-full rounded-xl border-[#B8D7F2] bg-white text-sm font-bold text-[#14264A] hover:bg-[#EEF7FF]"
               onClick={handleMicrosoftLogin}
               disabled={submitting || microsoftLoading}
             >
@@ -303,7 +303,7 @@ export default function LoginPage() {
               Continue with Microsoft Teams
             </Button>
 
-            <p className="mt-5 text-center text-xs text-[#8A8A8A]">
+            <p className="mt-5 text-center text-xs text-[#71849A]">
               Microsoft sign-in only opens accounts already registered in KBC auth_user.
             </p>
           </div>

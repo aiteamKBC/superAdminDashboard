@@ -22,7 +22,7 @@ async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> 
   const headers = new Headers(init.headers || {});
   headers.set("accept", "application/json");
 
-  const res = await fetch(url, { ...init, headers });
+  const res = await fetch(url, { cache: "no-store", ...init, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`${res.status} ${res.statusText} ${text}`);

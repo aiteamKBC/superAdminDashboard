@@ -39,6 +39,7 @@ import {
   BookOpen,
   Clock,
   Briefcase,
+  History,
 } from "lucide-react";
 
 interface LearnerDrawerProps {
@@ -62,7 +63,8 @@ interface LearnerDrawerProps {
     emailed: boolean;
     resolved: boolean;
     note: string;
-  }) => void;
+  }) => void | Promise<void>;
+  onAttendanceHistoryOpened?: () => void;
   otjAtRiskData?: any[];
   mcrData?: any[];
   progressReviewRows?: any[];
@@ -158,6 +160,7 @@ export default function LearnerDrawer({
   onClose,
   onResolve,
   onUpdateContactAction,
+  onAttendanceHistoryOpened,
   otjAtRiskData = [],
   mcrData = [],
   progressReviewRows = [],
@@ -167,7 +170,11 @@ export default function LearnerDrawer({
   const [showCallLog, setShowCallLog] = useState(false);
   const [callOutcome, setCallOutcome] = useState<CallOutcome | "">("");
   const [callNotes, setCallNotes] = useState("");
+  const [savingCallLog, setSavingCallLog] = useState(false);
   const [contactLogs, setContactLogs] = useState<any[]>([]);
+  const learnerKey = learner
+    ? `${String(learner.id || "")}::${String(learner.email || "").trim().toLowerCase()}`
+    : "";
 
   const fetchContactLogs = (email: string) => {
     if (!email) { setContactLogs([]); return; }
@@ -182,8 +189,9 @@ export default function LearnerDrawer({
     setCallOutcome((noteParts.outcome || "") as CallOutcome | "");
     setCallNotes(noteParts.details || "");
     setShowCallLog(false);
+    setSavingCallLog(false);
     fetchContactLogs((learner as any)?.email || "");
-  }, [learner]);
+  }, [learnerKey]);
 
   const navigate = useNavigate();
   const isResolved = !!learner?.isResolved;
@@ -194,6 +202,14 @@ export default function LearnerDrawer({
 
   const ne = (v: unknown) => String(v ?? "").trim().toLowerCase();
   const learnerEmail = ne(learner.email);
+  const hasUsableLearnerEmail =
+    learnerEmail &&
+    learnerEmail !== "unknown" &&
+    learnerEmail !== "n/a" &&
+    learnerEmail.includes("@");
+  const attendanceHistoryUrl = hasUsableLearnerEmail
+    ? `https://studentportal.kentbusinesscollege.net/student?email=${encodeURIComponent(learnerEmail)}`
+    : "";
 
   // ── OTJ data from aptem_auto_extracting ──────────────────────────────
   const otjRow = otjAtRiskData.find((r: any) => ne(r.email) === learnerEmail) ?? null;
@@ -332,31 +348,46 @@ export default function LearnerDrawer({
     });
   };
 
+  const handleToggleCallLog = () => {
+    if (showCallLog) {
+      setShowCallLog(false);
+      return;
+    }
+
+    const noteParts = splitNoteParts((learner as any)?.note);
+    setCallOutcome((noteParts.outcome || "") as CallOutcome | "");
+    setCallNotes(noteParts.details || "");
+    setShowCallLog(true);
+  };
+
   const handleSaveLog = async () => {
+    if (savingCallLog || !callOutcome) return;
+
+    setSavingCallLog(true);
     const la = learner as any;
     const note = buildNoteValue(String(callOutcome || ""), callNotes);
 
-    if (la.attendanceDate && la.attendanceModule) {
-      onUpdateContactAction?.({
-        contactKey: String(la.attendanceContactKey || ""),
-        email: String(la.attendanceEmail || ""),
-        date: String(la.attendanceDate || ""),
-        module: String(la.attendanceModule || ""),
-        called: true,
-        emailed: Boolean(la.emailed),
-        resolved: Boolean(la.isResolved),
-        note,
-      });
-    } else {
-      const SOURCE_MAP: Record<string, string> = {
-        "review-due": "pr-due",
-        "coaching-due": "mcm-due",
-        "otj-behind": "otj-behind",
-      };
-      const cats = Array.isArray(learner?.riskCategories) ? learner.riskCategories : [];
-      const logSource = cats.map((c: string) => SOURCE_MAP[c]).find(Boolean) || "attendance";
-      try {
-        await fetch("/api/contact-log/", {
+    try {
+      if (la.attendanceDate && la.attendanceModule) {
+        await onUpdateContactAction?.({
+          contactKey: String(la.attendanceContactKey || ""),
+          email: String(la.attendanceEmail || ""),
+          date: String(la.attendanceDate || ""),
+          module: String(la.attendanceModule || ""),
+          called: true,
+          emailed: Boolean(la.emailed),
+          resolved: Boolean(la.isResolved),
+          note,
+        });
+      } else {
+        const SOURCE_MAP: Record<string, string> = {
+          "review-due": "pr-due",
+          "coaching-due": "mcm-due",
+          "otj-behind": "otj-behind",
+        };
+        const cats = Array.isArray(learner?.riskCategories) ? learner.riskCategories : [];
+        const logSource = cats.map((c: string) => SOURCE_MAP[c]).find(Boolean) || "attendance";
+        const res = await fetch("/api/contact-log/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -369,11 +400,17 @@ export default function LearnerDrawer({
             source: logSource,
           }),
         });
-        fetchContactLogs(learner?.email || "");
-      } catch {}
-    }
 
-    setShowCallLog(false);
+        if (!res.ok) throw new Error("Failed to save contact log");
+        fetchContactLogs(learner?.email || "");
+      }
+
+      setShowCallLog(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSavingCallLog(false);
+    }
   };
 
   return (
@@ -659,13 +696,30 @@ export default function LearnerDrawer({
           <Separator />
 
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setShowCallLog(!showCallLog)} className="gap-1.5">
+            <Button type="button" size="sm" onClick={handleToggleCallLog} className="gap-1.5">
               <Phone className="w-3.5 h-3.5" /> Log a Call
             </Button>
 
             <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSendEmail}>
               <Mail className="w-3.5 h-3.5" /> Send Email
             </Button>
+
+            {attendanceHistoryUrl ? (
+              <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                <a
+                  href={attendanceHistoryUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => onAttendanceHistoryOpened?.()}
+                >
+                  <History className="w-3.5 h-3.5" /> Attendance History
+                </a>
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="gap-1.5" disabled>
+                <History className="w-3.5 h-3.5" /> Attendance History
+              </Button>
+            )}
 
             {(() => {
               const links = getBookingLinks(learner?.coach ?? "");
@@ -754,10 +808,10 @@ export default function LearnerDrawer({
               />
 
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleSaveLog}>
-                  Save Log
+                <Button size="sm" onClick={handleSaveLog} disabled={!callOutcome || savingCallLog}>
+                  {savingCallLog ? "Saving..." : "Save Log"}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowCallLog(false)}>
+                <Button size="sm" variant="ghost" onClick={() => setShowCallLog(false)} disabled={savingCallLog}>
                   Cancel
                 </Button>
               </div>
