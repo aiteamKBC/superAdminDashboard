@@ -24,14 +24,19 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const authFetch = async (url: string, options: RequestInit = {}) => {
-  const response = await fetch(url, {
-    credentials: "include",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: "include",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error("Cannot connect to the server. Please ensure the backend is running and try again.");
+  }
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

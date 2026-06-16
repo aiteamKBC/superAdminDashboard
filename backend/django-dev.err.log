@@ -1,0 +1,4 @@
+[09/Jun/2026 17:02:14] "GET /api/auth/session/ HTTP/1.1" 200 38
+[09/Jun/2026 17:02:14,253] - Broken pipe from ('127.0.0.1', 52755)
+[09/Jun/2026 17:02:19] "POST /api/auth/login/ HTTP/1.1" 401 49
+[09/Jun/2026 17:02:19,797] - Broken pipe from ('127.0.0.1', 52756)

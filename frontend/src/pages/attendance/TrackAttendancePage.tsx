@@ -1,0 +1,1047 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  PhoneCall,
+  RefreshCw,
+  Search,
+  Ticket,
+  Users,
+} from "lucide-react";
+
+import AppLayout from "@/components/AppLayout";
+import BackButton from "@/components/BackButton";
+import FilterSelect from "@/components/FilterSelect";
+import LearnerDrawer from "@/components/LearnerDrawer";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+
+import type { Learner } from "@/types/dashboard";
+
+type AbsenceWindow = "all" | 0 | 1 | 2 | 3;
+type FollowUpFilter = "all" | "unresolved" | "contacted" | "resolved";
+type AttRec = { date: string | null; attendance: unknown; module: string };
+type ContactActionState = { called: boolean; emailed: boolean; resolved: boolean; note: string };
+
+interface AttendanceSourceRow {
+  email: string;
+  fullName: string;
+  phone?: string;
+  organisation?: string;
+  aptemProgramme?: string;
+  ownerName?: string;
+  records: AttRec[];
+}
+
+interface TicketInfo {
+  id: number;
+  ticketRef: string;
+  status: string;
+  email: string;
+  attendanceDate: string;
+}
+
+interface AttendanceLearner extends Learner {
+  attendanceEmail: string;
+  attendanceDate: string;
+  attendanceModule: string;
+  attendanceContactKey: string;
+  coachName: string;
+  called: boolean;
+  emailed: boolean;
+  note: string;
+  hasAttendanceInWindow: boolean;
+}
+
+const parseAttendanceDate = (raw: string): Date | null => {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const match = value.match(/^(\d{4})[-/\s](\d{2})[-/\s](\d{2})/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const formatDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const getExactWeekRange = (weekIndex: 0 | 1 | 2 | 3) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysToMonday = today.getDay() === 0 ? 6 : today.getDay() - 1;
+  const start = new Date(today);
+  start.setDate(today.getDate() - daysToMonday - weekIndex * 7);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
+
+const isDateInExactWeekBucket = (date: Date, weekIndex: 0 | 1 | 2 | 3) => {
+  const { start, end } = getExactWeekRange(weekIndex);
+  return date >= start && date <= end;
+};
+
+const formatUiDate = (date: Date) =>
+  date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
+  const { start, end } = getExactWeekRange(weekIndex);
+  return `${formatUiDate(start)} - ${formatUiDate(end)}`;
+};
+
+const formatAttendanceDate = (raw: string) => {
+  const date = parseAttendanceDate(raw);
+  return date ? formatUiDate(date) : raw || "N/A";
+};
+
+const normalizeAttendanceValue = (value: unknown): number | null => {
+  if (value === 1 || value === true) return 1;
+  if (value === 0 || value === false) return 0;
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["1", "present", "attended", "yes", "true"].includes(normalized)) return 1;
+  if (["0", "absent", "missed", "no", "false"].includes(normalized)) return 0;
+  return null;
+};
+
+const safePct = (numerator: number, denominator: number) =>
+  !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0
+    ? 0
+    : Math.round((numerator / denominator) * 100);
+
+const parseModuleParts = (module: string) => {
+  const parts = String(module || "")
+    .trim()
+    .split(" - ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    coach: parts.length >= 2 ? parts[0] : "",
+    programme:
+      parts.length >= 3
+        ? parts.slice(1, -1).join(" - ")
+        : parts.length === 2
+          ? parts[1]
+          : parts[0] || "",
+  };
+};
+
+const normEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
+
+function buildAttendanceMetrics(records: AttRec[], absenceWindow: AbsenceWindow = 0) {
+  const empty = {
+    absenceRatio: 0,
+    missedLast10Weeks: 0,
+    missedInRow: 0,
+    lastSessionDate: "N/A",
+    lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
+    lastSessionModule: "",
+    latestProgramme: "Unknown",
+    hasAttendanceInWindow: false,
+  };
+  if (!records.length) return empty;
+
+  const sorted = [...records]
+    .filter((record) => record.date != null)
+    .sort((a, b) => a.date!.localeCompare(b.date!));
+  if (!sorted.length) return empty;
+
+  const filtered =
+    absenceWindow === "all"
+      ? sorted
+      : sorted.filter((record) => {
+          const date = parseAttendanceDate(record.date!);
+          return date !== null && isDateInExactWeekBucket(date, absenceWindow);
+        });
+
+  const hasAttendanceInWindow = filtered.length > 0;
+  const source = hasAttendanceInWindow ? filtered : [];
+  const last = source[source.length - 1];
+  const lastValue = normalizeAttendanceValue(last?.attendance);
+  const lastSessionStatus = (
+    lastValue == null ? "Unknown" : lastValue === 1 ? "Attended" : "Missed"
+  ) as Learner["lastSessionStatus"];
+
+  const tenWeeksAgo = new Date();
+  tenWeeksAgo.setHours(0, 0, 0, 0);
+  tenWeeksAgo.setDate(tenWeeksAgo.getDate() - 69);
+  const missedLast10Weeks = sorted.filter((record) => {
+    const date = parseAttendanceDate(record.date!);
+    return date !== null && date >= tenWeeksAgo && normalizeAttendanceValue(record.attendance) === 0;
+  }).length;
+
+  let missedInRow = 0;
+  for (let index = sorted.length - 1; index >= 0; index--) {
+    if (normalizeAttendanceValue(sorted[index].attendance) === 0) missedInRow++;
+    else break;
+  }
+
+  const latestModule = last?.module || "";
+  const moduleRecords = latestModule
+    ? sorted.filter((record) => record.module === latestModule)
+    : source;
+  const absenceRatio = safePct(
+    moduleRecords.filter((record) => normalizeAttendanceValue(record.attendance) === 0).length,
+    moduleRecords.length
+  );
+
+  return {
+    absenceRatio,
+    missedLast10Weeks,
+    missedInRow,
+    lastSessionDate: last?.date || "N/A",
+    lastSessionStatus,
+    lastSessionModule: latestModule,
+    latestProgramme: parseModuleParts(latestModule).programme || "Unknown",
+    hasAttendanceInWindow,
+  };
+}
+
+const getContactPayload = (learner: AttendanceLearner, updates: Partial<ContactActionState>) => ({
+  contactKey: learner.attendanceContactKey,
+  email: learner.attendanceEmail,
+  date: learner.attendanceDate,
+  module: learner.attendanceModule,
+  called: updates.called ?? learner.called,
+  emailed: updates.emailed ?? learner.emailed,
+  resolved: updates.resolved ?? Boolean(learner.isResolved),
+  note: updates.note ?? learner.note,
+});
+
+export default function TrackAttendancePage() {
+  const navigate = useNavigate();
+  const [attendanceData, setAttendanceData] = useState<AttendanceSourceRow[]>([]);
+  const [contactActions, setContactActions] = useState<Record<string, ContactActionState>>({});
+  const [tickets, setTickets] = useState<TicketInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedLearner, setSelectedLearner] = useState<AttendanceLearner | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [absenceWindow, setAbsenceWindow] = useState<AbsenceWindow>(0);
+  const [search, setSearch] = useState("");
+  const [programmeFilter, setProgrammeFilter] = useState("all");
+  const [coachFilter, setCoachFilter] = useState("all");
+  const [organisationFilter, setOrganisationFilter] = useState("all");
+  const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>("all");
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadTickets = useCallback(async () => {
+    try {
+      const response = await fetch("/api/attendance-tickets/?archived=false");
+      if (!response.ok) return;
+      const data: Array<{
+        id: number;
+        ticketRef: string;
+        learnerEmail: string;
+        attendanceDate: string | null;
+        status: string;
+      }> = await response.json();
+      setTickets(
+        data.map((ticket) => ({
+          id: ticket.id,
+          ticketRef: ticket.ticketRef,
+          status: ticket.status,
+          email: normEmail(ticket.learnerEmail),
+          attendanceDate: String(ticket.attendanceDate || ""),
+        }))
+      );
+    } catch {
+      setTickets([]);
+    }
+  }, []);
+
+  const loadAttendance = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const [attendanceResponse, actionsResponse] = await Promise.all([
+        fetch("/api/kbc-attendance/", { cache: "no-store" }),
+        fetch("/api/learner-contact-actions/"),
+      ]);
+
+      if (attendanceResponse.ok) {
+        const data = await attendanceResponse.json();
+        setAttendanceData(Array.isArray(data) ? data : []);
+      }
+
+      if (actionsResponse.ok) {
+        const data = await actionsResponse.json();
+        const mapped: Record<string, ContactActionState> = {};
+        for (const item of data || []) {
+          const key =
+            item.contact_key ||
+            `${normEmail(item.email)}||${item.date || ""}||${item.module || ""}`;
+          mapped[key] = {
+            called: Boolean(item.called),
+            emailed: Boolean(item.emailed),
+            resolved: Boolean(item.resolved),
+            note: String(item.note || "").trim(),
+          };
+        }
+        setContactActions(mapped);
+      }
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadAttendance(), loadTickets()]);
+  }, [loadAttendance, loadTickets]);
+
+  useEffect(() => {
+    void refreshAll();
+  }, [refreshAll]);
+
+  useEffect(() => {
+    refreshIntervalRef.current = setInterval(
+      () => void Promise.all([loadAttendance(false), loadTickets()]),
+      5000
+    );
+    return () => {
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
+  }, [loadAttendance, loadTickets]);
+
+  const ticketMaps = useMemo(() => {
+    const byAttendance = new Map<string, TicketInfo>();
+    const byEmail = new Map<string, TicketInfo>();
+    for (const ticket of tickets) {
+      if (!ticket.email) continue;
+      if (!byEmail.has(ticket.email)) byEmail.set(ticket.email, ticket);
+      if (ticket.attendanceDate) {
+        const key = `${ticket.email}||${ticket.attendanceDate}`;
+        if (!byAttendance.has(key)) byAttendance.set(key, ticket);
+      }
+    }
+    return { byAttendance, byEmail };
+  }, [tickets]);
+
+  const attendanceMetrics = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildAttendanceMetrics>>();
+    for (const record of attendanceData) {
+      const email = normEmail(record.email);
+      if (email) map.set(email, buildAttendanceMetrics(record.records || [], absenceWindow));
+    }
+    return map;
+  }, [attendanceData, absenceWindow]);
+
+  const allLearners = useMemo<AttendanceLearner[]>(() => {
+    return attendanceData.map((record) => {
+      const email = normEmail(record.email);
+      const metrics =
+        attendanceMetrics.get(email) ?? buildAttendanceMetrics([], absenceWindow);
+      const fullName = String(record.fullName || "").trim();
+      const nameParts = fullName.split(/\s+/).filter(Boolean);
+      const firstName =
+        nameParts.slice(0, -1).join(" ") || fullName || "Unknown";
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+      const attendanceDate =
+        metrics.lastSessionDate === "N/A" ? "" : metrics.lastSessionDate;
+      const attendanceModule = metrics.lastSessionModule;
+      const attendanceContactKey = `${email}||${attendanceDate}||${attendanceModule}`;
+      const ticket = attendanceDate
+        ? ticketMaps.byAttendance.get(`${email}||${attendanceDate}`)
+        : ticketMaps.byEmail.get(email);
+      const contactState = contactActions[attendanceContactKey] ?? {
+        called: false,
+        emailed: false,
+        resolved: false,
+        note: "",
+      };
+      const phone = String(record.phone || "").trim();
+      const organisation = String(record.organisation || "").trim();
+      const programme = String(
+        record.aptemProgramme || metrics.latestProgramme || ""
+      ).trim();
+      const coachName = String(record.ownerName || "").trim();
+
+      return {
+        id: email,
+        firstName,
+        lastName,
+        email,
+        phone,
+        whatsapp: phone,
+        organisation,
+        programme,
+        coach: coachName,
+        coachName,
+        cohort: "",
+        status: "Active",
+        lineManagerName: "N/A",
+        lineManagerPhone: "",
+        lineManagerEmail: "",
+        startDate: "",
+        expectedEndDate: "",
+        plannedOtjHours: 0,
+        expectedOtjHours: 0,
+        actualOtjHours: 0,
+        lastSessionDate: metrics.lastSessionDate,
+        lastSessionStatus: metrics.lastSessionStatus,
+        absenceRatio: metrics.absenceRatio,
+        missedLast10Weeks: metrics.missedLast10Weeks,
+        missedInRow: metrics.missedInRow,
+        riskCategories:
+          metrics.missedInRow >= 1 || metrics.absenceRatio >= 25
+            ? ["missed-session"]
+            : [],
+        priority:
+          metrics.missedInRow > 2
+            ? "critical"
+            : metrics.missedInRow >= 1
+              ? "high"
+              : "normal",
+        isResolved: ticket?.status === "resolved",
+        attendanceEmail: email,
+        attendanceDate,
+        attendanceModule,
+        attendanceContactKey,
+        called: contactState.called,
+        emailed: contactState.emailed,
+        note: contactState.note,
+        hasAttendanceInWindow: metrics.hasAttendanceInWindow,
+      };
+    });
+  }, [
+    absenceWindow,
+    attendanceData,
+    attendanceMetrics,
+    contactActions,
+    ticketMaps,
+  ]);
+
+  const missedLearners = useMemo(
+    () =>
+      allLearners.filter(
+        (learner) =>
+          learner.hasAttendanceInWindow && learner.lastSessionStatus === "Missed"
+      ),
+    [allLearners]
+  );
+
+  const programmes = useMemo(
+    () =>
+      Array.from(
+        new Set(allLearners.map((learner) => learner.programme).filter(Boolean))
+      ).sort(),
+    [allLearners]
+  );
+  const coachOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(allLearners.map((learner) => learner.coachName).filter(Boolean))
+      ).sort(),
+    [allLearners]
+  );
+  const organisations = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allLearners.map((learner) => learner.organisation).filter(Boolean)
+        )
+      ).sort(),
+    [allLearners]
+  );
+
+  const entityFiltered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return missedLearners.filter((learner) => {
+      const fullName = `${learner.firstName} ${learner.lastName}`.trim();
+      if (
+        query &&
+        !fullName.toLowerCase().includes(query) &&
+        !learner.email.toLowerCase().includes(query) &&
+        !learner.organisation.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+      if (programmeFilter !== "all" && learner.programme !== programmeFilter)
+        return false;
+      if (coachFilter !== "all" && learner.coachName !== coachFilter) return false;
+      if (
+        organisationFilter !== "all" &&
+        learner.organisation !== organisationFilter
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    coachFilter,
+    missedLearners,
+    organisationFilter,
+    programmeFilter,
+    search,
+  ]);
+
+  const filteredLearners = useMemo(
+    () =>
+      entityFiltered.filter((learner) => {
+        if (followUpFilter === "unresolved") return !learner.isResolved;
+        if (followUpFilter === "contacted")
+          return (learner.called || learner.emailed) && !learner.isResolved;
+        if (followUpFilter === "resolved") return Boolean(learner.isResolved);
+        return true;
+      }),
+    [entityFiltered, followUpFilter]
+  );
+
+  const autoCreateKeyRef = useRef("");
+  useEffect(() => {
+    if (loading || missedLearners.length === 0 || absenceWindow === "all") return;
+
+    const { start, end } = getExactWeekRange(absenceWindow);
+    const weekKey = `${formatDateKey(start)}_${formatDateKey(end)}`;
+    const emailKey = missedLearners
+      .map((learner) => normEmail(learner.email))
+      .sort()
+      .join(",");
+    const key = `${weekKey}__${emailKey}`;
+    if (autoCreateKeyRef.current === key) return;
+    autoCreateKeyRef.current = key;
+
+    const payload = missedLearners.map((learner) => ({
+      email: normEmail(learner.email),
+      name: `${learner.firstName} ${learner.lastName}`.trim(),
+      phone: learner.phone || "",
+      organisation: learner.organisation || "",
+      programme: learner.programme || "",
+      attendance_date: learner.attendanceDate || null,
+      attendance_module: learner.attendanceModule || "",
+    }));
+
+    fetch("/api/attendance-tickets/auto-create/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        week_start: formatDateKey(start),
+        week_end: formatDateKey(end),
+        learners: payload,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.created > 0) void loadTickets();
+      })
+      .catch(() => {});
+  }, [absenceWindow, loading, loadTickets, missedLearners]);
+
+  const updateContactAction = useCallback(
+    async (payload: {
+      contactKey: string;
+      email: string;
+      date: string;
+      module: string;
+      called: boolean;
+      emailed: boolean;
+      resolved: boolean;
+      note: string;
+    }) => {
+      setContactActions((previous) => ({
+        ...previous,
+        [payload.contactKey]: {
+          called: payload.called,
+          emailed: payload.emailed,
+          resolved: payload.resolved,
+          note: payload.note,
+        },
+      }));
+      setSelectedLearner((previous) => {
+        if (!previous || previous.attendanceContactKey !== payload.contactKey)
+          return previous;
+        return {
+          ...previous,
+          called: payload.called,
+          emailed: payload.emailed,
+          isResolved: payload.resolved,
+          note: payload.note,
+        };
+      });
+
+      try {
+        const response = await fetch("/api/learner-contact-actions/", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: payload.email,
+            date: payload.date,
+            module: payload.module,
+            called: payload.called,
+            emailed: payload.emailed,
+            resolved: payload.resolved,
+            note: payload.note,
+          }),
+        });
+        if (!response.ok) throw new Error("Failed to update contact action");
+      } catch {
+        await loadAttendance(false);
+      }
+    },
+    [loadAttendance]
+  );
+
+  const openFollowUp = (learner: AttendanceLearner) => {
+    const email = normEmail(learner.email);
+    const ticket = learner.attendanceDate
+      ? ticketMaps.byAttendance.get(`${email}||${learner.attendanceDate}`)
+      : ticketMaps.byEmail.get(email);
+    if (ticket) {
+      navigate(`/attendance/tickets?open=${ticket.id}`);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      create: "1",
+      email: learner.email,
+      name: `${learner.firstName} ${learner.lastName}`.trim(),
+      phone: learner.phone || "",
+      organisation: learner.organisation || "",
+      programme: learner.programme || "",
+      date: learner.attendanceDate,
+    });
+    navigate(`/attendance/tickets?${params.toString()}`);
+  };
+
+  const exportCsv = () => {
+    const headers = [
+      "Learner",
+      "Email",
+      "Phone",
+      "Organisation",
+      "Programme",
+      "Coach",
+      "Last Session",
+      "Missed in Row",
+      "Absence Ratio",
+      "Called",
+      "Emailed",
+      "Ticket Status",
+      "Note",
+    ];
+    const rows = filteredLearners.map((learner) => [
+      `${learner.firstName} ${learner.lastName}`.trim(),
+      learner.email,
+      learner.phone,
+      learner.organisation,
+      learner.programme,
+      learner.coachName,
+      learner.lastSessionDate,
+      learner.missedInRow,
+      `${learner.absenceRatio}%`,
+      learner.called ? "Yes" : "No",
+      learner.emailed ? "Yes" : "No",
+      learner.isResolved ? "Resolved" : "Open",
+      learner.note,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `track-attendance-${String(absenceWindow)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const contactedCount = entityFiltered.filter(
+    (learner) => learner.called || learner.emailed
+  ).length;
+  const resolvedCount = entityFiltered.filter((learner) => learner.isResolved).length;
+  const unresolvedCount = entityFiltered.length - resolvedCount;
+  const hasFilters =
+    search !== "" ||
+    programmeFilter !== "all" ||
+    coachFilter !== "all" ||
+    organisationFilter !== "all" ||
+    followUpFilter !== "all";
+
+  const clearFilters = () => {
+    setSearch("");
+    setProgrammeFilter("all");
+    setCoachFilter("all");
+    setOrganisationFilter("all");
+    setFollowUpFilter("all");
+  };
+
+  const weekOptions = [
+    { value: "0", label: `This week - ${getWeekLabel(0)}` },
+    { value: "1", label: `Previous week - ${getWeekLabel(1)}` },
+    { value: "2", label: `2 weeks ago - ${getWeekLabel(2)}` },
+    { value: "3", label: `3 weeks ago - ${getWeekLabel(3)}` },
+    { value: "all", label: "All attendance history" },
+  ];
+
+  return (
+    <AppLayout>
+      <div className="min-h-full bg-[#F4F8FC]">
+        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+          <BackButton to="/attendance" label="Attendance" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+                <AlertTriangle className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-[#14264A]">
+                  Track Attendance
+                </h1>
+                <p className="mt-0.5 text-sm text-[#5F7288]">
+                  Learners with missed sessions and follow-up activity
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => navigate("/attendance/tickets")}
+              className="h-9 gap-1.5 rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]"
+            >
+              <Ticket className="h-4 w-4" />
+              Attendance Tickets
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6">
+          <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              {
+                label: "Missed Session",
+                count: entityFiltered.length,
+                sub: "in the selected window",
+                icon: <AlertTriangle className="h-4 w-4" />,
+                classes: "border-blue-200 bg-blue-50 text-blue-900",
+              },
+              {
+                label: "Contacted",
+                count: contactedCount,
+                sub: "called or emailed",
+                icon: <PhoneCall className="h-4 w-4" />,
+                classes: "border-teal-200 bg-teal-50 text-teal-900",
+              },
+              {
+                label: "Unresolved",
+                count: unresolvedCount,
+                sub: "still needs action",
+                icon: <Users className="h-4 w-4" />,
+                classes: "border-red-200 bg-red-50 text-red-900",
+              },
+              {
+                label: "Resolved",
+                count: resolvedCount,
+                sub: "follow-up completed",
+                icon: <CheckCircle2 className="h-4 w-4" />,
+                classes: "border-green-200 bg-green-50 text-green-900",
+              },
+            ].map(({ label, count, sub, icon, classes }) => (
+              <div key={label} className={`rounded-xl border p-3 ${classes}`}>
+                <div className="flex items-center gap-2 opacity-75">
+                  {icon}
+                  <span className="text-xs font-semibold">{label}</span>
+                </div>
+                <p className="mt-1 text-2xl font-bold">{loading ? "..." : count}</p>
+                <p className="text-[11px] opacity-65">{sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-2 flex flex-wrap gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search name, email, organisation..."
+                className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm"
+              />
+            </div>
+            <FilterSelect
+              value={programmeFilter}
+              onChange={setProgrammeFilter}
+              options={[
+                { value: "all", label: "All Programmes" },
+                ...programmes.map((programme) => ({
+                  value: programme,
+                  label: programme,
+                })),
+              ]}
+              minWidth={190}
+            />
+            <FilterSelect
+              value={coachFilter}
+              onChange={setCoachFilter}
+              options={[
+                { value: "all", label: "All Coaches" },
+                ...coachOptions.map((coach) => ({ value: coach, label: coach })),
+              ]}
+              minWidth={170}
+            />
+            <FilterSelect
+              value={organisationFilter}
+              onChange={setOrganisationFilter}
+              options={[
+                { value: "all", label: "All Organizations" },
+                ...organisations.map((organisation) => ({
+                  value: organisation,
+                  label: organisation,
+                })),
+              ]}
+              minWidth={190}
+            />
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <FilterSelect
+              value={String(absenceWindow)}
+              onChange={(value) =>
+                setAbsenceWindow(
+                  value === "all" ? "all" : (Number(value) as 0 | 1 | 2 | 3)
+                )
+              }
+              options={weekOptions}
+              minWidth={260}
+            />
+            <FilterSelect
+              value={followUpFilter}
+              onChange={(value) => setFollowUpFilter(value as FollowUpFilter)}
+              options={[
+                { value: "all", label: "All Follow-up" },
+                { value: "unresolved", label: "Unresolved" },
+                { value: "contacted", label: "Contacted" },
+                { value: "resolved", label: "Resolved" },
+              ]}
+              minWidth={165}
+            />
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
+              >
+                Clear Filters
+              </button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshAll}
+              disabled={loading}
+              className="ml-auto h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+            {loading ? (
+              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">
+                Loading learners...
+              </div>
+            ) : filteredLearners.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+                <CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" />
+                <p>No missed attendance learners found</p>
+                {hasFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-semibold text-[#1E6ACB] hover:underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div
+                className="overflow-auto"
+                style={{ maxHeight: "calc(100vh - 365px)" }}
+              >
+                <table className="min-w-[1450px] w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-0 z-30 min-w-[220px] border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                        Learner
+                      </th>
+                      {[
+                        "Phone",
+                        "Organisation",
+                        "Programme",
+                        "Coach",
+                        "Last Session",
+                        "Session Status",
+                        "Missed in Row",
+                        "Absence Ratio",
+                        "Called",
+                        "Emailed",
+                        "Note",
+                        "Follow-up",
+                      ].map((heading) => (
+                        <th
+                          key={heading}
+                          className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]"
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLearners.map((learner) => {
+                      const email = normEmail(learner.email);
+                      const ticket = learner.attendanceDate
+                        ? ticketMaps.byAttendance.get(
+                            `${email}||${learner.attendanceDate}`
+                          )
+                        : ticketMaps.byEmail.get(email);
+                      return (
+                        <tr
+                          key={learner.id}
+                          onClick={() => {
+                            setSelectedLearner(learner);
+                            setDrawerOpen(true);
+                          }}
+                          className="group cursor-pointer border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]"
+                        >
+                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
+                            <p className="whitespace-nowrap font-semibold text-[#14264A]">
+                              {learner.firstName} {learner.lastName}
+                            </p>
+                            <p className="text-xs text-[#71849A]">{learner.email}</p>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                            {learner.phone || "N/A"}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                            {learner.organisation || "N/A"}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                            {learner.programme || "N/A"}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                            {learner.coachName || "Unassigned"}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#14264A]">
+                            {formatAttendanceDate(learner.attendanceDate)}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                              <AlertTriangle className="h-3 w-3" />
+                              Missed
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center text-xs font-bold text-red-600">
+                            {learner.missedInRow}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span
+                              className={`text-xs font-semibold ${
+                                learner.absenceRatio >= 50
+                                  ? "text-red-600"
+                                  : learner.absenceRatio >= 25
+                                    ? "text-amber-600"
+                                    : "text-[#5F7288]"
+                              }`}
+                            >
+                              {learner.absenceRatio}%
+                            </span>
+                          </td>
+                          <td
+                            className="px-3 py-3"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={learner.called}
+                              onCheckedChange={(checked) =>
+                                updateContactAction(
+                                  getContactPayload(learner, {
+                                    called: Boolean(checked),
+                                  })
+                                )
+                              }
+                            />
+                          </td>
+                          <td
+                            className="px-3 py-3"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={learner.emailed}
+                              onCheckedChange={(checked) =>
+                                updateContactAction(
+                                  getContactPayload(learner, {
+                                    emailed: Boolean(checked),
+                                  })
+                                )
+                              }
+                            />
+                          </td>
+                          <td className="max-w-[220px] px-3 py-3 text-xs text-[#5F7288]">
+                            <p className="line-clamp-2" title={learner.note}>
+                              {learner.note || "No note"}
+                            </p>
+                          </td>
+                          <td
+                            className="px-3 py-3"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openFollowUp(learner)}
+                              className={`h-7 gap-1 rounded-lg px-2 text-xs font-semibold ${
+                                ticket
+                                  ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                  : "border-[#D7E5F3] text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                              }`}
+                            >
+                              {ticket ? (
+                                <>
+                                  <ExternalLink className="h-3 w-3" />
+                                  View Ticket
+                                </>
+                              ) : (
+                                <>
+                                  <Ticket className="h-3 w-3" />
+                                  Open Ticket
+                                </>
+                              )}
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <LearnerDrawer
+        learner={selectedLearner}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onUpdateContactAction={updateContactAction}
+      />
+    </AppLayout>
+  );
+}

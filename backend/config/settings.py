@@ -159,6 +159,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # KBC API Configuration
 KBC_API_KEY = os.getenv("KBC_API_KEY", "")
 KBC_API_BASE_URL = os.getenv("KBC_API_BASE_URL", "https://api.kentbusinesscollege.net")

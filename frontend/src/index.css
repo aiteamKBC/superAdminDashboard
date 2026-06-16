@@ -278,3 +278,29 @@
   scrollbar-width: thin;
   scrollbar-color: #B8D7F2 transparent;
 }
+
+.filter-select-viewport {
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: #6F9FCC #EEF4FA;
+}
+
+.filter-select-viewport::-webkit-scrollbar {
+  width: 9px;
+}
+
+.filter-select-viewport::-webkit-scrollbar-track {
+  background: #EEF4FA;
+  border-radius: 999px;
+}
+
+.filter-select-viewport::-webkit-scrollbar-thumb {
+  min-height: 36px;
+  background: #6F9FCC;
+  border: 2px solid #EEF4FA;
+  border-radius: 999px;
+}
+
+.filter-select-viewport::-webkit-scrollbar-thumb:hover {
+  background: #4F82B5;
+}

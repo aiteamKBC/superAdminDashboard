@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import AppLayout from "@/components/AppLayout";
 import { mockEmailTemplates } from "@/data/mockData";
@@ -40,6 +40,7 @@ type EmailCentreLocationState = {
   selectedRecipient?: EmailRecipient;
   selectedRecipients?: EmailRecipient[];
   source?: string;
+  ticketId?: number;
 };
 
 type AbsenceWeeksFilter = "all" | 0 | 1 | 2 | 3;
@@ -298,9 +299,14 @@ const findPrDateInQuarter = (
 
 export default function EmailCentre() {
   const location = useLocation();
+  const navigate = useNavigate();
   const locationState = (location.state || {}) as EmailCentreLocationState;
   const preselectedRecipient = locationState.selectedRecipient || null;
   const preselectedRecipients = locationState.selectedRecipients || null;
+  const returnTicketId = locationState.ticketId ?? null;
+  const isFromOtjTicket = locationState.source === "otj-ticket" && returnTicketId != null;
+  const isFromAttendanceTicket =
+    locationState.source === "attendance-ticket" && returnTicketId != null;
 
   const [selectedTemplate, setSelectedTemplate] = useState(mockEmailTemplates[0]);
   const [subject, setSubject] = useState(mockEmailTemplates[0].subject);
@@ -640,7 +646,7 @@ export default function EmailCentre() {
         };
       });
 
-      const res = await fetch("https://n8n.srv943390.hstgr.cloud/webhook/email_sender", {
+      const res = await fetch("/api/send-email/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -678,6 +684,40 @@ export default function EmailCentre() {
             ? `${sentCount} sent, ${failedCount} failed.`
             : `${sentCount} email${sentCount === 1 ? "" : "s"} sent.`,
       });
+
+      if (isFromOtjTicket) {
+        try {
+          const dateStr = new Date().toISOString().slice(0, 10);
+          const emailBlob = new Blob([previewHtml], { type: "text/html" });
+          const emailFile = new File([emailBlob], `email-sent-${dateStr}.html`, { type: "text/html" });
+          const fd = new FormData();
+          fd.append("file", emailFile);
+          await fetch(`/api/otj-tickets/${returnTicketId}/files/`, { method: "POST", body: fd });
+        } catch (_) {}
+        navigate(`/otj-hours/tickets?emailed_ticket=${returnTicketId}`, { replace: true });
+        return;
+      }
+      if (isFromAttendanceTicket) {
+        try {
+          const dateStr = new Date().toISOString().slice(0, 10);
+          const emailBlob = new Blob([previewHtml], { type: "text/html" });
+          const emailFile = new File(
+            [emailBlob],
+            `attendance-email-sent-${dateStr}.html`,
+            { type: "text/html" }
+          );
+          const formData = new FormData();
+          formData.append("file", emailFile);
+          await fetch(`/api/attendance-tickets/${returnTicketId}/files/`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (_) {}
+        navigate(`/attendance/tickets?emailed_ticket=${returnTicketId}`, {
+          replace: true,
+        });
+        return;
+      }
     } catch (err: any) {
       console.error(err);
       toast.error("Email sending failed", {
@@ -692,6 +732,22 @@ export default function EmailCentre() {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6">
+        {(isFromOtjTicket || isFromAttendanceTicket) && (
+          <button
+            onClick={() =>
+              navigate(
+                isFromAttendanceTicket
+                  ? "/attendance/tickets"
+                  : "/otj-hours/tickets"
+              )
+            }
+            className="mb-4 inline-flex items-center gap-1.5 text-[0px] font-semibold text-[#1E6ACB] hover:underline">
+            <span className="text-sm">
+              ← Back to {isFromAttendanceTicket ? "Attendance" : "OTJ"} Tickets
+            </span>
+            ← Back to OTJ Tickets
+          </button>
+        )}
         <h2 className="mb-1 text-xl font-semibold text-foreground">Email Centre</h2>
         <p className="mb-6 text-sm text-muted-foreground">
           Send targeted emails to learners by risk category using pre-built templates.

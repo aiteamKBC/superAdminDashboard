@@ -1,0 +1,395 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CalendarCheck2, CalendarClock, CheckCircle2, Clock, Download, Search } from "lucide-react";
+import AppLayout from "@/components/AppLayout";
+import BackButton from "@/components/BackButton";
+import { Input } from "@/components/ui/input";
+import FilterSelect from "@/components/FilterSelect";
+
+interface MCMRow {
+  id: string;
+  fullName: string;
+  email: string;
+  status: string;
+  caseOwner: string;
+  overdueMcmCount: number;
+  nextDueDate: string | null;
+  lastActuallyCompletedMcm: string;
+  mcrStatus: string;
+  programme: string;
+  organisationName: string;
+  mcmDates: { date: string; status: string; completed: boolean }[];
+}
+
+const fmtDate = (s: string | null) => {
+  if (!s) return "—";
+  try { return new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
+  catch { return s; }
+};
+
+const riskBadge = (count: number) => {
+  if (count === 0) return <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">On Track</span>;
+  if (count <= 2) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{count} Overdue</span>;
+  return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">{count} Overdue</span>;
+};
+
+// Mirrors dashboard getMcrMonthRange / getMcrPeriodLabel logic exactly
+function getMcrRange(offset: number): { start: Date; end: Date } {
+  const now = new Date();
+  if (offset === -1) {
+    // "Last 30 days" — rolling 30-day window ending now
+    const end = new Date(now); end.setHours(23, 59, 59, 999);
+    const start = new Date(end); start.setDate(end.getDate() - 30); start.setHours(0, 0, 0, 0);
+    return { start, end };
+  }
+  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1); start.setHours(0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0); end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+// Same options as dashboard MCM Period dropdown (no "All Periods")
+function getMcmPeriodOptions() {
+  const now = new Date();
+  const opts: { label: string; offset: number }[] = [
+    { label: "Last 30 days", offset: -1 },
+    {
+      label: `This Month - ${new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`,
+      offset: 0,
+    },
+  ];
+  for (let i = 1; i <= 5; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    opts.push({ label: d.toLocaleDateString("en-GB", { month: "long", year: "numeric" }), offset: i });
+  }
+  return opts;
+}
+
+const PERIOD_OPTIONS = getMcmPeriodOptions();
+
+// Exact same logic as dashboard coaching-due filter
+function matchesPeriod(row: MCMRow, offset: number): boolean {
+  const { start, end } = getMcrRange(offset);
+  const isPast = offset < 0; // "Last 30 days"
+  const excludeStart = offset === -1;
+  const mcrToday = new Date(); mcrToday.setHours(0, 0, 0, 0);
+
+  return row.mcmDates.some((d) => {
+    const dt = new Date(d.date);
+    if (isNaN(dt.getTime())) return false;
+    dt.setHours(0, 0, 0, 0);
+    // mirror isDateWithinRange(dt, start, end, excludeStart)
+    if (dt > end) return false;
+    if (excludeStart ? dt <= start : dt < start) return false;
+    // Past period (Last 30 days): include ALL statuses
+    if (isPast) return true;
+    // Current / future months: only pending/due
+    if (d.completed) return false;
+    const statusLow = d.status.toLowerCase();
+    const isScheduled = statusLow.includes("scheduled") && !statusLow.includes("not");
+    if (dt > mcrToday && isScheduled) return false;
+    return true;
+  });
+}
+
+type MCMCategory = "not_scheduled" | "scheduled" | "in_progress" | "completed";
+
+function getMcmCategory(row: MCMRow, offset: number): MCMCategory {
+  const { start, end } = getMcrRange(offset);
+  const isPast = offset < 0;
+  const excludeStart = offset === -1;
+
+  // Keep category selection identical to Scheduled MCM: use the first
+  // qualifying entry in the source order for the selected period.
+  const match = row.mcmDates.find((d) => {
+    const dt = new Date(d.date);
+    if (isNaN(dt.getTime())) return false;
+    dt.setHours(0, 0, 0, 0);
+    if (dt > end) return false;
+    if (excludeStart ? dt <= start : dt < start) return false;
+
+    const s = d.status.toLowerCase();
+    if (isPast) {
+      return (
+        s.includes("completed") ||
+        (s.includes("scheduled") && !s.includes("not")) ||
+        s.includes("in progress")
+      );
+    }
+    return s.includes("scheduled") && !s.includes("not");
+  });
+
+  if (!match) return "not_scheduled";
+
+  const status = match.status.toLowerCase();
+  if (match.completed || status.includes("completed")) return "completed";
+  if (status.includes("in progress") || status.includes("awaiting")) return "in_progress";
+  return "scheduled";
+}
+
+const CATEGORY_CARDS = [
+  {
+    key: "not_scheduled" as MCMCategory,
+    label: "Not Scheduled",
+    sub: "No session booked",
+    icon: <AlertTriangle className="h-4 w-4" />,
+    base:   "border-red-200 bg-red-50 text-red-800",
+    active: "border-red-600 bg-red-600 text-white shadow-md",
+  },
+  {
+    key: "scheduled" as MCMCategory,
+    label: "Scheduled",
+    sub: "Session booked",
+    icon: <CalendarCheck2 className="h-4 w-4" />,
+    base:   "border-teal-200 bg-teal-50 text-teal-800",
+    active: "border-teal-600 bg-teal-600 text-white shadow-md",
+  },
+  {
+    key: "in_progress" as MCMCategory,
+    label: "In Progress",
+    sub: "In Progress / Awaiting Sig.",
+    icon: <Clock className="h-4 w-4" />,
+    base:   "border-blue-200 bg-blue-50 text-blue-800",
+    active: "border-blue-600 bg-blue-600 text-white shadow-md",
+  },
+  {
+    key: "completed" as MCMCategory,
+    label: "Completed",
+    sub: "MCM done this period",
+    icon: <CheckCircle2 className="h-4 w-4" />,
+    base:   "border-green-200 bg-green-50 text-green-800",
+    active: "border-green-600 bg-green-600 text-white shadow-md",
+  },
+];
+
+export default function RequiredMCMPage() {
+  const [all, setAll] = useState<MCMRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [coachFilter, setCoachFilter] = useState("all");
+  const [programmeFilter, setProgrammeFilter] = useState("all");
+  const [orgFilter, setOrgFilter] = useState("all");
+  const [periodOffset, setPeriodOffset] = useState(-1);
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<MCMCategory | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/mcr-summary/");
+      // Load ALL active learners — period filter determines "required", matching dashboard logic
+      if (res.ok) setAll(await res.json());
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  // Count of period-filtered learners who have at least 1 overdue MCM
+  const totalOverdue = useMemo(() => {
+    const q = search.toLowerCase();
+    return all.filter((r) => {
+      if (!matchesPeriod(r, periodOffset)) return false;
+      if (q && !r.fullName.toLowerCase().includes(q) && !r.email.toLowerCase().includes(q)) return false;
+      if (coachFilter !== "all" && r.caseOwner !== coachFilter) return false;
+      if (programmeFilter !== "all" && r.programme !== programmeFilter) return false;
+      if (orgFilter !== "all" && r.organisationName !== orgFilter) return false;
+      return r.overdueMcmCount >= 1;
+    }).length;
+  }, [all, search, coachFilter, programmeFilter, orgFilter, periodOffset]);
+
+  const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).sort()], [all]);
+  const programmes = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.programme).filter(Boolean))).sort()], [all]);
+  const orgs = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.organisationName).filter(Boolean))).sort()], [all]);
+
+  // Period + dropdown filters (without categoryFilter) — used for card counts
+  const periodFiltered = useMemo(() => {
+    const q = search.toLowerCase();
+    return all.filter((r) => {
+      if (!matchesPeriod(r, periodOffset)) return false;
+      if (overdueOnly && r.overdueMcmCount < 1) return false;
+      if (q && !r.fullName.toLowerCase().includes(q) && !r.email.toLowerCase().includes(q)) return false;
+      if (coachFilter !== "all" && r.caseOwner !== coachFilter) return false;
+      if (programmeFilter !== "all" && r.programme !== programmeFilter) return false;
+      if (orgFilter !== "all" && r.organisationName !== orgFilter) return false;
+      return true;
+    });
+  }, [all, search, coachFilter, programmeFilter, orgFilter, periodOffset, overdueOnly]);
+
+  // Category breakdown — counts per MCM status within the period
+  const categoryCounts = useMemo(() => {
+    const counts: Record<MCMCategory, number> = { not_scheduled: 0, scheduled: 0, in_progress: 0, completed: 0 };
+    for (const r of periodFiltered) counts[getMcmCategory(r, periodOffset)]++;
+    return counts;
+  }, [periodFiltered, periodOffset]);
+
+  // Final rows = period filtered + optional category filter
+  const filtered = useMemo(() =>
+    categoryFilter ? periodFiltered.filter((r) => getMcmCategory(r, periodOffset) === categoryFilter) : periodFiltered,
+  [periodFiltered, categoryFilter, periodOffset]);
+
+  const exportCsv = () => {
+    const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "Next Due Date", "Last Completed MCM"];
+    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, r.overdueMcmCount, fmtDate(r.nextDueDate), fmtDate(r.lastActuallyCompletedMcm)]);
+    const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "required-mcm.csv"; a.click();
+  };
+
+  return (
+    <AppLayout>
+      <div className="min-h-full bg-[#F4F8FC]">
+        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+          <BackButton to="/coaching-meetings" label="Monthly Coaching Meetings" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F0F9]">
+                <CalendarClock className="h-5 w-5 text-[#315D93]" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-[#14264A]">Required MCM</h1>
+                <p className="mt-0.5 text-sm text-[#5F7288]">
+                  Learners requiring monthly coaching action in the{" "}
+                  <strong className="font-bold text-[#315D93]">Last 30 days</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6">
+          {/* Summary card */}
+          <div className="mb-4">
+            <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-[#5F7288]">Required MCM</p>
+              <p className="mt-1 text-3xl font-bold text-[#315D93]">
+                {periodFiltered.length}
+                <span className="ml-2 text-base font-normal text-[#8AA0B6]">of {all.length} active learners</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Category cards — same pattern as PR page */}
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {CATEGORY_CARDS.map(({ key, label, sub, icon, base, active }) => {
+              const count = categoryCounts[key];
+              const pct = all.length ? Math.round((count / all.length) * 100) : 0;
+              const isActive = categoryFilter === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setCategoryFilter(isActive ? null : key)}
+                  className={`rounded-xl border p-3 text-left transition-all duration-150 hover:shadow-sm active:scale-[0.98] ${isActive ? active : base}`}
+                >
+                  <div className="flex items-center gap-2 opacity-70">
+                    {icon}
+                    <span className="text-xs font-semibold">{label}</span>
+                  </div>
+                  <p className="mt-1 text-2xl font-bold">{count}</p>
+                  <p className="mt-0.5 text-sm font-semibold opacity-75">
+                    {pct}%
+                    <span className="ml-1 text-[10px] font-normal opacity-70">of {all.length}</span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] opacity-60">{sub}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Filters — row 1 */}
+          <div className="mb-2 flex flex-wrap gap-2">
+            <div className="relative flex-1" style={{ minWidth: 200 }}>
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+            </div>
+            <FilterSelect
+              value={programmeFilter}
+              onChange={setProgrammeFilter}
+              options={[{ value: "all", label: "All Programmes" }, ...programmes.filter((p) => p !== "all").map((p) => ({ value: p, label: p }))]}
+              minWidth={180}
+            />
+            <FilterSelect
+              value={coachFilter}
+              onChange={setCoachFilter}
+              options={[{ value: "all", label: "All Coaches" }, ...coaches.filter((c) => c !== "all").map((c) => ({ value: c, label: c }))]}
+              minWidth={160}
+            />
+            <FilterSelect
+              value={orgFilter}
+              onChange={setOrgFilter}
+              options={[{ value: "all", label: "All Organizations" }, ...orgs.filter((o) => o !== "all").map((o) => ({ value: o, label: o }))]}
+              minWidth={180}
+            />
+          </div>
+
+          {/* Filters — row 2: MCM Period + Overdue toggle */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <FilterSelect
+              value={String(periodOffset)}
+              onChange={(v) => setPeriodOffset(Number(v))}
+              options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))}
+              minWidth={210}
+            />
+            <button
+              onClick={() => setOverdueOnly((p) => !p)}
+              className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors ${
+                overdueOnly
+                  ? "border-[#315D93] bg-[#315D93] text-white"
+                  : "border-[#315D93] bg-[#315D93] text-white hover:bg-[#274D7A]"
+              }`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Overdue
+              <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#315D93]">{totalOverdue}</span>
+            </button>
+            {(coachFilter !== "all" || programmeFilter !== "all" || orgFilter !== "all" || periodOffset !== -1 || search || overdueOnly || categoryFilter) && (
+              <button
+                onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setOverdueOnly(false); setCategoryFilter(null); }}
+                className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
+              >
+                Clear Filters
+              </button>
+            )}
+            <button onClick={exportCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm font-semibold text-[#24486D] hover:bg-[#F0F6FF]">
+              <Download className="h-4 w-4" /> Export CSV
+            </button>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+            {loading ? (
+              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading…</div>
+            ) : filtered.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+                <AlertTriangle className="h-8 w-8 text-[#C5D5E3]" /><p>No learners found</p>
+              </div>
+            ) : (
+              <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 400px)" }}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                      {["Email", "Programme", "Organisation", "Coach", "Overdue", "Next Due Date", "Last Completed MCM"].map((h) => (
+                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((r) => (
+                      <tr key={r.id} className="group border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
+                        <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
+                        <td className="px-3 py-3 text-xs text-[#71849A]">{r.email}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "—"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "—"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "—"}</td>
+                        <td className="px-3 py-3">{riskBadge(r.overdueMcmCount)}</td>
+                        <td className="px-3 py-3 text-xs font-semibold text-red-600">{fmtDate(r.nextDueDate)}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(r.lastActuallyCompletedMcm)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}

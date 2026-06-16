@@ -201,6 +201,24 @@ def is_countable_progress_review_slot(planned_value):
 
 
 def progress_review_summary(request):
+    # Fetch phone / organisation from aptem_auto_extracting for enrichment
+    learner_extras = {}
+    try:
+        with connections["aptem"].cursor() as cur:
+            cur.execute("""
+                SELECT "Email", "Learner Phone", "OrganizationName"
+                FROM public.aptem_auto_extracting
+            """)
+            for row in cur.fetchall():
+                em = (row[0] or "").strip().lower()
+                if em:
+                    learner_extras[em] = {
+                        "phone": str(row[1] or "").strip(),
+                        "organisation": str(row[2] or "").strip(),
+                    }
+    except Exception:
+        pass
+
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
             SELECT
@@ -302,12 +320,17 @@ def progress_review_summary(request):
         if not next_pr_state and next_due_state_from_planned:
             next_pr_state = next_due_state_from_planned
 
+        email_key = (row.get("Email") or "").strip().lower()
+        extras = learner_extras.get(email_key, {})
+
         results.append({
             "id": row.get("ID"),
             "fullName": row.get("FullName") or "",
-            "email": (row.get("Email") or "").strip().lower(),
+            "email": email_key,
             "group": row.get("Group") or "",
             "caseOwner": row.get("CaseOwner") or "",
+            "phone": extras.get("phone", ""),
+            "organisation": extras.get("organisation", ""),
             "lastProgressReview": last_progress_review,
             "nextReviewStatus": next_review_raw,
             "nextPrDate": next_pr_date,
@@ -807,8 +830,9 @@ def otj_at_risk_summary(request):
                 "Total Days",
                 "Elapsed-Days"
             FROM public.aptem_auto_extracting
-            WHERE LOWER(COALESCE("OTJHoursStatus", '')) = 'at risk'
-              AND LOWER(COALESCE("Program-Status", '')) = 'active'
+            WHERE "Program-Status" = 'Active'
+              AND "OTJHoursStatus" IS NOT NULL
+              AND "OTJHoursStatus" != ''
         """)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -828,6 +852,8 @@ def otj_at_risk_summary(request):
             "progressVariance": row.get("ProgressVariance") or "",
             "progressHours": row.get("Progress-Hours") or "",
             "otjHoursStatus": row.get("OTJHoursStatus") or "",
+            "prStatusLast12Weeks": "",
+            "mcmStatusLast4Weeks": "",
             "programName": row.get("Program Name") or "",
             "programStatus": row.get("Program-Status") or "",
             "ownerName": row.get("OwnerName") or "",
@@ -847,41 +873,45 @@ def mcr_summary(request):
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
             SELECT
-                "ID",
-                "FullName",
-                "Email",
-                "Status",
-                "Subscription Status",
-                "CaseOwner",
-                "Last MCM",
-                "Next MCM",
-                "MCM1", "Status1",
-                "MCM2", "Status2",
-                "MCM3", "Status3",
-                "MCM4", "Status4",
-                "MCM5", "Status5",
-                "MCM6", "Status6",
-                "MCM7", "Status7",
-                "MCM8", "Status8",
-                "MCM9", "Status9",
-                "MCM10", "Status10",
-                "MCM11", "Status11",
-                "MCM12", "Status12",
-                "MCM13", "Status13",
-                "MCM14", "Status14",
-                "MCM15", "Status15",
-                "MCM16", "Status16",
-                "MCM17", "Status17",
-                "MCM18", "Status18",
-                "MCM19", "Status19",
-                "MCM20", "Status20",
-                "MCM21", "Status21",
-                "MCM22", "Status22",
-                "Last Actually Completed  MCM",
-                "Manager Name",
-                "Manager Email"
-            FROM public."MCR"
-            WHERE LOWER(COALESCE("Status", '')) = 'active'
+                m."ID",
+                m."FullName",
+                m."Email",
+                m."Status",
+                m."Subscription Status",
+                m."CaseOwner",
+                m."Last MCM",
+                m."Next MCM",
+                m."MCM1", m."Status1",
+                m."MCM2", m."Status2",
+                m."MCM3", m."Status3",
+                m."MCM4", m."Status4",
+                m."MCM5", m."Status5",
+                m."MCM6", m."Status6",
+                m."MCM7", m."Status7",
+                m."MCM8", m."Status8",
+                m."MCM9", m."Status9",
+                m."MCM10", m."Status10",
+                m."MCM11", m."Status11",
+                m."MCM12", m."Status12",
+                m."MCM13", m."Status13",
+                m."MCM14", m."Status14",
+                m."MCM15", m."Status15",
+                m."MCM16", m."Status16",
+                m."MCM17", m."Status17",
+                m."MCM18", m."Status18",
+                m."MCM19", m."Status19",
+                m."MCM20", m."Status20",
+                m."MCM21", m."Status21",
+                m."MCM22", m."Status22",
+                m."Last Actually Completed  MCM",
+                m."Manager Name",
+                m."Manager Email",
+                COALESCE(a."Program Name", '') AS "Programme",
+                COALESCE(a."OrganizationName", '') AS "OrganisationName"
+            FROM public."MCR" m
+            LEFT JOIN public.aptem_auto_extracting a
+                ON LOWER(TRIM(m."Email")) = LOWER(TRIM(a."Email"))
+            WHERE LOWER(COALESCE(m."Status", '')) = 'active'
         """)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -940,6 +970,8 @@ def mcr_summary(request):
             "mcmDates": mcm_dates,
             "managerName": row.get("Manager Name") or "",
             "managerEmail": (row.get("Manager Email") or "").strip().lower(),
+            "programme": row.get("Programme") or "",
+            "organisationName": row.get("OrganisationName") or "",
         })
 
     return JsonResponse(results, safe=False)
@@ -947,6 +979,32 @@ def mcr_summary(request):
 
 def kbc_attendance_summary(request):
     from collections import defaultdict
+
+    # Enrich each attendance learner from their APTEM learner record.
+    learner_extras = {}
+    try:
+        with connections["aptem"].cursor() as cur:
+            cur.execute("""
+                SELECT
+                    "Email",
+                    "Learner Phone",
+                    "OrganizationName",
+                    "Program Name",
+                    "OwnerName"
+                FROM public.aptem_auto_extracting
+            """)
+            for row in cur.fetchall():
+                em = (row[0] or "").strip().lower()
+                if em:
+                    learner_extras[em] = {
+                        "phone": str(row[1] or "").strip(),
+                        "organisation": str(row[2] or "").strip(),
+                        "programme": str(row[3] or "").strip(),
+                        "owner_name": str(row[4] or "").strip(),
+                    }
+    except Exception:
+        pass
+
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
@@ -977,15 +1035,20 @@ def kbc_attendance_summary(request):
             "key": row.get("key") or "",
         })
 
-    results = [
-        {
+    results = []
+    for email, data in grouped.items():
+        if not data["records"]:
+            continue
+        extras = learner_extras.get(email, {})
+        results.append({
             "email": email,
             "fullName": data["fullName"],
+            "phone": extras.get("phone", ""),
+            "organisation": extras.get("organisation", ""),
+            "aptemProgramme": extras.get("programme", ""),
+            "ownerName": extras.get("owner_name", ""),
             "records": data["records"],
-        }
-        for email, data in grouped.items()
-        if data["records"]
-    ]
+        })
 
     return JsonResponse(results, safe=False)
 
@@ -1199,3 +1262,839 @@ def fetch_all_coaches_analytics(request):
         return JsonResponse({"error": f"Failed to connect to KBC API: {str(e)}"}, status=502)
     except Exception as e:
         return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)
+
+
+# ─────────────────── Attendance Ticket System ───────────────────
+
+def _ticket_to_dict(ticket):
+    from .models import AttendanceTicket
+    return {
+        "id": ticket.pk,
+        "ticketRef": ticket.ticket_ref,
+        "learnerEmail": ticket.learner_email,
+        "learnerName": ticket.learner_name,
+        "learnerPhone": ticket.learner_phone,
+        "organisation": ticket.organisation,
+        "programme": ticket.programme,
+        "attendanceDate": ticket.attendance_date.isoformat() if ticket.attendance_date else None,
+        "attendanceModule": ticket.attendance_module,
+        "risk": ticket.risk,
+        "status": ticket.status,
+        "assignedOwner": ticket.assigned_owner,
+        "action": ticket.action,
+        "notes": ticket.notes,
+        "evidence": ticket.evidence,
+        "isArchived": ticket.is_archived,
+        "escalated": ticket.escalated,
+        "createdBy": ticket.created_by,
+        "createdAt": ticket.created_at.isoformat(),
+        "updatedAt": ticket.updated_at.isoformat(),
+        "evidenceCount": ticket.evidence_files.count(),
+    }
+
+
+@csrf_exempt
+def auto_create_attendance_tickets(request):
+    """Auto-create tickets for absent learners in a given week if no ticket exists yet."""
+    from .models import AttendanceTicket
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    body = _json_body(request)
+    learners = body.get("learners", [])
+
+    created_list = []
+    existing_list = []
+
+    for learner in learners:
+        email = str(learner.get("email") or "").strip().lower()
+        if not email:
+            continue
+
+        raw_date = learner.get("attendance_date")
+        att_date = None
+        if raw_date:
+            try:
+                att_date = date.fromisoformat(str(raw_date))
+            except Exception:
+                pass
+
+        # Check for existing non-archived ticket for same email + date
+        existing = AttendanceTicket.objects.filter(
+            learner_email=email,
+            attendance_date=att_date,
+            is_archived=False,
+        ).first()
+
+        if existing:
+            existing_list.append({
+                "email": email,
+                "id": existing.pk,
+                "ticketRef": existing.ticket_ref,
+                "status": existing.status,
+                "created": False,
+            })
+        else:
+            ticket = AttendanceTicket.objects.create(
+                ticket_ref="ATT-TMP",
+                learner_email=email,
+                learner_name=str(learner.get("name") or "").strip(),
+                learner_phone=str(learner.get("phone") or "").strip(),
+                organisation=str(learner.get("organisation") or "").strip(),
+                programme=str(learner.get("programme") or "").strip(),
+                attendance_date=att_date,
+                attendance_module=str(learner.get("attendance_module") or "").strip(),
+                risk="amber",
+                status="new",
+                assigned_owner="",
+                action="no_action",
+                notes="",
+                evidence="",
+                created_by="Auto",
+            )
+            ticket.ticket_ref = f"ATT-{ticket.pk:03d}"
+            ticket.save(update_fields=["ticket_ref"])
+            created_list.append({
+                "email": email,
+                "id": ticket.pk,
+                "ticketRef": ticket.ticket_ref,
+                "status": ticket.status,
+                "created": True,
+            })
+
+    return JsonResponse({
+        "created": len(created_list),
+        "existing": len(existing_list),
+        "tickets": created_list + existing_list,
+    })
+
+
+@csrf_exempt
+def attendance_tickets(request):
+    from .models import AttendanceTicket
+
+    if request.method == "GET":
+        show_archived = request.GET.get("archived", "false").lower() == "true"
+        tickets = AttendanceTicket.objects.filter(is_archived=show_archived)
+        return JsonResponse([_ticket_to_dict(t) for t in tickets], safe=False)
+
+    if request.method == "POST":
+        body = _json_body(request)
+        if not body.get("learner_email") or not body.get("learner_name"):
+            return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
+
+        att_date = None
+        raw_date = body.get("attendance_date")
+        if raw_date:
+            try:
+                att_date = date.fromisoformat(str(raw_date))
+            except Exception:
+                pass
+
+        ticket = AttendanceTicket.objects.create(
+            ticket_ref="ATT-TMP",
+            learner_email=str(body.get("learner_email", "")).strip().lower(),
+            learner_name=str(body.get("learner_name", "")).strip(),
+            learner_phone=str(body.get("learner_phone", "")).strip(),
+            organisation=str(body.get("organisation", "")).strip(),
+            programme=str(body.get("programme", "")).strip(),
+            attendance_date=att_date,
+            attendance_module=str(body.get("attendance_module", "")).strip(),
+            risk=str(body.get("risk", "green")).strip(),
+            status=str(body.get("status", "new")).strip(),
+            assigned_owner=str(body.get("assigned_owner", "")).strip(),
+            action=str(body.get("action", "")).strip(),
+            notes=str(body.get("notes", "")).strip(),
+            evidence=str(body.get("evidence", "")).strip(),
+            escalated=bool(body.get("escalated", False)),
+            created_by=str(body.get("created_by", "System")).strip(),
+        )
+        ticket.ticket_ref = f"ATT-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        return JsonResponse(_ticket_to_dict(ticket), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def attendance_ticket_detail(request, pk):
+    from .models import AttendanceTicket
+
+    try:
+        ticket = AttendanceTicket.objects.get(pk=pk)
+    except AttendanceTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse(_ticket_to_dict(ticket))
+
+    if request.method == "PATCH":
+        body = _json_body(request)
+        fields = ["learner_name", "learner_phone", "organisation", "programme",
+                  "attendance_module", "risk", "status", "assigned_owner", "action", "notes", "evidence"]
+        for f in fields:
+            if f in body:
+                setattr(ticket, f, str(body[f]).strip())
+        if "escalated" in body:
+            ticket.escalated = bool(body["escalated"])
+        if "attendance_date" in body:
+            raw = body["attendance_date"]
+            if raw:
+                try:
+                    ticket.attendance_date = date.fromisoformat(str(raw))
+                except Exception:
+                    pass
+            else:
+                ticket.attendance_date = None
+        ticket.save()
+        return JsonResponse(_ticket_to_dict(ticket))
+
+    if request.method == "DELETE":
+        if not ticket.is_archived:
+            return JsonResponse({"error": "Only archived tickets can be permanently deleted"}, status=400)
+        ticket.delete()
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def attendance_ticket_archive(request, pk):
+    from .models import AttendanceTicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        ticket = AttendanceTicket.objects.get(pk=pk)
+    except AttendanceTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    body = _json_body(request)
+    ticket.is_archived = bool(body.get("archive", True))
+    ticket.save(update_fields=["is_archived", "updated_at"])
+    return JsonResponse(_ticket_to_dict(ticket))
+
+
+def _evidence_file_to_dict(ef, request=None):
+    url = ef.file.url if ef.file else ""
+    if request and url:
+        url = request.build_absolute_uri(url)
+    return {
+        "id": ef.pk,
+        "name": ef.original_name,
+        "url": url,
+        "mimeType": ef.mime_type,
+        "uploadedAt": ef.uploaded_at.isoformat(),
+    }
+
+
+@csrf_exempt
+def attendance_ticket_files(request, pk):
+    from .models import AttendanceTicket, AttendanceEvidenceFile
+
+    try:
+        ticket = AttendanceTicket.objects.get(pk=pk)
+    except AttendanceTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        files = ticket.evidence_files.all()
+        return JsonResponse([_evidence_file_to_dict(f, request) for f in files], safe=False)
+
+    if request.method == "POST":
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return JsonResponse({"error": "No file provided"}, status=400)
+
+        ef = AttendanceEvidenceFile.objects.create(
+            ticket=ticket,
+            file=uploaded,
+            original_name=uploaded.name,
+            mime_type=uploaded.content_type or "",
+        )
+        return JsonResponse(_evidence_file_to_dict(ef, request), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def attendance_ticket_file_delete(request, pk, file_pk):
+    from .models import AttendanceEvidenceFile
+
+    if request.method != "DELETE":
+        return JsonResponse({"error": "DELETE required"}, status=405)
+
+    try:
+        ef = AttendanceEvidenceFile.objects.get(pk=file_pk, ticket_id=pk)
+    except AttendanceEvidenceFile.DoesNotExist:
+        return JsonResponse({"error": "File not found"}, status=404)
+
+    ef.file.delete(save=False)
+    ef.delete()
+    return JsonResponse({"success": True})
+
+
+# ─────────────────── Progress Review Ticket System ───────────────────
+
+def _pr_ticket_to_dict(ticket):
+    return {
+        "id": ticket.pk,
+        "ticketRef": ticket.ticket_ref,
+        "learnerEmail": ticket.learner_email,
+        "learnerName": ticket.learner_name,
+        "learnerPhone": ticket.learner_phone,
+        "organisation": ticket.organisation,
+        "programme": ticket.programme,
+        "lastPrDate": ticket.last_pr_date.isoformat() if ticket.last_pr_date else None,
+        "nextPrDate": ticket.next_pr_date.isoformat() if ticket.next_pr_date else None,
+        "overdueCount": ticket.overdue_count,
+        "risk": ticket.risk,
+        "status": ticket.status,
+        "assignedOwner": ticket.assigned_owner,
+        "action": ticket.action,
+        "notes": ticket.notes,
+        "isArchived": ticket.is_archived,
+        "escalated": ticket.escalated,
+        "createdBy": ticket.created_by,
+        "createdAt": ticket.created_at.isoformat(),
+        "updatedAt": ticket.updated_at.isoformat(),
+        "evidenceCount": ticket.evidence_files.count(),
+    }
+
+
+@csrf_exempt
+def pr_tickets(request):
+    from .models import ProgressReviewTicket
+
+    if request.method == "GET":
+        show_archived = request.GET.get("archived", "false").lower() == "true"
+        tickets = ProgressReviewTicket.objects.filter(is_archived=show_archived)
+        return JsonResponse([_pr_ticket_to_dict(t) for t in tickets], safe=False)
+
+    if request.method == "POST":
+        body = _json_body(request)
+        if not body.get("learner_email") or not body.get("learner_name"):
+            return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
+
+        def _parse_date(val):
+            if not val:
+                return None
+            try:
+                return date.fromisoformat(str(val))
+            except Exception:
+                return None
+
+        ticket = ProgressReviewTicket.objects.create(
+            ticket_ref="PR-TMP",
+            learner_email=str(body.get("learner_email", "")).strip().lower(),
+            learner_name=str(body.get("learner_name", "")).strip(),
+            learner_phone=str(body.get("learner_phone", "")).strip(),
+            organisation=str(body.get("organisation", "")).strip(),
+            programme=str(body.get("programme", "")).strip(),
+            last_pr_date=_parse_date(body.get("last_pr_date")),
+            next_pr_date=_parse_date(body.get("next_pr_date")),
+            overdue_count=int(body.get("overdue_count") or 0),
+            risk=str(body.get("risk", "green")).strip(),
+            status=str(body.get("status", "new")).strip(),
+            assigned_owner=str(body.get("assigned_owner", "")).strip(),
+            action=str(body.get("action", "")).strip(),
+            notes=str(body.get("notes", "")).strip(),
+            escalated=bool(body.get("escalated", False)),
+            created_by=str(body.get("created_by", "System")).strip(),
+        )
+        ticket.ticket_ref = f"PR-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        return JsonResponse(_pr_ticket_to_dict(ticket), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def pr_ticket_detail(request, pk):
+    from .models import ProgressReviewTicket
+
+    try:
+        ticket = ProgressReviewTicket.objects.get(pk=pk)
+    except ProgressReviewTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse(_pr_ticket_to_dict(ticket))
+
+    if request.method == "PATCH":
+        body = _json_body(request)
+        str_fields = ["learner_name", "learner_phone", "organisation", "programme",
+                      "risk", "status", "assigned_owner", "action", "notes"]
+        for f in str_fields:
+            if f in body:
+                setattr(ticket, f, str(body[f]).strip())
+        if "escalated" in body:
+            ticket.escalated = bool(body["escalated"])
+        if "overdue_count" in body:
+            ticket.overdue_count = int(body["overdue_count"] or 0)
+        for date_field in ["last_pr_date", "next_pr_date"]:
+            if date_field in body:
+                raw = body[date_field]
+                if raw:
+                    try:
+                        setattr(ticket, date_field, date.fromisoformat(str(raw)))
+                    except Exception:
+                        pass
+                else:
+                    setattr(ticket, date_field, None)
+        ticket.save()
+        return JsonResponse(_pr_ticket_to_dict(ticket))
+
+    if request.method == "DELETE":
+        if not ticket.is_archived:
+            return JsonResponse({"error": "Only archived tickets can be permanently deleted"}, status=400)
+        ticket.delete()
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def pr_ticket_archive(request, pk):
+    from .models import ProgressReviewTicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        ticket = ProgressReviewTicket.objects.get(pk=pk)
+    except ProgressReviewTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    body = _json_body(request)
+    ticket.is_archived = bool(body.get("archive", True))
+    ticket.save(update_fields=["is_archived", "updated_at"])
+    return JsonResponse(_pr_ticket_to_dict(ticket))
+
+
+def _pr_evidence_file_to_dict(ef, request=None):
+    url = ef.file.url if ef.file else ""
+    if request and url:
+        url = request.build_absolute_uri(url)
+    return {
+        "id": ef.pk,
+        "name": ef.original_name,
+        "url": url,
+        "mimeType": ef.mime_type,
+        "uploadedAt": ef.uploaded_at.isoformat(),
+    }
+
+
+@csrf_exempt
+def pr_ticket_files(request, pk):
+    from .models import ProgressReviewTicket, PRTicketEvidenceFile
+
+    try:
+        ticket = ProgressReviewTicket.objects.get(pk=pk)
+    except ProgressReviewTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        files = ticket.evidence_files.all()
+        return JsonResponse([_pr_evidence_file_to_dict(f, request) for f in files], safe=False)
+
+    if request.method == "POST":
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return JsonResponse({"error": "No file provided"}, status=400)
+        ef = PRTicketEvidenceFile.objects.create(
+            ticket=ticket,
+            file=uploaded,
+            original_name=uploaded.name,
+            mime_type=uploaded.content_type or "",
+        )
+        return JsonResponse(_pr_evidence_file_to_dict(ef, request), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def pr_ticket_file_delete(request, pk, file_pk):
+    from .models import PRTicketEvidenceFile
+
+    if request.method != "DELETE":
+        return JsonResponse({"error": "DELETE required"}, status=405)
+
+    try:
+        ef = PRTicketEvidenceFile.objects.get(pk=file_pk, ticket_id=pk)
+    except PRTicketEvidenceFile.DoesNotExist:
+        return JsonResponse({"error": "File not found"}, status=404)
+
+    ef.file.delete(save=False)
+    ef.delete()
+    return JsonResponse({"success": True})
+
+
+# ─────────────────── MCM Ticket System ───────────────────
+
+def _mcm_ticket_to_dict(ticket):
+    return {
+        "id": ticket.pk,
+        "ticketRef": ticket.ticket_ref,
+        "learnerEmail": ticket.learner_email,
+        "learnerName": ticket.learner_name,
+        "learnerPhone": ticket.learner_phone,
+        "organisation": ticket.organisation,
+        "programme": ticket.programme,
+        "coachName": ticket.coach_name,
+        "overdueCount": ticket.overdue_count,
+        "nextMcmDate": ticket.next_mcm_date,
+        "lastMcmDate": ticket.last_mcm_date,
+        "mcmStatus": ticket.mcm_status,
+        "risk": ticket.risk,
+        "status": ticket.status,
+        "assignedOwner": ticket.assigned_owner,
+        "action": ticket.action,
+        "notes": ticket.notes,
+        "isArchived": ticket.is_archived,
+        "escalated": ticket.escalated,
+        "createdBy": ticket.created_by,
+        "createdAt": ticket.created_at.isoformat(),
+        "updatedAt": ticket.updated_at.isoformat(),
+        "evidenceCount": ticket.evidence_files.count(),
+    }
+
+
+def _mcm_evidence_file_to_dict(f, request):
+    return {
+        "id": f.pk,
+        "name": f.original_name,
+        "url": request.build_absolute_uri(f.file.url),
+        "mimeType": f.mime_type,
+        "uploadedAt": f.uploaded_at.isoformat(),
+    }
+
+
+@csrf_exempt
+def mcm_tickets(request):
+    from .models import MCMTicket
+    if request.method == "GET":
+        show_archived = request.GET.get("archived", "false").lower() == "true"
+        tickets = MCMTicket.objects.filter(is_archived=show_archived)
+        return JsonResponse([_mcm_ticket_to_dict(t) for t in tickets], safe=False)
+    if request.method == "POST":
+        body = _json_body(request)
+        if not body.get("learner_email") or not body.get("learner_name"):
+            return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
+        ticket = MCMTicket.objects.create(
+            ticket_ref="MCM-TMP",
+            learner_email=str(body.get("learner_email", "")).strip().lower(),
+            learner_name=str(body.get("learner_name", "")).strip(),
+            learner_phone=str(body.get("learner_phone", "")).strip(),
+            organisation=str(body.get("organisation", "")).strip(),
+            programme=str(body.get("programme", "")).strip(),
+            coach_name=str(body.get("coach_name", "")).strip(),
+            overdue_count=int(body.get("overdue_count") or 0),
+            next_mcm_date=str(body.get("next_mcm_date", "")).strip(),
+            last_mcm_date=str(body.get("last_mcm_date", "")).strip(),
+            mcm_status=str(body.get("mcm_status", "")).strip(),
+            risk=str(body.get("risk", "amber")).strip(),
+            status=str(body.get("status", "new")).strip(),
+            assigned_owner=str(body.get("assigned_owner", "")).strip(),
+            action=str(body.get("action", "")).strip(),
+            notes=str(body.get("notes", "")).strip(),
+            escalated=bool(body.get("escalated", False)),
+            created_by=str(body.get("created_by", "System")).strip(),
+        )
+        ticket.ticket_ref = f"MCM-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        return JsonResponse(_mcm_ticket_to_dict(ticket), status=201)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def mcm_ticket_detail(request, pk):
+    from .models import MCMTicket
+    try:
+        ticket = MCMTicket.objects.get(pk=pk)
+    except MCMTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+    if request.method == "GET":
+        return JsonResponse(_mcm_ticket_to_dict(ticket))
+    if request.method == "PATCH":
+        body = _json_body(request)
+        str_fields = ["learner_name", "learner_phone", "organisation", "programme",
+                      "coach_name", "mcm_status", "next_mcm_date", "last_mcm_date",
+                      "risk", "status", "assigned_owner", "action", "notes"]
+        for f in str_fields:
+            if f in body:
+                setattr(ticket, f, str(body[f]).strip())
+        if "overdue_count" in body:
+            ticket.overdue_count = int(body["overdue_count"] or 0)
+        if "escalated" in body:
+            ticket.escalated = bool(body["escalated"])
+        ticket.save()
+        return JsonResponse(_mcm_ticket_to_dict(ticket))
+    if request.method == "DELETE":
+        if not ticket.is_archived:
+            return JsonResponse({"error": "Only archived tickets can be permanently deleted"}, status=400)
+        ticket.delete()
+        return JsonResponse({"success": True})
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def mcm_ticket_archive(request, pk):
+    from .models import MCMTicket
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        ticket = MCMTicket.objects.get(pk=pk)
+    except MCMTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+    body = _json_body(request)
+    ticket.is_archived = bool(body.get("archive", True))
+    ticket.save(update_fields=["is_archived", "updated_at"])
+    return JsonResponse(_mcm_ticket_to_dict(ticket))
+
+
+@csrf_exempt
+def mcm_ticket_files(request, pk):
+    from .models import MCMTicket, MCMTicketEvidenceFile
+    try:
+        ticket = MCMTicket.objects.get(pk=pk)
+    except MCMTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+    if request.method == "GET":
+        files = ticket.evidence_files.all()
+        return JsonResponse([_mcm_evidence_file_to_dict(f, request) for f in files], safe=False)
+    if request.method == "POST":
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return JsonResponse({"error": "No file provided"}, status=400)
+        ef = MCMTicketEvidenceFile.objects.create(
+            ticket=ticket,
+            file=uploaded,
+            original_name=uploaded.name,
+            mime_type=uploaded.content_type or "",
+        )
+        return JsonResponse(_mcm_evidence_file_to_dict(ef, request), status=201)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def mcm_ticket_file_delete(request, pk, file_pk):
+    from .models import MCMTicketEvidenceFile
+    if request.method != "DELETE":
+        return JsonResponse({"error": "DELETE required"}, status=405)
+    try:
+        ef = MCMTicketEvidenceFile.objects.get(pk=file_pk, ticket_id=pk)
+    except MCMTicketEvidenceFile.DoesNotExist:
+        return JsonResponse({"error": "File not found"}, status=404)
+    ef.file.delete(save=False)
+    ef.delete()
+    return JsonResponse({"success": True})
+
+
+# ─────────────────── OTJ Ticket System ───────────────────
+
+def _otj_ticket_to_dict(ticket):
+    return {
+        "id": ticket.pk,
+        "ticketRef": ticket.ticket_ref,
+        "learnerEmail": ticket.learner_email,
+        "learnerName": ticket.learner_name,
+        "learnerPhone": ticket.learner_phone,
+        "organisation": ticket.organisation,
+        "programme": ticket.programme,
+        "otjMinimum": ticket.otj_minimum,
+        "otjCompleted": ticket.otj_completed,
+        "otjExpected": ticket.otj_expected,
+        "otjStatus": ticket.otj_status,
+        "risk": ticket.risk,
+        "status": ticket.status,
+        "assignedOwner": ticket.assigned_owner,
+        "action": ticket.action,
+        "notes": ticket.notes,
+        "isArchived": ticket.is_archived,
+        "escalated": ticket.escalated,
+        "createdBy": ticket.created_by,
+        "createdAt": ticket.created_at.isoformat(),
+        "updatedAt": ticket.updated_at.isoformat(),
+        "evidenceCount": ticket.evidence_files.count(),
+    }
+
+
+@csrf_exempt
+def otj_tickets(request):
+    from .models import OTJTicket
+
+    if request.method == "GET":
+        show_archived = request.GET.get("archived", "false").lower() == "true"
+        tickets = OTJTicket.objects.filter(is_archived=show_archived)
+        return JsonResponse([_otj_ticket_to_dict(t) for t in tickets], safe=False)
+
+    if request.method == "POST":
+        body = _json_body(request)
+        if not body.get("learner_email") or not body.get("learner_name"):
+            return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
+
+        ticket = OTJTicket.objects.create(
+            ticket_ref="OTJ-TMP",
+            learner_email=str(body.get("learner_email", "")).strip().lower(),
+            learner_name=str(body.get("learner_name", "")).strip(),
+            learner_phone=str(body.get("learner_phone", "")).strip(),
+            organisation=str(body.get("organisation", "")).strip(),
+            programme=str(body.get("programme", "")).strip(),
+            otj_minimum=float(body.get("otj_minimum") or 0),
+            otj_completed=float(body.get("otj_completed") or 0),
+            otj_expected=float(body.get("otj_expected") or 0),
+            otj_status=str(body.get("otj_status", "")).strip(),
+            risk=str(body.get("risk", "amber")).strip(),
+            status=str(body.get("status", "new")).strip(),
+            assigned_owner=str(body.get("assigned_owner", "")).strip(),
+            action=str(body.get("action", "")).strip(),
+            notes=str(body.get("notes", "")).strip(),
+            escalated=bool(body.get("escalated", False)),
+            created_by=str(body.get("created_by", "System")).strip(),
+        )
+        ticket.ticket_ref = f"OTJ-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        return JsonResponse(_otj_ticket_to_dict(ticket), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def otj_ticket_detail(request, pk):
+    from .models import OTJTicket
+
+    try:
+        ticket = OTJTicket.objects.get(pk=pk)
+    except OTJTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse(_otj_ticket_to_dict(ticket))
+
+    if request.method == "PATCH":
+        body = _json_body(request)
+        str_fields = ["learner_name", "learner_phone", "organisation", "programme",
+                      "otj_status", "risk", "status", "assigned_owner", "action", "notes"]
+        for f in str_fields:
+            if f in body:
+                setattr(ticket, f, str(body[f]).strip())
+        if "escalated" in body:
+            ticket.escalated = bool(body["escalated"])
+        for float_field in ["otj_minimum", "otj_completed", "otj_expected"]:
+            if float_field in body:
+                setattr(ticket, float_field, float(body[float_field] or 0))
+        ticket.save()
+        return JsonResponse(_otj_ticket_to_dict(ticket))
+
+    if request.method == "DELETE":
+        if not ticket.is_archived:
+            return JsonResponse({"error": "Only archived tickets can be permanently deleted"}, status=400)
+        ticket.delete()
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def otj_ticket_archive(request, pk):
+    from .models import OTJTicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        ticket = OTJTicket.objects.get(pk=pk)
+    except OTJTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    body = _json_body(request)
+    ticket.is_archived = bool(body.get("archive", True))
+    ticket.save(update_fields=["is_archived", "updated_at"])
+    return JsonResponse(_otj_ticket_to_dict(ticket))
+
+
+def _otj_evidence_file_to_dict(ef, request=None):
+    url = ef.file.url if ef.file else ""
+    if request and url:
+        url = request.build_absolute_uri(url)
+    return {
+        "id": ef.pk,
+        "name": ef.original_name,
+        "url": url,
+        "mimeType": ef.mime_type,
+        "uploadedAt": ef.uploaded_at.isoformat(),
+    }
+
+
+@csrf_exempt
+def otj_ticket_files(request, pk):
+    from .models import OTJTicket, OTJTicketEvidenceFile
+
+    try:
+        ticket = OTJTicket.objects.get(pk=pk)
+    except OTJTicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        files = ticket.evidence_files.all()
+        return JsonResponse([_otj_evidence_file_to_dict(f, request) for f in files], safe=False)
+
+    if request.method == "POST":
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return JsonResponse({"error": "No file provided"}, status=400)
+        ef = OTJTicketEvidenceFile.objects.create(
+            ticket=ticket,
+            file=uploaded,
+            original_name=uploaded.name,
+            mime_type=uploaded.content_type or "",
+        )
+        return JsonResponse(_otj_evidence_file_to_dict(ef, request), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def otj_ticket_file_delete(request, pk, file_pk):
+    from .models import OTJTicketEvidenceFile
+
+    if request.method != "DELETE":
+        return JsonResponse({"error": "DELETE required"}, status=405)
+
+    try:
+        ef = OTJTicketEvidenceFile.objects.get(pk=file_pk, ticket_id=pk)
+    except OTJTicketEvidenceFile.DoesNotExist:
+        return JsonResponse({"error": "File not found"}, status=404)
+
+    ef.file.delete(save=False)
+    ef.delete()
+    return JsonResponse({"success": True})
+
+
+# ── Email proxy ─────────────────────────────────────────────────────────────
+
+N8N_EMAIL_WEBHOOK = "https://n8n.srv943390.hstgr.cloud/webhook/email_sender"
+
+@csrf_exempt
+def send_email_proxy(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        resp = requests.post(
+            N8N_EMAIL_WEBHOOK,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
+        )
+        try:
+            data = resp.json()
+        except Exception:
+            data = {"raw": resp.text}
+        return JsonResponse(data, status=resp.status_code, safe=False)
+    except requests.Timeout:
+        return JsonResponse({"error": "n8n webhook timed out"}, status=504)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

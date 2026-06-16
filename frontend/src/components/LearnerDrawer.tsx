@@ -763,24 +763,26 @@ export default function LearnerDrawer({
               );
             })()}
 
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              onClick={() => {
-                onResolve?.({
-                  contactKey: String((learner as any).attendanceContactKey || ""),
-                  email: String((learner as any).attendanceEmail || ""),
-                  date: String((learner as any).attendanceDate || ""),
-                  module: String((learner as any).attendanceModule || ""),
-                  resolved: !Boolean((learner as any).isResolved),
-                  note: buildNoteValue(String(callOutcome || ""), callNotes),
-                });
-              }}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              {isResolved ? "Reopen Case" : "Mark Resolved"}
-            </Button>
+            {onResolve && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => {
+                  onResolve({
+                    contactKey: String((learner as any).attendanceContactKey || ""),
+                    email: String((learner as any).attendanceEmail || ""),
+                    date: String((learner as any).attendanceDate || ""),
+                    module: String((learner as any).attendanceModule || ""),
+                    resolved: !Boolean((learner as any).isResolved),
+                    note: buildNoteValue(String(callOutcome || ""), callNotes),
+                  });
+                }}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {isResolved ? "Reopen Case" : "Mark Resolved"}
+              </Button>
+            )}
           </div>
 
           {showCallLog && (

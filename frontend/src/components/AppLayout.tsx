@@ -19,7 +19,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/lib/auth";
 
 const navItems = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard, section: "Operations" },
+  { path: "/", label: "Home", icon: LayoutDashboard, section: "Operations" },
+  { path: "/dashboard", label: "Dashboard", icon: SquareStack, section: "Operations" },
   { path: "/email-centre", label: "Email Centre", icon: Mail, section: "Operations" },
   { path: "/activity-report", label: "Activity Report", icon: BarChart3, section: "Reporting" },
   { path: "/calendar", label: "Calendar", icon: CalendarDays, section: "Reporting" },

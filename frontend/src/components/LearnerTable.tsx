@@ -8,7 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Download, Phone, Mail, ArrowUpDown, X, FileText } from "lucide-react";
+import { Search, Download, Phone, Mail, ArrowUpDown, X, FileText, ExternalLink, Plus } from "lucide-react";
+
+interface FollowUpTicket { id: number; ticketRef: string; status: string; email: string }
 
 interface LearnerTableProps {
   learners: Learner[];
@@ -29,6 +31,8 @@ interface LearnerTableProps {
     resolved: boolean;
     note: string;
   }) => void;
+  followUpTickets?: Map<string, FollowUpTicket>;
+  onFollowUp?: (learner: Learner, ticket?: FollowUpTicket) => void;
 }
 
 const SESSION_TYPE_OPTIONS = [
@@ -211,6 +215,8 @@ export default function LearnerTable({
   onSessionTypeFilterChange,
   isPastMcrMonth = false,
   onUpdateContactAction,
+  followUpTickets,
+  onFollowUp,
 }: LearnerTableProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -1210,7 +1216,7 @@ export default function LearnerTable({
 
                 {kpiCategory !== "coaching-booked" && kpiCategory !== "coaching-due" && kpiCategory !== "review-due" && kpiCategory !== "review-booked" && kpiCategory !== "status-view" && (
                   <th className={headerCellClass}>
-                    {kpiCategory === "otj-behind" ? "Status" : "Priority"}
+                    {kpiCategory === "otj-behind" ? "Status" : kpiCategory === "missed-session" ? "Follow-up" : "Priority"}
                   </th>
                 )}
               </tr>
@@ -1359,7 +1365,32 @@ export default function LearnerTable({
                         </Badge>
                       </td>
 
-                      <td className="p-3">{priorityBadge(l.priority)}</td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const email = String(l.email || "").trim().toLowerCase();
+                          const ticket = followUpTickets?.get(email);
+                          if (ticket) {
+                            return (
+                              <button
+                                onClick={() => onFollowUp?.(l, ticket)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF7FF] px-2.5 py-1.5 text-xs font-semibold text-[#1E6ACB] transition-colors hover:bg-[#DAEEFF]"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                View Ticket
+                              </button>
+                            );
+                          }
+                          return (
+                            <button
+                              onClick={() => onFollowUp?.(l, undefined)}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#14264A] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1E3A6A]"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Open Ticket
+                            </button>
+                          );
+                        })()}
+                      </td>
                     </tr>
                   );
                 }
