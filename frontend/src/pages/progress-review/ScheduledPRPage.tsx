@@ -58,8 +58,8 @@ const getPrDateRange = (offset: PrOffset): { start: Date; end: Date } => {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
     const start = new Date(end);
-    start.setDate(end.getDate() - 7 * 12);
-    start.setHours(23, 59, 59, 999);
+    start.setDate(end.getDate() - 7 * 12 + 1);
+    start.setHours(0, 0, 0, 0);
     return { start, end };
   }
   return getPrQuarterRange(offset);
@@ -101,6 +101,9 @@ const parseBookedDate = (raw: unknown): Date | null => {
 
 const statusIncludes = (value: unknown, text: string) =>
   String(value || "").toLowerCase().includes(text);
+
+const getLearnerKey = (learner: { email: string; id: number }) =>
+  String(learner.email || learner.id).trim().toLowerCase();
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
@@ -167,7 +170,7 @@ export default function ScheduledPRPage() {
   const [tickets, setTickets] = useState<PRTicketInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [prOffset, setPrOffset] = useState<PrOffset>(0);
+  const [prOffset, setPrOffset] = useState<PrOffset>("last12weeks");
   const [programmeFilter, setProgrammeFilter] = useState("");
   const [coachFilter, setCoachFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -239,7 +242,7 @@ export default function ScheduledPRPage() {
 
     return {
       inScope: !!(inProgressEntry || scheduledEntry || completedEntry),
-      inProgress: !!inProgressEntry,
+      inProgress: !!inProgressEntry && !completedEntry,
       scheduled: !!scheduledEntry,
       completed: !!completedEntry,
       inProgressDate: inProgressEntry?.date ?? "",
@@ -269,12 +272,16 @@ export default function ScheduledPRPage() {
   const summary = useMemo(() => {
     const { start, end } = getPrDateRange(prOffset);
     let scheduled = 0, inProgress = 0, completed = 0;
+    const scheduledLearners = new Set<string>();
+    const inProgressLearners = new Set<string>();
     for (const l of allBooked) {
       const s = getRangeBookedStatus(l, start, end);
-      if (s.inProgress) inProgress++;
-      if (s.scheduled)  scheduled++;
+      if (s.inProgress) inProgressLearners.add(getLearnerKey(l));
+      if (s.scheduled) scheduledLearners.add(getLearnerKey(l));
       if (s.completed)  completed++;
     }
+    scheduled = scheduledLearners.size;
+    inProgress = inProgressLearners.size;
     return { total: allBooked.length, scheduled, inProgress, completed };
   }, [allBooked, prOffset, getRangeBookedStatus]);
 
@@ -350,10 +357,10 @@ export default function ScheduledPRPage() {
     URL.revokeObjectURL(url);
   };
 
-  const hasFilters = prOffset !== 0 || search !== "" || programmeFilter !== "" || coachFilter !== "";
+  const hasFilters = prOffset !== "last12weeks" || search !== "" || programmeFilter !== "" || coachFilter !== "";
 
   const clearAll = () => {
-    setPrOffset(0); setSearch(""); setProgrammeFilter(""); setCoachFilter(""); setCardFilter("all");
+    setPrOffset("last12weeks"); setSearch(""); setProgrammeFilter(""); setCoachFilter(""); setCardFilter("all");
   };
 
   // ── PR Status badge (for booked status display) ───────────────────────
@@ -384,7 +391,12 @@ export default function ScheduledPRPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold text-[#14264A]">Scheduled PR</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Learners with a scheduled, in-progress, awaiting signature, or completed progress review</p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#5F7288]">
+                <span>Default view: scheduled, in-progress, awaiting signature, or completed progress reviews</span>
+                <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+                  Last 12 Weeks
+                </span>
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button

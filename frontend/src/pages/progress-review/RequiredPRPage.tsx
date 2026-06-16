@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, CalendarRange, CheckCircle2, ChevronDown,
@@ -31,6 +31,7 @@ interface PRTicketInfo {
   ticketRef: string;
   status: string;
   learnerEmail: string;
+  nextPrDate: string | null;
 }
 
 type PrOffset = number | "last12weeks";
@@ -132,6 +133,12 @@ const fmtDate = (iso: string | null) => {
 const statusIncludes = (value: unknown, text: string) =>
   String(value || "").toLowerCase().includes(text);
 
+const getPrTicketKey = (email: string, nextPrDate: string | null | undefined) =>
+  `${String(email || "").trim().toLowerCase()}::${String(nextPrDate || "")}`;
+
+const getLearnerKey = (learner: { email: string; id: number }) =>
+  String(learner.email || learner.id).trim().toLowerCase();
+
 // ─── Filter Select ────────────────────────────────────────────────────
 
 function FilterSelect<T extends string>({
@@ -198,6 +205,7 @@ export default function RequiredPRPage() {
   const [coachFilter, setCoachFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("Active");
   const [cardFilter, setCardFilter] = useState<"all" | "scheduled" | "notScheduled" | "inProgress" | "completed" | "overdue">("all");
+  const autoCreateLast12WeeksKeyRef = useRef("");
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -217,7 +225,10 @@ export default function RequiredPRPage() {
 
   const ticketMap = useMemo(() => {
     const m = new Map<string, PRTicketInfo>();
-    tickets.forEach((t) => m.set(t.learnerEmail.toLowerCase(), t));
+    tickets.forEach((t) => {
+      m.set(getPrTicketKey(t.learnerEmail, t.nextPrDate), t);
+      if (!t.nextPrDate) m.set(getPrTicketKey(t.learnerEmail, ""), t);
+    });
     return m;
   }, [tickets]);
 
@@ -240,12 +251,11 @@ export default function RequiredPRPage() {
   // ── Helper: categorise a learner's dates within the selected range ────
   const getRangeStatus = useCallback((l: PRLearner, start: Date, end: Date) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const includeCompleted = prOffset === "last12weeks";
     const matchingDates = l.plannedDates
       .filter((d) => {
         const dt = parseBookedDate(d.date);
         if (dt === null || dt < start || dt > end) return false;
-        return includeCompleted || (!d.completed && !statusIncludes(d.status, "completed"));
+        return true;
       })
       .sort((a, b) => {
         const aTime = parseBookedDate(a.date)?.getTime() ?? 0;
@@ -253,7 +263,32 @@ export default function RequiredPRPage() {
         return bTime - aTime;
       });
 
-    let match = matchingDates[0];
+    const completedDates = matchingDates.filter((d) =>
+      Boolean(d.completed) || statusIncludes(d.status, "completed")
+    );
+    const activeDates = matchingDates.filter((d) =>
+      !d.completed && !statusIncludes(d.status, "completed")
+    );
+    const overdueDates = activeDates.filter((d) => {
+      const dt = parseBookedDate(d.date);
+      return dt !== null && dt < today;
+    });
+    const inProgressEntry = activeDates.find((d) =>
+      statusIncludes(d.status, "in progress") || statusIncludes(d.status, "awaiting signature")
+    );
+    const scheduledEntry = activeDates.find((d) =>
+      statusIncludes(d.status, "scheduled") &&
+      !statusIncludes(d.status, "not scheduled") &&
+      !statusIncludes(d.status, "in progress") &&
+      !statusIncludes(d.status, "awaiting signature")
+    );
+    const notScheduledEntry = activeDates.find((d) =>
+      !statusIncludes(d.status, "scheduled") ||
+      statusIncludes(d.status, "not scheduled")
+    );
+
+    let match = overdueDates[0] || inProgressEntry || scheduledEntry || notScheduledEntry || completedDates[0] || matchingDates[0];
+    const overdueMatch = overdueDates[0];
     if (!match && l.nextPrDate) {
       const dt = parseBookedDate(l.nextPrDate);
       if (dt && dt >= start && dt <= end) {
@@ -267,26 +302,42 @@ export default function RequiredPRPage() {
     }
 
     const status = String(match?.status || "").trim().toLowerCase();
-    const completed = Boolean(match?.completed) || status.includes("completed");
-    const inProgress =
-      !completed && (status.includes("in progress") || status.includes("awaiting signature"));
-    const scheduled =
-      !completed &&
+    const fallbackCompleted = Boolean(match?.completed) || status.includes("completed");
+    const completed = completedDates.length > 0 || (matchingDates.length === 0 && fallbackCompleted);
+    const inProgress = (!completed && Boolean(inProgressEntry)) || (
+      matchingDates.length === 0 &&
+      !fallbackCompleted &&
+      (status.includes("in progress") || status.includes("awaiting signature"))
+    );
+    const scheduled = Boolean(scheduledEntry) || (
+      matchingDates.length === 0 &&
+      !fallbackCompleted &&
       !inProgress &&
       status.includes("scheduled") &&
-      !status.includes("not scheduled");
-    const notScheduled = Boolean(match) && !completed && !inProgress && !scheduled;
+      !status.includes("not scheduled")
+    );
+    const notScheduled = Boolean(notScheduledEntry) || (
+      Boolean(match) &&
+      matchingDates.length === 0 &&
+      !fallbackCompleted &&
+      !inProgress &&
+      !scheduled
+    );
     const matchDate = parseBookedDate(match?.date);
 
     return {
       inScope: Boolean(match),
+      matchDate: match?.date || "",
+      overdueDate: overdueMatch?.date || "",
+      overdueStatus: overdueMatch?.status || "",
+      scopedOverdueCount: overdueDates.length,
       completed,
       scheduled,
       notScheduled,
       inProgress,
-      overdue: !completed && matchDate !== null && matchDate < today,
+      overdue: overdueDates.length > 0 || (!completed && matchDate !== null && matchDate < today),
     };
-  }, [prOffset]);
+  }, []);
 
   const allInRange = useMemo(() => {
     const { start, end } = getPrDateRange(prOffset);
@@ -303,11 +354,19 @@ export default function RequiredPRPage() {
   // ── Summary counts — all based on dates within the selected range ──────
   const summary = useMemo(() => {
     const { start, end } = getPrDateRange(prOffset);
+    const scheduledLearners = new Set<string>();
+    const inProgressLearners = new Set<string>();
+    allInRange.forEach((l) => {
+      const status = getRangeStatus(l, start, end);
+      if (status.scheduled) scheduledLearners.add(getLearnerKey(l));
+      if (status.inProgress) inProgressLearners.add(getLearnerKey(l));
+    });
+
     return {
       total:        allInRange.length,
-      scheduled:    allInRange.filter((l) => getRangeStatus(l, start, end).scheduled).length,
+      scheduled:    scheduledLearners.size,
       notScheduled: allInRange.filter((l) => getRangeStatus(l, start, end).notScheduled).length,
-      inProgress:   allInRange.filter((l) => getRangeStatus(l, start, end).inProgress).length,
+      inProgress:   inProgressLearners.size,
       completed:    allInRange.filter((l) => getRangeStatus(l, start, end).completed).length,
       overdue:      allInRange.filter((l) => getRangeStatus(l, start, end).overdue).length,
     };
@@ -328,8 +387,64 @@ export default function RequiredPRPage() {
     });
   }, [cardFilter, allInRange, prOffset, getRangeStatus]);
 
+  const getScopedTicketDate = useCallback((l: PRLearner) => {
+    const { start, end } = getPrDateRange(prOffset);
+    const status = getRangeStatus(l, start, end);
+    return status.overdueDate || status.matchDate || l.nextPrDate || "";
+  }, [getRangeStatus, prOffset]);
+
+  useEffect(() => {
+    if (loading || prOffset !== "last12weeks" || learners.length === 0) return;
+
+    const { start, end } = getPrDateRange("last12weeks");
+    const candidates = learners
+      .map((learner) => ({ learner, status: getRangeStatus(learner, start, end) }))
+      .filter(({ learner, status }) => {
+        if (!status.overdue || !status.overdueDate) return false;
+        return !ticketMap.has(getPrTicketKey(learner.email, status.overdueDate));
+      });
+
+    if (candidates.length === 0) return;
+
+    const runKey = candidates
+      .map(({ learner, status }) => getPrTicketKey(learner.email, status.overdueDate))
+      .sort()
+      .join("|");
+    if (!runKey || autoCreateLast12WeeksKeyRef.current === runKey) return;
+    autoCreateLast12WeeksKeyRef.current = runKey;
+
+    fetch("/api/pr-tickets/auto-create/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        learners: candidates.map(({ learner, status }) => ({
+          email: learner.email,
+          name: learner.fullName,
+          phone: learner.phone || "",
+          organisation: learner.organisation || "",
+          programme: learner.group || "",
+          assigned_owner: learner.caseOwner || "",
+          last_pr_date: learner.lastProgressReview || "",
+          next_pr_date: status.overdueDate,
+          overdue_count: status.scopedOverdueCount || 1,
+          risk: "amber",
+          status: "new",
+          notes: `Auto-created for overdue PR in Last 12 Weeks. PR date: ${status.overdueDate}.`,
+          created_by: "System",
+        })),
+      }),
+    }).then((res) => {
+      if (res.ok) void loadAll();
+    }).catch(() => {
+      autoCreateLast12WeeksKeyRef.current = "";
+    });
+  }, [getRangeStatus, learners, loadAll, loading, prOffset, ticketMap]);
+
   const onFollowUp = (l: PRLearner) => {
-    const existing = ticketMap.get(l.email.toLowerCase());
+    const scopedPrDate = getScopedTicketDate(l);
+    const { start, end } = getPrDateRange(prOffset);
+    const scopedStatus = getRangeStatus(l, start, end);
+    const existing = ticketMap.get(getPrTicketKey(l.email, scopedPrDate));
     if (existing) {
       navigate(`/progress-review/tickets?open=${existing.id}`);
     } else {
@@ -338,8 +453,8 @@ export default function RequiredPRPage() {
         phone: l.phone || "", organisation: l.organisation || "",
         programme: l.group, caseOwner: l.caseOwner,
         lastPrDate: l.lastProgressReview || "",
-        nextPrDate: l.nextPrDate || "",
-        overdue: String(l.overduePrCount),
+        nextPrDate: scopedPrDate,
+        overdue: String(scopedStatus.scopedOverdueCount || l.overduePrCount),
       });
       navigate(`/progress-review/tickets?${params.toString()}`);
     }
@@ -361,7 +476,12 @@ export default function RequiredPRPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold text-[#14264A]">Required PR</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Learners with overdue or upcoming progress reviews</p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#5F7288]">
+                <span>Default view: learners with overdue or upcoming progress reviews</span>
+                <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+                  Last 12 Weeks
+                </span>
+              </p>
             </div>
             <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8]">
               <RefreshCw className="h-3.5 w-3.5" /> Refresh

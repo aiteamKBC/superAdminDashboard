@@ -14,6 +14,7 @@ import {
   FileText,
   Filter,
   Flag,
+  History,
   Image as ImageIcon,
   Mail,
   MessageSquare,
@@ -1306,6 +1307,19 @@ const getWeekOptions = () => {
 
 const WEEK_OPTIONS = getWeekOptions();
 
+const getAttendanceHistoryUrl = (email: string) => {
+  const learnerEmail = String(email || "").trim().toLowerCase();
+  const hasUsableLearnerEmail =
+    learnerEmail &&
+    learnerEmail !== "unknown" &&
+    learnerEmail !== "n/a" &&
+    learnerEmail.includes("@");
+
+  return hasUsableLearnerEmail
+    ? `https://studentportal.kentbusinesscollege.net/student?email=${encodeURIComponent(learnerEmail)}`
+    : "";
+};
+
 // ─── Main Component ──────────────────────────────────────────────────
 
 export default function AttendanceTicketsPage() {
@@ -1804,11 +1818,11 @@ export default function AttendanceTicketsPage() {
                 <CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" /><p>No tickets found</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="max-h-[520px] overflow-auto">
+                <table className="w-full min-w-[1120px] text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      {["Ticket", "Learner", "Risk", "Status", "Assigned Owner", "Created", "Days", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
+                    <tr className="sticky top-0 z-10 border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                      {["Ticket", "Learner", "Attendance history", "Risk", "Status", "Assigned Owner", "Created", "Days", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
                         <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
                     </tr>
@@ -1820,6 +1834,32 @@ export default function AttendanceTicketsPage() {
                         <td className="px-3 py-3">
                           <p className="font-semibold text-[#14264A]">{t.learnerName}</p>
                           <p className="text-xs text-[#71849A]">{t.learnerEmail}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          {(() => {
+                            const attendanceHistoryUrl = getAttendanceHistoryUrl(t.learnerEmail);
+
+                            return attendanceHistoryUrl ? (
+                              <a
+                                href={attendanceHistoryUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                              >
+                                <History className="h-3.5 w-3.5" />
+                                Attendance History
+                              </a>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-[#A0B0C0]"
+                              >
+                                <History className="h-3.5 w-3.5" />
+                                Attendance History
+                              </button>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-3">{riskBadge(t.risk)}</td>
                         <td className="px-3 py-3">{statusBadge(t.status)}</td>

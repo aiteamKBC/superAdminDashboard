@@ -1564,6 +1564,91 @@ def _pr_ticket_to_dict(ticket):
 
 
 @csrf_exempt
+def auto_create_pr_tickets(request):
+    """Auto-create PR tickets for scoped overdue progress reviews."""
+    from .models import ProgressReviewTicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    body = _json_body(request)
+    learners = body.get("learners", [])
+
+    created_list = []
+    existing_list = []
+
+    for learner in learners:
+        email = str(learner.get("email") or "").strip().lower()
+        name = str(learner.get("name") or "").strip()
+        if not email or not name:
+            continue
+
+        raw_next_pr_date = learner.get("next_pr_date")
+        next_pr_date = None
+        if raw_next_pr_date:
+            try:
+                next_pr_date = date.fromisoformat(str(raw_next_pr_date))
+            except Exception:
+                next_pr_date = None
+
+        if next_pr_date is None:
+            continue
+
+        raw_last_pr_date = learner.get("last_pr_date")
+        last_pr_date = None
+        if raw_last_pr_date:
+            try:
+                last_pr_date = date.fromisoformat(str(raw_last_pr_date))
+            except Exception:
+                last_pr_date = None
+
+        existing = ProgressReviewTicket.objects.filter(
+            learner_email=email,
+            next_pr_date=next_pr_date,
+            is_archived=False,
+        ).first()
+
+        if existing:
+            existing_list.append({
+                "email": email,
+                "id": existing.pk,
+                "ticketRef": existing.ticket_ref,
+                "nextPrDate": existing.next_pr_date.isoformat() if existing.next_pr_date else None,
+                "created": False,
+            })
+            continue
+
+        ticket = ProgressReviewTicket.objects.create(
+            ticket_ref="PR-TMP",
+            learner_email=email,
+            learner_name=name,
+            learner_phone=str(learner.get("phone") or "").strip(),
+            organisation=str(learner.get("organisation") or "").strip(),
+            programme=str(learner.get("programme") or "").strip(),
+            last_pr_date=last_pr_date,
+            next_pr_date=next_pr_date,
+            overdue_count=int(learner.get("overdue_count") or 0),
+            risk=str(learner.get("risk") or "amber").strip(),
+            status=str(learner.get("status") or "new").strip(),
+            assigned_owner=str(learner.get("assigned_owner") or "").strip(),
+            action="no_action",
+            notes=str(learner.get("notes") or "").strip(),
+            escalated=bool(learner.get("escalated", False)),
+            created_by=str(learner.get("created_by") or "System").strip(),
+        )
+        ticket.ticket_ref = f"PR-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        created_list.append(_pr_ticket_to_dict(ticket))
+
+    return JsonResponse({
+        "created": created_list,
+        "existing": existing_list,
+        "createdCount": len(created_list),
+        "existingCount": len(existing_list),
+    }, status=201)
+
+
+@csrf_exempt
 def pr_tickets(request):
     from .models import ProgressReviewTicket
 
