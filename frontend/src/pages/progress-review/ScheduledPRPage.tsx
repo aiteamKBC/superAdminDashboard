@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
+import AppFilterSelect from "@/components/FilterSelect";
 import { Input } from "@/components/ui/input";
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -18,6 +19,7 @@ interface PRLearner {
   caseOwner: string;
   phone: string;
   organisation: string;
+  lastActuallyCompletedPr: string;
   lastProgressReview: string;
   nextPrDate: string;
   nextPrState: string;
@@ -105,15 +107,21 @@ const statusIncludes = (value: unknown, text: string) =>
 const getLearnerKey = (learner: { email: string; id: number }) =>
   String(learner.email || learner.id).trim().toLowerCase();
 
+const fmtProgressReviewText = (value: string | null) => {
+  const text = String(value || "").trim();
+  return text && text.toLowerCase() !== "n/a" ? text : "â€”";
+};
+
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
-  catch { return iso; }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 // ─── Filter Select components (identical to RequiredPRPage) ──────────
 
-function FilterSelect<T extends string>({
+function FilterSelect<T extends string | number>({
   label, value, onChange, options,
 }: {
   label: string;
@@ -121,22 +129,23 @@ function FilterSelect<T extends string>({
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
+  const selectOptions = options.map((o) => ({ value: String(o.value), label: o.label }));
+
   return (
     <div className="relative inline-flex items-center">
       <span className="pointer-events-none absolute left-3 z-10 whitespace-nowrap text-xs font-bold text-[#14264A]">
         {label}
       </span>
-      <select
+      <AppFilterSelect
         value={String(value)}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="h-10 appearance-none rounded-lg border border-[#D7E5F3] bg-white pr-8 text-sm font-semibold text-[#1E6ACB] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E6ACB]/30"
-        style={{ paddingLeft: `calc(0.75rem + ${label.length * 7 + 8}px)` }}
-      >
-        {options.map((o) => (
-          <option key={String(o.value)} value={String(o.value)}>{o.label}</option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#5F7288]" />
+        onChange={(next) => {
+          const selected = options.find((o) => String(o.value) === next);
+          if (selected) onChange(selected.value);
+        }}
+        options={selectOptions}
+        className="pl-[7.25rem] font-semibold text-[#1E6ACB]"
+        minWidth={240}
+      />
     </div>
   );
 }
@@ -149,15 +158,13 @@ function SimpleSelect({ value, onChange, options, placeholder }: {
 }) {
   return (
     <div className="relative inline-flex min-w-[160px] flex-1">
-      <select
+      <AppFilterSelect
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full appearance-none rounded-lg border border-[#D7E5F3] bg-[#F8FBFE] px-3 pr-8 text-sm text-[#20344D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E6ACB]/30"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5F7288]" />
+        onChange={onChange}
+        options={[{ value: "", label: placeholder }, ...options.map((o) => ({ value: o, label: o }))]}
+        className="w-full flex-1 bg-[#F8FBFE] font-normal text-[#20344D]"
+        minWidth={160}
+      />
     </div>
   );
 }
@@ -224,21 +231,22 @@ export default function ScheduledPRPage() {
     const completedEntry = [...datesInRange]
       .filter((d) => d.completed === true || statusIncludes(d.status, "completed"))
       .sort((a, b) => b.date.localeCompare(a.date))[0];
-
     const inProgressEntry = datesInRange.find((d) =>
       !d.completed &&
       !statusIncludes(d.status, "completed") &&
       (statusIncludes(d.status, "awaiting signature") || statusIncludes(d.status, "in progress"))
     );
 
-    const scheduledEntry = datesInRange.find((d) =>
-      !d.completed &&
-      !statusIncludes(d.status, "completed") &&
-      !statusIncludes(d.status, "in progress") &&
-      !statusIncludes(d.status, "awaiting signature") &&
-      statusIncludes(d.status, "scheduled") &&
-      !statusIncludes(d.status, "not scheduled")
-    );
+    const scheduledEntry = datesInRange.find((d) => {
+      return (
+        !d.completed &&
+        !statusIncludes(d.status, "completed") &&
+        !statusIncludes(d.status, "in progress") &&
+        !statusIncludes(d.status, "awaiting signature") &&
+        statusIncludes(d.status, "scheduled") &&
+        !statusIncludes(d.status, "not scheduled")
+      );
+    });
 
     return {
       inScope: !!(inProgressEntry || scheduledEntry || completedEntry),
@@ -307,8 +315,10 @@ export default function ScheduledPRPage() {
       const params = new URLSearchParams({
         create: "1", email: l.email, name: l.fullName,
         phone: l.phone || "", organisation: l.organisation || "",
-        programme: l.group, caseOwner: l.caseOwner,
-        lastPrDate: l.lastProgressReview || "",
+        programme: l.group,
+        lastProgressReview: l.lastProgressReview || "",
+        lastActuallyCompletedPr: l.lastActuallyCompletedPr || "",
+        lastPrDate: "",
         nextPrDate: l.nextPrDate || "",
       });
       navigate(`/progress-review/tickets?${params.toString()}`);
@@ -317,7 +327,7 @@ export default function ScheduledPRPage() {
 
   const exportCSV = () => {
     const { start, end } = getPrDateRange(prOffset);
-    const headers = ["Learner", "Email", "Coach", "Programme", "Last PR", "Booked PR Date", "PR Status"];
+    const headers = ["Learner", "Email", "Coach", "Programme", "Last actual completed", "Last PR", "Booked PR Date", "PR Status"];
     const rows = displayedRows.map((l) => {
       const s = getRangeBookedStatus(l, start, end);
       const displayDate =
@@ -342,7 +352,8 @@ export default function ScheduledPRPage() {
         l.email,
         l.caseOwner || "",
         l.group || "",
-        fmtDate(l.lastProgressReview),
+        fmtProgressReviewText(l.lastActuallyCompletedPr),
+        fmtProgressReviewText(l.lastProgressReview),
         fmtDate(displayDate),
         statusLabel,
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
@@ -533,7 +544,7 @@ export default function ScheduledPRPage() {
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
-                      {["Email", "Coach", "Programme", "Last PR", "Booked PR Date", "PR Status", "Follow-up"].map((h) => (
+                      {["Email", "Coach", "Programme", "Last actual completed", "Last PR", "Booked PR Date", "PR Status", "Follow-up"].map((h) => (
                         <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
                     </tr>
@@ -561,7 +572,8 @@ export default function ScheduledPRPage() {
                           <td className="px-3 py-3 text-xs text-[#5F7288] max-w-[180px]">
                             <span className="line-clamp-2">{l.group || "—"}</span>
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(l.lastProgressReview)}</td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtProgressReviewText(l.lastActuallyCompletedPr)}</td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtProgressReviewText(l.lastProgressReview)}</td>
                           <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtDate(displayDate)}</td>
                           <td className="px-3 py-3">
                             <BookedStatusBadge status={displayStatus} />

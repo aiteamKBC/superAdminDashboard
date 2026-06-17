@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle, Archive, CalendarClock, CheckCircle2, ChevronDown,
   ClipboardCheck, Download, Eye, File as FileIcon, FileText, Filter, Flag,
-  Image as ImageIcon, MessageSquare, MoreHorizontal, Paperclip, Plus,
+  Image as ImageIcon, Mail, MessageSquare, MoreHorizontal, Paperclip, Plus,
   RefreshCw, Search, Trash2, UploadCloud, X, XCircle, ZoomIn,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -30,14 +32,21 @@ interface EvidenceFile { id: number; name: string; url: string; mimeType: string
 interface PRTicket {
   id: number; ticketRef: string; learnerEmail: string; learnerName: string;
   learnerPhone: string; organisation: string; programme: string;
+  lastProgressReview?: string; lastActuallyCompletedPr?: string;
   lastPrDate: string | null; nextPrDate: string | null; overdueCount: number;
   risk: PRRisk; status: PRStatus; assignedOwner: string; action: string;
   notes: string; evidenceCount: number; isArchived: boolean; escalated: boolean;
   createdBy: string; createdAt: string; updatedAt: string;
 }
 
+interface PRSummaryRow {
+  email: string;
+  lastProgressReview: string;
+  lastActuallyCompletedPr: string;
+  plannedDates?: { date: string; status: string; completed: boolean; isPast: boolean }[];
+}
+
 const ACTION_OPTIONS: { value: PRAction; label: string }[] = [
-  { value: "", label: "— No action selected —" },
   { value: "called", label: "Called" },
   { value: "emailed", label: "Emailed" },
   { value: "pr_booked", label: "PR Booked" },
@@ -48,7 +57,7 @@ const ACTION_OPTIONS: { value: PRAction; label: string }[] = [
 
 const EMPTY_FORM = {
   learnerEmail: "", learnerName: "", learnerPhone: "", organisation: "",
-  programme: "", lastPrDate: "", nextPrDate: "", overdueCount: 0,
+  programme: "", lastProgressReview: "", lastActuallyCompletedPr: "", lastPrDate: "", nextPrDate: "", overdueCount: 0,
   risk: "green" as PRRisk, status: "new" as PRStatus, assignedOwner: "",
   action: "" as PRAction, notes: "", escalated: false,
 };
@@ -75,9 +84,23 @@ const statusBadge = (status: PRStatus) => {
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
-  catch { return iso; }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
+const cleanTicketNotes = (notes: string) =>
+  notes
+    .split("\n")
+    .filter((line) => !/^Auto-created for overdue PR in Last 12 Weeks\./i.test(line.trim()))
+    .join("\n")
+    .trim();
+const ticketNoteCount = (notes: string) => cleanTicketNotes(notes).split("\n").filter((l) => l.trim()).length;
+const reviewText = (value: string | undefined | null, fallbackDate?: string | null) => {
+  const text = String(value || "").trim();
+  return text || fmtDate(fallbackDate || null);
+};
+const isCompletedReviewStatus = (status: string) =>
+  String(status || "").toLowerCase().includes("completed");
 const daysSince = (iso: string) => { try { return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000); } catch { return 0; } };
 const isImage = (mime: string, name: string) => mime.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
 const isPdf = (mime: string, name: string) => mime === "application/pdf" || /\.pdf$/i.test(name);
@@ -227,15 +250,19 @@ function PRTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open:
           <DialogTitle className="text-base font-semibold text-[#14264A]">{ticketId ? "Edit PR Ticket" : "Create PR Ticket"}</DialogTitle>
         </DialogHeader>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {([["learnerEmail", "Learner Email *", "learner@example.com"], ["learnerName", "Learner Name *", "Full name"], ["learnerPhone", "Phone", "07700 000000"], ["organisation", "Organisation", "Organisation name"], ["programme", "Programme", "e.g. Team Leader"], ["assignedOwner", "Assigned Owner", "Coach or staff name"]] as const).map(([key, label, placeholder]) => (
+          {([["learnerEmail", "Learner Email *", "learner@example.com"], ["learnerName", "Learner Name *", "Full name"], ["learnerPhone", "Phone", "07700 000000"], ["organisation", "Organisation", "Organisation name"], ["programme", "Programme", "e.g. Team Leader"]] as const).map(([key, label, placeholder]) => (
             <div key={key} className="space-y-1.5">
               <Label className="text-xs font-semibold text-[#24486D]">{label}</Label>
               <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" disabled={key === "learnerEmail" && !!ticketId} />
             </div>
           ))}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Last PR Date</Label>
-            <Input type="date" value={form.lastPrDate} onChange={(e) => set("lastPrDate", e.target.value)} className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+            <Label className="text-xs font-semibold text-[#24486D]">Last actual completed</Label>
+            <Input value={form.lastActuallyCompletedPr} onChange={(e) => set("lastActuallyCompletedPr", e.target.value)} placeholder="09-03-2026 (Completed)" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-[#24486D]">Last PR</Label>
+            <Input value={form.lastProgressReview} onChange={(e) => set("lastProgressReview", e.target.value)} placeholder="30-04-2026 (Scheduled)" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-[#24486D]">Next PR Date</Label>
@@ -265,9 +292,18 @@ function PRTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open:
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs font-semibold text-[#24486D]">Action Taken</Label>
-            <Select value={form.action} onValueChange={(v) => set("action", v as PRAction)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"><SelectValue placeholder="Select an action…" /></SelectTrigger>
-              <SelectContent>{ACTION_OPTIONS.map((o) => <SelectItem key={o.value || "__none__"} value={o.value || "__none__"}>{o.label}</SelectItem>)}</SelectContent>
+            <Select value={form.action || undefined} onValueChange={(v) => set("action", v as PRAction)}>
+              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm">
+                <SelectValue placeholder="Select an action..." />
+              </SelectTrigger>
+
+              <SelectContent>
+                {ACTION_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
@@ -299,30 +335,50 @@ function PRTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open:
 
 // ─── PR Ticket Actions Menu ────────────────────────────────────────────
 
-function PRTicketActionsMenu({ ticket, onAddNote, onQuickAction }: { ticket: PRTicket; onAddNote: () => void; onQuickAction: (id: number, updates: Record<string, unknown>) => Promise<void>; }) {
-  const noteCount = ticket.notes.split("\n").filter((l) => l.trim()).length;
+function PRTicketActionsMenu({ ticket, onAddNote, onAddEvidence, onEmail, onQuickAction }: { ticket: PRTicket; onAddNote: () => void; onAddEvidence: () => void; onEmail: () => void; onQuickAction: (id: number, updates: Record<string, unknown>) => Promise<void>; }) {
+  const noteCount = ticketNoteCount(ticket.notes);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="rounded-lg p-1.5 text-[#71849A] hover:bg-[#F0F4F8] focus:outline-none"><MoreHorizontal className="h-4 w-4" /></button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 overflow-hidden rounded-xl border-[#DDE7F0] p-0 shadow-xl">
+      <DropdownMenuContent align="end" className="w-60 overflow-hidden rounded-xl border-[#DDE7F0] p-0 shadow-xl" style={{ maxHeight: "min(80vh, 480px)" }}>
         <div className="border-b border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
           <p className="text-[11px] font-bold text-[#14264A]">Ticket Actions</p>
           <p className="truncate text-[10px] text-[#71849A]">{ticket.ticketRef} · {ticket.learnerName}</p>
         </div>
-        <div className="space-y-0.5 p-1.5">
-          <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Notes</p>
-          <DropdownMenuItem onClick={onAddNote} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><FileText className="h-4 w-4 text-[#5F7288]" />Add Note</DropdownMenuItem>
-          <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
-          <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Schedule</p>
-          <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_scheduled" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><CalendarClock className="h-4 w-4 text-[#5F7288]" />Schedule PR</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_completed" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><ClipboardCheck className="h-4 w-4 text-green-600" />Mark PR Completed</DropdownMenuItem>
-          <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
-          <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Status</p>
-          <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { escalated: true, risk: "red" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><Flag className="h-4 w-4 text-amber-500" />Flag for Attention</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "open", escalated: false })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><RefreshCw className="h-4 w-4 text-green-600" />Reopen / Set Active</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "resolved" })} className="cursor-pointer gap-2 rounded-lg text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-600"><XCircle className="h-4 w-4" />Close Ticket</DropdownMenuItem>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(min(80vh, 480px) - 88px)" }}>
+          <div className="space-y-0.5 p-1.5">
+            <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Notes</p>
+            <DropdownMenuItem onClick={onAddNote} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><FileText className="h-4 w-4 text-[#5F7288]" />Add Note</DropdownMenuItem>
+            <DropdownMenuItem onClick={onAddEvidence} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><Paperclip className="h-4 w-4 text-[#1E6ACB]" />Add Evidence</DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
+            <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Schedule</p>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_scheduled" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><CalendarClock className="h-4 w-4 text-[#5F7288]" />Schedule PR</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_completed" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><ClipboardCheck className="h-4 w-4 text-green-600" />Mark PR Completed</DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
+            <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Status</p>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { escalated: true, risk: "red" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><Flag className="h-4 w-4 text-amber-500" />Flag for Attention</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "open", escalated: false })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><RefreshCw className="h-4 w-4 text-green-600" />Reopen / Set Active</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "resolved" })} className="cursor-pointer gap-2 rounded-lg text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-600"><XCircle className="h-4 w-4" />Close Ticket</DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
+            <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Action Taken</p>
+            {ACTION_OPTIONS.filter((o) => o.value !== "").map((o) => {
+              const isEmailed = o.value === "emailed";
+              const isActive = ticket.action === o.value && o.value !== "no_action";
+              return (
+                <DropdownMenuItem key={o.value}
+                  onClick={() => isEmailed ? onEmail() : onQuickAction(ticket.id, { action: o.value })}
+                  className={`cursor-pointer gap-2 rounded-lg hover:bg-[#F0F4F8] ${isActive ? "bg-[#EEF7FF] font-semibold text-[#1E6ACB]" : "text-[#14264A]"}`}>
+                  {isEmailed
+                    ? <Mail className={`h-4 w-4 shrink-0 ${isActive ? "text-[#1E6ACB]" : "text-[#5F7288]"}`} />
+                    : <CheckCircle2 className={`h-4 w-4 shrink-0 ${isActive ? "text-[#1E6ACB]" : "text-[#C5D5E3]"}`} />}
+                  {o.label}
+                  {isEmailed && <span className="ml-auto text-[10px] text-[#A0B0C0]">→ Email Centre</span>}
+                </DropdownMenuItem>
+              );
+            })}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 border-t border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#5F7288]"><MessageSquare className="h-2.5 w-2.5" />{noteCount}</span>
@@ -337,13 +393,16 @@ function PRTicketActionsMenu({ ticket, onAddNote, onQuickAction }: { ticket: PRT
 // ─── Add Note Modal ────────────────────────────────────────────────────
 
 function AddNoteModal({ ticket, onClose, onSaved }: { ticket: PRTicket; onClose: () => void; onSaved: () => void; }) {
+  const { user } = useAuth();
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const handleSave = async () => {
     if (!text.trim()) return;
     setSaving(true);
     const newNotes = ticket.notes.trim() ? `${ticket.notes.trim()}\n${text.trim()}` : text.trim();
-    await fetch(`/api/pr-tickets/${ticket.id}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notes: newNotes }) });
+    const payload: Record<string, unknown> = { notes: newNotes };
+    if (!ticket.assignedOwner && user?.fullName) payload.assigned_owner = user.fullName;
+    await fetch(`/api/pr-tickets/${ticket.id}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     setSaving(false); onSaved(); onClose();
   };
   return (
@@ -360,11 +419,63 @@ function AddNoteModal({ ticket, onClose, onSaved }: { ticket: PRTicket; onClose:
   );
 }
 
+// ─── Add Evidence Modal ────────────────────────────────────────────────
+
+function AddEvidenceModal({ ticket, onClose, onSaved }: { ticket: PRTicket; onClose: () => void; onSaved: () => void; }) {
+  const { user } = useAuth();
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<EvidenceFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/pr-tickets/${ticket.id}/files/`).then((r) => r.ok ? r.json() : []).then(setExistingFiles).catch(() => { });
+  }, [ticket.id]);
+
+  const handleSave = async () => {
+    if (!pendingFiles.length) return;
+    setUploading(true);
+    const updates: Record<string, unknown> = {};
+    if (!ticket.assignedOwner && user?.fullName) updates.assigned_owner = user.fullName;
+    if (Object.keys(updates).length) {
+      await fetch(`/api/pr-tickets/${ticket.id}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) });
+    }
+    for (const f of pendingFiles) {
+      const fd = new FormData(); fd.append("file", f);
+      await fetch(`/api/pr-tickets/${ticket.id}/files/`, { method: "POST", body: fd });
+    }
+    setUploading(false); onSaved(); onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md rounded-xl border-[#DDE7F0]">
+        <DialogHeader><DialogTitle className="text-sm font-semibold text-[#14264A]">Add Evidence · {ticket.learnerName}</DialogTitle></DialogHeader>
+        <div className="mt-3">
+          <EvidenceUploadZone
+            ticketId={ticket.id} existingFiles={existingFiles} pendingFiles={pendingFiles}
+            onAddPending={(f) => setPendingFiles((p) => [...p, ...f])}
+            onRemovePending={(i) => setPendingFiles((p) => p.filter((_, idx) => idx !== i))}
+            onDeleteExisting={async (id) => { await fetch(`/api/pr-tickets/${ticket.id}/files/${id}/`, { method: "DELETE" }); setExistingFiles((p) => p.filter((f) => f.id !== id)); }}
+            uploading={uploading}
+          />
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">Cancel</Button>
+          <Button onClick={handleSave} disabled={uploading || !pendingFiles.length} className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]">{uploading ? "Uploading…" : "Upload Files"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────
 
 export default function PRTicketsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tickets, setTickets] = useState<PRTicket[]>([]);
+  const [reviewLookup, setReviewLookup] = useState<Map<string, PRSummaryRow>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState("");
@@ -378,6 +489,7 @@ export default function PRTicketsPage() {
   const [viewPreview, setViewPreview] = useState<PreviewTarget | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<PRTicket | null>(null);
   const [addNoteTicket, setAddNoteTicket] = useState<PRTicket | null>(null);
+  const [addEvidenceTicket, setAddEvidenceTicket] = useState<PRTicket | null>(null);
   const [quickNotesTicket, setQuickNotesTicket] = useState<PRTicket | null>(null);
   const [quickEvidenceTicket, setQuickEvidenceTicket] = useState<PRTicket | null>(null);
   const [quickEvidenceFiles, setQuickEvidenceFiles] = useState<EvidenceFile[]>([]);
@@ -385,12 +497,28 @@ export default function PRTicketsPage() {
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/pr-tickets/?archived=${showArchived}`);
-      if (res.ok) setTickets(await res.json());
+      const [ticketsRes, summaryRes] = await Promise.all([
+        fetch(`/api/pr-tickets/?archived=${showArchived}`),
+        fetch("/api/progress-review-summary/"),
+      ]);
+      if (ticketsRes.ok) setTickets(await ticketsRes.json());
+      if (summaryRes.ok) {
+        const rows = (await summaryRes.json()) as PRSummaryRow[];
+        setReviewLookup(new Map(rows.map((row) => [row.email.toLowerCase(), row])));
+      }
     } finally { setLoading(false); }
   }, [showArchived]);
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
+
+  useEffect(() => {
+    if (!localStorage.getItem("pr_owners_reset_v1")) {
+      fetch("/api/pr-tickets/reset-owners/", { method: "POST" }).then(() => {
+        localStorage.setItem("pr_owners_reset_v1", "1");
+        void loadTickets();
+      }).catch(() => { });
+    }
+  }, []);
 
   useEffect(() => {
     if (!viewTicket) { setViewFiles([]); return; }
@@ -416,7 +544,9 @@ export default function PRTicketsPage() {
         learnerName: searchParams.get("name") ?? "",
         learnerPhone: searchParams.get("phone") ?? "",
         organisation: searchParams.get("organisation") ?? "",
-        programme: searchParams.get("programme") ?? searchParams.get("caseOwner") ?? "",
+        programme: searchParams.get("programme") ?? "",
+        lastProgressReview: searchParams.get("lastProgressReview") ?? "",
+        lastActuallyCompletedPr: searchParams.get("lastActuallyCompletedPr") ?? "",
         lastPrDate: searchParams.get("lastPrDate") ?? "",
         nextPrDate: searchParams.get("nextPrDate") ?? "",
         overdueCount: Number(searchParams.get("overdue") ?? 0),
@@ -425,6 +555,32 @@ export default function PRTicketsPage() {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, tickets, loading, setSearchParams]);
+
+  useEffect(() => {
+    const emailedId = searchParams.get("emailed_ticket");
+    if (!emailedId || loading) return;
+
+    const ticketId = Number(emailedId);
+    const ticket = tickets.find((item) => item.id === ticketId);
+    const dateLabel = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const sentBy = user?.fullName || user?.email || "";
+    const noteEntry = `Email sent on ${dateLabel}${sentBy ? ` by ${sentBy}` : ""}`;
+    const currentNotes = cleanTicketNotes(ticket?.notes || "");
+    const notes = currentNotes ? `${currentNotes}\n${noteEntry}` : noteEntry;
+    const payload: Record<string, unknown> = { action: "emailed", notes };
+    if (!ticket?.assignedOwner && sentBy) payload.assigned_owner = sentBy;
+
+    fetch(`/api/pr-tickets/${ticketId}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(() => loadTickets());
+    setSearchParams({}, { replace: true });
+  }, [loading, loadTickets, searchParams, setSearchParams, tickets, user]);
 
   const uploadFiles = async (ticketId: number, files: File[]) => {
     for (const f of files) {
@@ -439,10 +595,11 @@ export default function PRTicketsPage() {
       body: JSON.stringify({
         learner_email: form.learnerEmail, learner_name: form.learnerName,
         learner_phone: form.learnerPhone, organisation: form.organisation,
-        programme: form.programme, last_pr_date: form.lastPrDate || null,
+        programme: form.programme, last_progress_review: form.lastProgressReview,
+        last_actually_completed_pr: form.lastActuallyCompletedPr, last_pr_date: form.lastPrDate || null,
         next_pr_date: form.nextPrDate || null, overdue_count: form.overdueCount,
         risk: form.risk, status: form.status, assigned_owner: form.assignedOwner,
-        action: form.action === "__none__" ? "" : form.action,
+        action: form.action,
         notes: form.notes, escalated: form.escalated,
       }),
     });
@@ -456,9 +613,11 @@ export default function PRTicketsPage() {
       body: JSON.stringify({
         learner_name: form.learnerName, learner_phone: form.learnerPhone,
         organisation: form.organisation, programme: form.programme,
+        last_progress_review: form.lastProgressReview,
+        last_actually_completed_pr: form.lastActuallyCompletedPr,
         last_pr_date: form.lastPrDate || null, next_pr_date: form.nextPrDate || null,
         overdue_count: form.overdueCount, risk: form.risk, status: form.status,
-        assigned_owner: form.assignedOwner, action: form.action === "__none__" ? "" : form.action,
+        assigned_owner: form.assignedOwner, action: form.action,
         notes: form.notes, escalated: form.escalated,
       }),
     });
@@ -485,10 +644,39 @@ export default function PRTicketsPage() {
   const openCount = tickets.filter((t) => t.status !== "resolved").length;
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
   const escalatedCount = tickets.filter((t) => t.escalated).length;
+  const getLastProgressReview = useCallback((ticket: PRTicket) =>
+    reviewText(ticket.lastProgressReview || reviewLookup.get(ticket.learnerEmail.toLowerCase())?.lastProgressReview, ticket.lastPrDate), [reviewLookup]);
+  const getLastActuallyCompleted = useCallback((ticket: PRTicket) =>
+    reviewText(ticket.lastActuallyCompletedPr || reviewLookup.get(ticket.learnerEmail.toLowerCase())?.lastActuallyCompletedPr), [reviewLookup]);
+  const getOverdueItems = useCallback((ticket: PRTicket) => {
+    const plannedDates = reviewLookup.get(ticket.learnerEmail.toLowerCase())?.plannedDates || [];
+    return plannedDates
+      .filter((item) => item.isPast && !item.completed && !isCompletedReviewStatus(item.status))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [reviewLookup]);
+
+  const handleEmailTicket = useCallback((ticket: PRTicket) => {
+    navigate("/email-centre", {
+      state: {
+        selectedRecipient: {
+          learnerName: ticket.learnerName,
+          learnerEmail: ticket.learnerEmail,
+          programme: ticket.programme || "",
+          coachName: ticket.assignedOwner || "",
+          coachEmail: "",
+          status: "Active",
+          riskCategories: ["review-due"],
+          dueDate: ticket.nextPrDate || "",
+        },
+        source: "pr-ticket",
+        ticketId: ticket.id,
+      },
+    });
+  }, [navigate]);
 
   const exportCsv = () => {
-    const cols = ["Ticket", "Learner", "Email", "Organisation", "Programme", "Risk", "Status", "Owner", "Last PR", "Next PR", "Overdue", "Created"];
-    const rows = filtered.map((t) => [t.ticketRef, t.learnerName, t.learnerEmail, t.organisation, t.programme, t.risk, t.status, t.assignedOwner, fmtDate(t.lastPrDate), fmtDate(t.nextPrDate), t.overdueCount, fmtDate(t.createdAt)]);
+    const cols = ["Ticket", "Learner", "Email", "Organisation", "Programme", "Risk", "Status", "Assigned owner", "Last actual completed", "Last PR", "Next PR", "Overdue", "Created"];
+    const rows = filtered.map((t) => [t.ticketRef, t.learnerName, t.learnerEmail, t.organisation, t.programme, t.risk, t.status, t.assignedOwner, getLastActuallyCompleted(t), getLastProgressReview(t), fmtDate(t.nextPrDate), t.overdueCount, fmtDate(t.createdAt)]);
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "pr-tickets.csv"; a.click();
   };
@@ -567,7 +755,7 @@ export default function PRTicketsPage() {
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       <th className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Ticket</th>
                       <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
-                      {["Risk", "Status", "Owner", "Last PR", "Next PR", "Overdue", "Days Open", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
+                      {["Risk", "Status", "Assigned owner", "Last actual completed", "Last PR", "Next PR", "Overdue", "Days Open", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
                         <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
                     </tr>
@@ -579,15 +767,45 @@ export default function PRTicketsPage() {
                         <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]"><p className="font-semibold text-[#14264A]">{t.learnerName}</p><p className="text-xs text-[#71849A]">{t.learnerEmail}</p></td>
                         <td className="px-3 py-3">{riskBadge(t.risk)}</td>
                         <td className="px-3 py-3">{statusBadge(t.status)}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(t.lastPrDate)}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">—</span>}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{getLastActuallyCompleted(t)}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{getLastProgressReview(t)}</td>
                         <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtDate(t.nextPrDate)}</td>
                         <td className="px-3 py-3">
-                          {t.overdueCount > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700"><AlertTriangle className="h-3 w-3" />{t.overdueCount}</span> : <span className="text-xs text-[#A0B0C0]">0</span>}
+                          {(() => {
+                            const overdueItems = getOverdueItems(t);
+                            const overdueCount = overdueItems.length || t.overdueCount;
+                            if (overdueCount <= 0) return <span className="text-xs text-[#A0B0C0]">0</span>;
+                            const badge = (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                <AlertTriangle className="h-3 w-3" />
+                                {overdueCount}
+                              </span>
+                            );
+                            if (overdueItems.length === 0) return badge;
+                            return (
+                              <TooltipProvider delayDuration={120}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                                  <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
+                                    <p className="mb-2 text-xs font-bold text-red-700">Overdue meetings</p>
+                                    <div className="space-y-1.5">
+                                      {overdueItems.map((item) => (
+                                        <div key={`${t.id}-${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
+                                          <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
+                                          <span className="text-[#5F7288]">{item.status || "Not completed"}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{daysSince(t.createdAt)}</td>
                         <td className="px-3 py-3">
-                          {(() => { const count = t.notes.split("\n").filter((l) => l.trim()).length; return count > 0 ? <button onClick={() => setQuickNotesTicket(t)} className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 hover:bg-green-100"><MessageSquare className="h-3 w-3" />{count}</button> : <span className="text-xs text-[#A0B0C0]">—</span>; })()}
+                          {(() => { const count = ticketNoteCount(t.notes); return count > 0 ? <button onClick={() => setQuickNotesTicket(t)} className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 hover:bg-green-100"><MessageSquare className="h-3 w-3" />{count}</button> : <span className="text-xs text-[#A0B0C0]">—</span>; })()}
                         </td>
                         <td className="px-3 py-3">
                           {t.evidenceCount > 0 ? <button onClick={() => setQuickEvidenceTicket(t)} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Paperclip className="h-3 w-3" />{t.evidenceCount} {t.evidenceCount === 1 ? "file" : "files"}</button> : <span className="text-xs text-[#A0B0C0]">—</span>}
@@ -595,7 +813,8 @@ export default function PRTicketsPage() {
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
                             {t.escalated && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">Escalated</span>}
-                            <PRTicketActionsMenu ticket={t} onAddNote={() => setAddNoteTicket(t)} onQuickAction={handleQuickAction} />
+                            {t.action === "emailed" && <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700"><Mail className="h-3 w-3" />Emailed ✓</span>}
+                            <PRTicketActionsMenu ticket={t} onAddNote={() => setAddNoteTicket(t)} onAddEvidence={() => setAddEvidenceTicket(t)} onEmail={() => handleEmailTicket(t)} onQuickAction={handleQuickAction} />
                           </div>
                         </td>
                         <td className="px-3 py-3"><button onClick={() => setEditTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">Edit</button></td>
@@ -619,26 +838,29 @@ export default function PRTicketsPage() {
 
       <PRTicketFormModal open={createOpen} onClose={() => { setCreateOpen(false); setCreatePrefill(undefined); }} onSave={handleCreate} initial={createPrefill} />
       <PRTicketFormModal open={Boolean(editTicket)} onClose={() => setEditTicket(null)} onSave={handleEdit} ticketId={editTicket?.id}
-        initial={editTicket ? { learnerEmail: editTicket.learnerEmail, learnerName: editTicket.learnerName, learnerPhone: editTicket.learnerPhone, organisation: editTicket.organisation, programme: editTicket.programme, lastPrDate: editTicket.lastPrDate ?? "", nextPrDate: editTicket.nextPrDate ?? "", overdueCount: editTicket.overdueCount, risk: editTicket.risk, status: editTicket.status, assignedOwner: editTicket.assignedOwner, action: (editTicket.action || "") as PRAction, notes: editTicket.notes, escalated: editTicket.escalated } : undefined} />
+        initial={editTicket ? { learnerEmail: editTicket.learnerEmail, learnerName: editTicket.learnerName, learnerPhone: editTicket.learnerPhone, organisation: editTicket.organisation, programme: editTicket.programme, lastProgressReview: getLastProgressReview(editTicket), lastActuallyCompletedPr: getLastActuallyCompleted(editTicket), lastPrDate: editTicket.lastPrDate ?? "", nextPrDate: editTicket.nextPrDate ?? "", overdueCount: editTicket.overdueCount, risk: editTicket.risk, status: editTicket.status, assignedOwner: editTicket.assignedOwner, action: (editTicket.action || "") as PRAction, notes: cleanTicketNotes(editTicket.notes), escalated: editTicket.escalated } : undefined} />
 
       {/* View Modal */}
       <Dialog open={Boolean(viewTicket)} onOpenChange={(o) => !o && setViewTicket(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#DDE7F0]">
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-2xl border-[#DDE7F0] bg-[#F4F8FC] p-0 shadow-2xl">
+          <DialogHeader className="border-b border-[#DDE7F0] bg-white px-6 py-5">
             <DialogTitle className="flex items-center gap-2 text-base font-semibold text-[#14264A]">
               <span className="font-mono text-[#1E6ACB]">{viewTicket?.ticketRef}</span>
               {viewTicket && riskBadge(viewTicket.risk)}
             </DialogTitle>
           </DialogHeader>
           {viewTicket && (
-            <div className="mt-3 space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                {[["Learner", viewTicket.learnerName], ["Email", viewTicket.learnerEmail], ["Phone", viewTicket.learnerPhone || "—"], ["Organisation", viewTicket.organisation || "—"], ["Programme", viewTicket.programme || "—"], ["Last PR", fmtDate(viewTicket.lastPrDate)], ["Next PR Due", fmtDate(viewTicket.nextPrDate)], ["Overdue PRs", String(viewTicket.overdueCount)], ["Assigned Owner", viewTicket.assignedOwner || "Unassigned"], ["Action Taken", ACTION_OPTIONS.find((o) => o.value === viewTicket.action)?.label || "—"], ["Created By", `${viewTicket.createdBy} · ${fmtDate(viewTicket.createdAt)}`]].map(([k, v]) => (
-                  <div key={k}><p className="text-xs font-semibold text-[#71849A]">{k}</p><p className="mt-0.5 text-sm text-[#14264A]">{v}</p></div>
+            <div className="space-y-4 p-6 text-sm">
+              <div className="flex items-center gap-2">{statusBadge(viewTicket.status)}{viewTicket.escalated && <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700">Escalated</span>}</div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[["Learner", viewTicket.learnerName], ["Email", viewTicket.learnerEmail], ["Phone", viewTicket.learnerPhone || "—"], ["Organisation", viewTicket.organisation || "—"], ["Programme", viewTicket.programme || "—"], ["Last actual completed", getLastActuallyCompleted(viewTicket)], ["Last PR", getLastProgressReview(viewTicket)], ["Next PR Date", fmtDate(viewTicket.nextPrDate)], ["Overdue PRs", String(viewTicket.overdueCount)], ["Assigned owner", viewTicket.assignedOwner || "Unassigned"], ["Action Taken", (viewTicket.action && viewTicket.action !== "no_action") ? (ACTION_OPTIONS.find((o) => o.value === viewTicket.action)?.label ?? "") : ""], ["Created By", `${viewTicket.createdBy} · ${fmtDate(viewTicket.createdAt)}`]].map(([k, v]) => (
+                  <div key={k} className="rounded-xl border border-[#DDE7F0] bg-white p-3 shadow-sm">
+                    <p className="text-xs font-semibold text-[#71849A]">{k}</p>
+                    {v ? <p className="mt-1 text-sm font-medium text-[#14264A]">{v}</p> : <p className="mt-1 text-sm italic text-[#A0B0C0]">{k === "Action Taken" ? "No actions yet" : "—"}</p>}
+                  </div>
                 ))}
               </div>
-              <div className="flex items-center gap-2">{statusBadge(viewTicket.status)}{viewTicket.escalated && <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700">Escalated</span>}</div>
-              {viewTicket.notes && <div><p className="mb-1 text-xs font-semibold text-[#71849A]">Notes</p><p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#14264A]">{viewTicket.notes}</p></div>}
+              {cleanTicketNotes(viewTicket.notes) && <div><p className="mb-1 text-xs font-semibold text-[#71849A]">Notes</p><p className="whitespace-pre-wrap rounded-lg bg-white p-3 text-xs text-[#14264A]">{cleanTicketNotes(viewTicket.notes)}</p></div>}
               {viewFiles.length > 0 && (
                 <div>
                   <p className="mb-2 text-xs font-semibold text-[#71849A]">Evidence Files ({viewFiles.length})</p>
@@ -665,6 +887,7 @@ export default function PRTicketsPage() {
       <FilePreviewModal target={viewPreview} onClose={() => setViewPreview(null)} />
 
       {addNoteTicket && <AddNoteModal ticket={addNoteTicket} onClose={() => setAddNoteTicket(null)} onSaved={loadTickets} />}
+      {addEvidenceTicket && <AddEvidenceModal ticket={addEvidenceTicket} onClose={() => setAddEvidenceTicket(null)} onSaved={loadTickets} />}
 
       {/* Quick Notes Modal */}
       <Dialog open={Boolean(quickNotesTicket)} onOpenChange={(o) => !o && setQuickNotesTicket(null)}>
@@ -677,8 +900,8 @@ export default function PRTicketsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="mt-2 max-h-[60vh] overflow-y-auto">
-            {quickNotesTicket?.notes
-              ? <p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#14264A]">{quickNotesTicket.notes}</p>
+            {quickNotesTicket && cleanTicketNotes(quickNotesTicket.notes)
+              ? <p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#14264A]">{cleanTicketNotes(quickNotesTicket.notes)}</p>
               : <p className="text-xs text-[#A0B0C0]">No notes yet.</p>}
           </div>
         </DialogContent>

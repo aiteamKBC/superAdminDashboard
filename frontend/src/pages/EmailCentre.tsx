@@ -297,6 +297,212 @@ const findPrDateInQuarter = (
   return candidates[0]?.date || "";
 };
 
+const wrapCanvasText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines = 4
+) => {
+  const words = String(text || "").replace(/\s+/g, " ").trim().split(" ");
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+      if (lines.length >= maxLines) break;
+    } else {
+      line = next;
+    }
+  }
+
+  if (line && lines.length < maxLines) lines.push(line);
+  lines.forEach((value, index) => ctx.fillText(value, x, y + index * lineHeight));
+  return y + lines.length * lineHeight;
+};
+
+const loadCanvasImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Could not load image: ${src}`));
+    image.src = src;
+  });
+
+const createEmailEvidenceImage = async ({
+  filename,
+  subject,
+  learnerName,
+  learnerEmail,
+  programme,
+  templateLabel,
+  body,
+}: {
+  filename: string;
+  subject: string;
+  learnerName: string;
+  learnerEmail: string;
+  programme: string;
+  templateLabel: string;
+  body: string;
+}): Promise<File> => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 900;
+  canvas.height = 1180;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is not available");
+
+  const emailX = 190;
+  const emailY = 58;
+  const emailW = 520;
+  const headerH = 118;
+  const contentPad = 24;
+  const contentX = emailX + contentPad;
+  const contentW = emailW - contentPad * 2;
+
+  ctx.fillStyle = "#F8F8F8";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.strokeStyle = "#E4E4E4";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(emailX, emailY, emailW, 1020, 18);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(emailX, emailY, emailW, 1020, 18);
+  ctx.clip();
+
+  ctx.fillStyle = "#241453";
+  ctx.fillRect(emailX, emailY, emailW, headerH);
+
+  try {
+    const logo = await loadCanvasImage("/email-assets/logo.png");
+    ctx.drawImage(logo, emailX + 34, emailY + 30, 148, 58);
+  } catch (_) {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "800 22px Arial, Helvetica, sans-serif";
+    ctx.fillText("Kent", emailX + 36, emailY + 53);
+    ctx.font = "700 14px Arial, Helvetica, sans-serif";
+    ctx.fillText("Business College", emailX + 36, emailY + 75);
+  }
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "800 13px Arial, Helvetica, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText("ENGAGEMENT", emailX + emailW - 26, emailY + 52);
+  ctx.fillText("WORKSPACE", emailX + emailW - 26, emailY + 72);
+  ctx.textAlign = "left";
+
+  const eyebrowByTemplate: Record<string, string> = {
+    "Missed Session": "ATTENDANCE ACTION REQUIRED",
+    "Review Due": "PROGRESS REVIEW FOLLOW-UP",
+    "Coaching Required": "MONTHLY COACHING MEETING FOLLOW-UP",
+    "OTJ Behind": "OFF-THE-JOB TRAINING SUPPORT",
+  };
+  const eyebrow = eyebrowByTemplate[templateLabel] || "LEARNER SUPPORT UPDATE";
+
+  let y = emailY + headerH + 30;
+  ctx.fillStyle = "#F9F5FF";
+  ctx.strokeStyle = "#E7DAF4";
+  ctx.beginPath();
+  ctx.roundRect(contentX, y, contentW, 160, 16);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#80560F";
+  ctx.font = "800 13px Arial, Helvetica, sans-serif";
+  ctx.fillText(eyebrow, contentX + 24, y + 38);
+  ctx.fillStyle = "#241453";
+  ctx.font = "800 30px Arial, Helvetica, sans-serif";
+  const titleEndY = wrapCanvasText(ctx, subject, contentX + 24, y + 78, contentW - 48, 36, 3);
+  ctx.fillStyle = "#808080";
+  ctx.font = "400 17px Arial, Helvetica, sans-serif";
+  ctx.fillText(programme || "Programme", contentX + 24, Math.min(titleEndY + 18, y + 136));
+
+  y += 198;
+  ctx.fillStyle = "#4C4C4C";
+  ctx.font = "400 22px Arial, Helvetica, sans-serif";
+
+  const blocks = String(body || "")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  for (const block of blocks) {
+    const nextY = wrapCanvasText(ctx, block, contentX, y, contentW, 31, 8);
+    y = nextY + 24;
+    if (y > emailY + 835) break;
+  }
+
+  ctx.fillStyle = "#E9D9BD";
+  ctx.fillRect(emailX, emailY + 925, emailW, 1);
+  ctx.fillStyle = "#F9F4EC";
+  ctx.fillRect(emailX, emailY + 926, emailW, 94);
+  ctx.fillStyle = "#808080";
+  ctx.font = "400 14px Arial, Helvetica, sans-serif";
+  wrapCanvasText(
+    ctx,
+    "Please do not ignore this message. If you have already completed this action, contact your coach so records can be updated.",
+    contentX,
+    emailY + 958,
+    contentW,
+    21,
+    3
+  );
+
+  ctx.restore();
+
+  ctx.fillStyle = "#71849A";
+  ctx.font = "600 13px Arial, Helvetica, sans-serif";
+  ctx.fillText(`Sent to ${learnerName || "learner"}${learnerEmail ? ` <${learnerEmail}>` : ""}`, emailX, emailY + 1052);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((value) => {
+      if (value) resolve(value);
+      else reject(new Error("Could not create email evidence image"));
+    }, "image/png");
+  });
+
+  return new File([blob], filename, { type: "image/png" });
+};
+
+const uploadEmailEvidenceImage = async (
+  endpoint: string,
+  filenamePrefix: string,
+  evidence: {
+    subject: string;
+    learnerName: string;
+    learnerEmail: string;
+    programme: string;
+    templateLabel: string;
+    body: string;
+  }
+) => {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const emailFile = await createEmailEvidenceImage({
+    filename: `${filenamePrefix}-${dateStr}.png`,
+    ...evidence,
+  });
+  const formData = new FormData();
+  formData.append("file", emailFile);
+  const res = await fetch(endpoint, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error("Email sent, but evidence image upload failed");
+  }
+};
+
 export default function EmailCentre() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -307,6 +513,10 @@ export default function EmailCentre() {
   const isFromOtjTicket = locationState.source === "otj-ticket" && returnTicketId != null;
   const isFromAttendanceTicket =
     locationState.source === "attendance-ticket" && returnTicketId != null;
+  const isFromPrTicket =
+    locationState.source === "pr-ticket" && returnTicketId != null;
+  const isFromMcmTicket =
+    locationState.source === "mcm-ticket" && returnTicketId != null;
 
   const [selectedTemplate, setSelectedTemplate] = useState(mockEmailTemplates[0]);
   const [subject, setSubject] = useState(mockEmailTemplates[0].subject);
@@ -677,6 +887,15 @@ export default function EmailCentre() {
 
       const sentCount = Number(result?.sentCount ?? 0);
       const failedCount = Number(result?.failedCount ?? 0);
+      const evidenceRecipient = renderedRecipients[0];
+      const emailEvidence = {
+        subject: evidenceRecipient?.renderedSubject || previewSubject || subject,
+        learnerName: evidenceRecipient?.learnerName || preselectedRecipient?.learnerName || "",
+        learnerEmail: evidenceRecipient?.learnerEmail || preselectedRecipient?.learnerEmail || "",
+        programme: evidenceRecipient?.programme || preselectedRecipient?.programme || "",
+        templateLabel: kpiLabels[selectedTemplate.kpiCategory] || selectedTemplate.name,
+        body: evidenceRecipient?.renderedTextBody || previewBody || body,
+      };
 
       toast.success("Emails sent successfully", {
         description:
@@ -687,33 +906,62 @@ export default function EmailCentre() {
 
       if (isFromOtjTicket) {
         try {
-          const dateStr = new Date().toISOString().slice(0, 10);
-          const emailBlob = new Blob([previewHtml], { type: "text/html" });
-          const emailFile = new File([emailBlob], `email-sent-${dateStr}.html`, { type: "text/html" });
-          const fd = new FormData();
-          fd.append("file", emailFile);
-          await fetch(`/api/otj-tickets/${returnTicketId}/files/`, { method: "POST", body: fd });
-        } catch (_) {}
+          await uploadEmailEvidenceImage(
+            `/api/otj-tickets/${returnTicketId}/files/`,
+            "email-sent",
+            emailEvidence
+          );
+        } catch (err) {
+          console.error(err);
+          toast.warning("Email sent, but evidence image was not attached");
+        }
         navigate(`/otj-hours/tickets?emailed_ticket=${returnTicketId}`, { replace: true });
         return;
       }
       if (isFromAttendanceTicket) {
         try {
-          const dateStr = new Date().toISOString().slice(0, 10);
-          const emailBlob = new Blob([previewHtml], { type: "text/html" });
-          const emailFile = new File(
-            [emailBlob],
-            `attendance-email-sent-${dateStr}.html`,
-            { type: "text/html" }
+          await uploadEmailEvidenceImage(
+            `/api/attendance-tickets/${returnTicketId}/files/`,
+            "attendance-email-sent",
+            emailEvidence
           );
-          const formData = new FormData();
-          formData.append("file", emailFile);
-          await fetch(`/api/attendance-tickets/${returnTicketId}/files/`, {
-            method: "POST",
-            body: formData,
-          });
-        } catch (_) {}
+        } catch (err) {
+          console.error(err);
+          toast.warning("Email sent, but evidence image was not attached");
+        }
         navigate(`/attendance/tickets?emailed_ticket=${returnTicketId}`, {
+          replace: true,
+        });
+        return;
+      }
+      if (isFromPrTicket) {
+        try {
+          await uploadEmailEvidenceImage(
+            `/api/pr-tickets/${returnTicketId}/files/`,
+            "pr-email-sent",
+            emailEvidence
+          );
+        } catch (err) {
+          console.error(err);
+          toast.warning("Email sent, but evidence image was not attached");
+        }
+        navigate(`/progress-review/tickets?emailed_ticket=${returnTicketId}`, {
+          replace: true,
+        });
+        return;
+      }
+      if (isFromMcmTicket) {
+        try {
+          await uploadEmailEvidenceImage(
+            `/api/mcm-tickets/${returnTicketId}/files/`,
+            "mcm-email-sent",
+            emailEvidence
+          );
+        } catch (err) {
+          console.error(err);
+          toast.warning("Email sent, but evidence image was not attached");
+        }
+        navigate(`/coaching-meetings/tickets?emailed_ticket=${returnTicketId}`, {
           replace: true,
         });
         return;
@@ -732,20 +980,23 @@ export default function EmailCentre() {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6">
-        {(isFromOtjTicket || isFromAttendanceTicket) && (
+        {(isFromOtjTicket || isFromAttendanceTicket || isFromPrTicket || isFromMcmTicket) && (
           <button
             onClick={() =>
               navigate(
                 isFromAttendanceTicket
                   ? "/attendance/tickets"
-                  : "/otj-hours/tickets"
+                  : isFromPrTicket
+                    ? "/progress-review/tickets"
+                    : isFromMcmTicket
+                      ? "/coaching-meetings/tickets"
+                      : "/otj-hours/tickets"
               )
             }
             className="mb-4 inline-flex items-center gap-1.5 text-[0px] font-semibold text-[#1E6ACB] hover:underline">
             <span className="text-sm">
-              ← Back to {isFromAttendanceTicket ? "Attendance" : "OTJ"} Tickets
+              ← Back to {isFromAttendanceTicket ? "Attendance" : isFromPrTicket ? "PR" : isFromMcmTicket ? "MCM" : "OTJ"} Tickets
             </span>
-            ← Back to OTJ Tickets
           </button>
         )}
         <h2 className="mb-1 text-xl font-semibold text-foreground">Email Centre</h2>

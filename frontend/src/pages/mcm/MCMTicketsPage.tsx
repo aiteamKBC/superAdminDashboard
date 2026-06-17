@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Archive, CalendarCheck2, CheckCircle2, Clock, Download, Eye,
+  Archive, AlertTriangle, CalendarCheck2, CheckCircle2, Clock, Download, Eye,
   File as FileIcon, FileText, Flag, Image as ImageIcon, MessageSquare,
-  MoreHorizontal, Paperclip, Plus, RefreshCw, Search, Ticket,
+  Mail, MoreHorizontal, Paperclip, Plus, RefreshCw, Search, Ticket,
   Trash2, UploadCloud, X, XCircle, ZoomIn,
 } from "lucide-react";
 import {
@@ -32,6 +33,13 @@ interface EvidenceFile {
   uploadedAt: string;
 }
 
+interface McmHistoryItem {
+  date: string;
+  status: string;
+  completed?: boolean;
+  isPast?: boolean;
+}
+
 interface MCMTicket {
   id: number;
   ticketRef: string;
@@ -45,6 +53,7 @@ interface MCMTicket {
   nextMcmDate: string;
   lastMcmDate: string;
   mcmStatus: string;
+  mcmHistory: McmHistoryItem[];
   risk: MCMRisk;
   status: MCMStatus;
   assignedOwner: string;
@@ -91,6 +100,33 @@ const fmtDate = (s: string) => {
   catch { return s; }
 };
 
+const isoToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const isCompletedMcmStatus = (value: unknown) =>
+  String(value || "").toLowerCase().includes("completed");
+
+const mcmDateValue = (value: string) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const getOverdueMcmItems = (items: McmHistoryItem[] = []) => {
+  const today = isoToday();
+  return items.filter((item) => {
+    const dt = mcmDateValue(item.date);
+    return Boolean(dt && dt < today && !item.completed && !isCompletedMcmStatus(item.status));
+  });
+};
+
+const getCompletedMcmItems = (items: McmHistoryItem[] = []) =>
+  items.filter((item) => item.completed || isCompletedMcmStatus(item.status));
+
 const daysOpen = (createdAt: string) => {
   const diff = Date.now() - new Date(createdAt).getTime();
   return Math.max(0, Math.floor(diff / 86_400_000));
@@ -126,6 +162,48 @@ const statusLabel: Record<MCMStatus, string> = {
   session_completed: "Session Completed",
   resolved: "Resolved",
 };
+
+function OverdueBadge({ ticket }: { ticket: MCMTicket }) {
+  const overdueItems = getOverdueMcmItems(Array.isArray(ticket.mcmHistory) ? ticket.mcmHistory : []);
+  const tone =
+    ticket.overdueCount >= 3
+      ? "bg-red-100 text-red-700"
+      : ticket.overdueCount >= 1
+        ? "bg-amber-100 text-amber-700"
+        : "bg-green-100 text-green-700";
+
+  return (
+    <span className="group relative inline-flex justify-center">
+      <button
+        type="button"
+        className={`rounded-full px-2 py-0.5 text-xs font-bold outline-none ring-offset-2 transition-shadow hover:ring-2 hover:ring-[#BFD5EE] focus-visible:ring-2 focus-visible:ring-[#315D93] ${tone}`}
+        aria-label={`${ticket.overdueCount} overdue MCM meetings`}
+      >
+        {ticket.overdueCount}
+      </button>
+      <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 hidden w-72 -translate-x-1/2 rounded-xl border border-[#DDE7F0] bg-white p-3 text-left shadow-xl group-hover:block group-focus-within:block">
+        <span className="mb-2 flex items-center gap-2 text-xs font-bold text-[#14264A]">
+          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+          Overdue MCM meetings
+        </span>
+        {overdueItems.length ? (
+          <span className="block max-h-56 space-y-1.5 overflow-y-auto">
+            {overdueItems.map((item, index) => (
+              <span key={`${item.date}-${item.status}-${index}`} className="block rounded-lg bg-red-50 px-2.5 py-2">
+                <span className="block text-xs font-bold text-red-700">{fmtDate(item.date)}</span>
+                <span className="block text-[11px] text-[#5F7288]">{item.status || "No status"}</span>
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="block rounded-lg bg-[#F8FBFE] px-2.5 py-2 text-xs text-[#5F7288]">
+            No overdue meeting details recorded for this ticket.
+          </span>
+        )}
+      </span>
+    </span>
+  );
+}
 
 const isImage = (mime: string, name: string) =>
   mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(name);
@@ -304,7 +382,7 @@ function CreateTicketModal({
     learnerEmail: "", learnerName: "", learnerPhone: "", organisation: "",
     programme: "", coachName: "", overdueCount: 1, nextMcmDate: "", lastMcmDate: "",
     mcmStatus: "", risk: "amber" as MCMRisk, status: "new" as MCMStatus,
-    assignedOwner: "", notes: "",
+    assignedOwner: "", notes: "", mcmHistory: [] as McmHistoryItem[],
   };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
@@ -318,7 +396,20 @@ function CreateTicketModal({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
+        learner_email: form.learnerEmail,
+        learner_name: form.learnerName,
+        learner_phone: form.learnerPhone,
+        organisation: form.organisation,
+        programme: form.programme,
+        coach_name: form.coachName,
+        overdue_count: form.overdueCount,
+        next_mcm_date: form.nextMcmDate,
+        last_mcm_date: form.lastMcmDate,
+        mcm_status: form.mcmStatus,
+        mcm_history: form.mcmHistory,
+        risk: form.risk,
+        status: form.status,
+        notes: form.notes,
         assigned_owner: form.assignedOwner || user?.name || user?.email || "",
         created_by: user?.name || user?.email || "System",
       }),
@@ -517,14 +608,21 @@ function ViewModal({
 
   if (!ticket) return null;
   const accent = riskAccent[ticket.risk];
+  const history = Array.isArray(ticket.mcmHistory) ? ticket.mcmHistory : [];
+  const overdueItems = getOverdueMcmItems(history);
+  const completedItems = getCompletedMcmItems(history);
+  const upcomingItems = history.filter((item) => {
+    const dt = mcmDateValue(item.date);
+    return Boolean(dt && dt >= isoToday() && !item.completed && !isCompletedMcmStatus(item.status));
+  });
 
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl overflow-hidden p-0">
+        <DialogContent className="max-h-[92vh] max-w-4xl overflow-hidden p-0">
           {/* Accent strip */}
           <div className="h-1.5 w-full" style={{ background: accent }} />
-          <div className="p-6">
+          <div className="max-h-[88vh] overflow-y-auto p-6">
             {/* Header */}
             <div className="flex items-start gap-4">
               <div
@@ -568,22 +666,78 @@ function ViewModal({
             </div>
 
             {/* MCM metrics */}
-            <div className="mt-3 flex gap-3">
-              <div className="flex-1 rounded-xl border border-[#DDE7F0] p-3 text-center">
+            <div className="mt-4 grid grid-cols-4 gap-3">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
                 <p className="text-xl font-bold text-red-600">{ticket.overdueCount}</p>
                 <p className="text-xs text-[#5F7288]">Overdue</p>
               </div>
-              <div className="flex-1 rounded-xl border border-[#DDE7F0] p-3 text-center">
+              <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-center">
                 <p className="text-sm font-bold text-[#14264A]">{fmtDate(ticket.nextMcmDate)}</p>
                 <p className="text-xs text-[#5F7288]">Next MCM</p>
               </div>
-              <div className="flex-1 rounded-xl border border-[#DDE7F0] p-3 text-center">
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-center">
                 <p className="text-sm font-bold text-[#14264A]">{fmtDate(ticket.lastMcmDate)}</p>
                 <p className="text-xs text-[#5F7288]">Last MCM</p>
               </div>
-              <div className="flex-1 rounded-xl border border-[#DDE7F0] p-3 text-center">
+              <div className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-3 text-center">
                 <p className="text-xl font-bold text-[#14264A]">{daysOpen(ticket.createdAt)}</p>
                 <p className="text-xs text-[#5F7288]">Days Open</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[#DDE7F0] bg-white p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-[#14264A]">Monthly Coaching Meeting History</p>
+                  <p className="text-xs text-[#71849A]">Completed, overdue, and upcoming MCM records for this learner.</p>
+                </div>
+                <span className="rounded-full bg-[#EEF3FB] px-2.5 py-1 text-xs font-bold text-[#315D93]">
+                  {history.length} records
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-red-700">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Overdue ({overdueItems.length})
+                  </div>
+                  <div className="max-h-40 space-y-1 overflow-y-auto">
+                    {overdueItems.length ? overdueItems.map((item) => (
+                      <div key={`${item.date}-${item.status}`} className="rounded-lg bg-white/80 px-2 py-1.5 text-xs">
+                        <p className="font-bold text-red-700">{fmtDate(item.date)}</p>
+                        <p className="text-[#5F7288]">{item.status || "No status"}</p>
+                      </div>
+                    )) : <p className="text-xs text-[#8AA0B6]">No overdue meetings.</p>}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-green-200 bg-green-50 p-3">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-green-700">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Completed ({completedItems.length})
+                  </div>
+                  <div className="max-h-40 space-y-1 overflow-y-auto">
+                    {completedItems.length ? completedItems.map((item) => (
+                      <div key={`${item.date}-${item.status}`} className="rounded-lg bg-white/80 px-2 py-1.5 text-xs">
+                        <p className="font-bold text-green-700">{fmtDate(item.date)}</p>
+                        <p className="text-[#5F7288]">{item.status || "Completed"}</p>
+                      </div>
+                    )) : <p className="text-xs text-[#8AA0B6]">No completed meetings recorded.</p>}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-blue-700">
+                    <CalendarCheck2 className="h-3.5 w-3.5" /> Upcoming ({upcomingItems.length})
+                  </div>
+                  <div className="max-h-40 space-y-1 overflow-y-auto">
+                    {upcomingItems.length ? upcomingItems.map((item) => (
+                      <div key={`${item.date}-${item.status}`} className="rounded-lg bg-white/80 px-2 py-1.5 text-xs">
+                        <p className="font-bold text-blue-700">{fmtDate(item.date)}</p>
+                        <p className="text-[#5F7288]">{item.status || "Planned"}</p>
+                      </div>
+                    )) : <p className="text-xs text-[#8AA0B6]">No upcoming meetings.</p>}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -630,12 +784,13 @@ function ViewModal({
 // ─── ActionsMenu ──────────────────────────────────────────────────────────────
 
 function MCMTicketActionsMenu({
-  ticket, onQuickPatch, onAddNote, onAddEvidence,
+  ticket, onQuickPatch, onAddNote, onAddEvidence, onEmail,
 }: {
   ticket: MCMTicket;
   onQuickPatch: (id: number, data: Partial<MCMTicket>) => void;
   onAddNote: () => void;
   onAddEvidence: () => void;
+  onEmail: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -689,11 +844,16 @@ function MCMTicketActionsMenu({
           {ACTION_OPTIONS.filter((a) => a.value).map((a) => (
             <DropdownMenuItem
               key={a.value}
-              onClick={() => onQuickPatch(ticket.id, { action: a.value })}
+              onClick={() => a.value === "emailed" ? onEmail() : onQuickPatch(ticket.id, { action: a.value })}
               className="gap-2 px-3 text-sm"
             >
-              <span className={`h-2 w-2 rounded-full ${ticket.action === a.value ? "bg-[#315D93]" : "bg-[#C5D5E3]"}`} />
+              {a.value === "emailed" ? (
+                <Mail className="h-3.5 w-3.5 text-[#315D93]" />
+              ) : (
+                <span className={`h-2 w-2 rounded-full ${ticket.action === a.value ? "bg-[#315D93]" : "bg-[#C5D5E3]"}`} />
+              )}
               {a.label}
+              {a.value === "emailed" && <span className="ml-auto text-[10px] text-[#A0B0C0]">Email Centre</span>}
             </DropdownMenuItem>
           ))}
         </div>
@@ -707,6 +867,9 @@ function MCMTicketActionsMenu({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MCMTicketsPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tickets, setTickets] = useState<MCMTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
@@ -722,6 +885,8 @@ export default function MCMTicketsPage() {
 
   const [evidenceFiles, setEvidenceFiles] = useState<Record<number, EvidenceFile[]>>({});
   const [previewFile, setPreviewFile] = useState<EvidenceFile | null>(null);
+  const [autoSyncing, setAutoSyncing] = useState(false);
+  const autoSyncedRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -732,6 +897,34 @@ export default function MCMTicketsPage() {
   }, [showArchived]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const autoCreateOverdueTickets = useCallback(async () => {
+    if (showArchived) return;
+    setAutoSyncing(true);
+    try {
+      const summaryRes = await fetch("/api/mcr-summary/");
+      if (!summaryRes.ok) return;
+      const rows = await summaryRes.json();
+      if (!Array.isArray(rows)) return;
+
+      const syncRes = await fetch("/api/mcm-tickets/auto-create/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      if (!syncRes.ok) return;
+      const result = await syncRes.json();
+      if ((result.createdCount || 0) > 0 || (result.updatedCount || 0) > 0) void load();
+    } finally {
+      setAutoSyncing(false);
+    }
+  }, [load, showArchived]);
+
+  useEffect(() => {
+    if (loading || showArchived || autoSyncedRef.current) return;
+    autoSyncedRef.current = true;
+    void autoCreateOverdueTickets();
+  }, [autoCreateOverdueTickets, loading, showArchived]);
 
   const loadFiles = useCallback(async (id: number) => {
     const res = await fetch(`/api/mcm-tickets/${id}/files/`);
@@ -752,6 +945,49 @@ export default function MCMTicketsPage() {
       setTickets((p) => p.map((t) => (t.id === id ? updated : t)));
     }
   }, []);
+
+  useEffect(() => {
+    const emailedId = searchParams.get("emailed_ticket");
+    if (!emailedId || loading) return;
+    const ticketId = Number(emailedId);
+    const ticket = tickets.find((item) => item.id === ticketId);
+    const dateLabel = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const sentBy = user?.fullName || user?.name || user?.email || "";
+    const noteEntry = `Email sent on ${dateLabel}${sentBy ? ` by ${sentBy}` : ""}`;
+    const currentNotes = ticket?.notes?.trim() || "";
+    const notes = currentNotes ? `${currentNotes}\n${noteEntry}` : noteEntry;
+    void patchTicket(ticketId, {
+      action: "emailed",
+      notes,
+      assignedOwner: ticket?.assignedOwner || sentBy,
+    } as Partial<MCMTicket>);
+    setSearchParams({}, { replace: true });
+  }, [loading, patchTicket, searchParams, setSearchParams, tickets, user]);
+
+  const handleEmailTicket = useCallback((ticket: MCMTicket) => {
+    navigate("/email-centre", {
+      state: {
+        selectedRecipient: {
+          learnerName: ticket.learnerName,
+          learnerEmail: ticket.learnerEmail,
+          programme: ticket.programme || "",
+          coachName: ticket.coachName || "",
+          coachEmail: "",
+          dueDate: ticket.nextMcmDate || "",
+          periodDate: ticket.nextMcmDate || "",
+          bookingLink: "",
+          status: "Active",
+          riskCategories: ["coaching-due"],
+        },
+        source: "mcm-ticket",
+        ticketId: ticket.id,
+      },
+    });
+  }, [navigate]);
 
   const archiveToggle = useCallback(async (ticket: MCMTicket) => {
     await fetch(`/api/mcm-tickets/${ticket.id}/archive/`, {
@@ -810,7 +1046,10 @@ export default function MCMTicketsPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-[#14264A]">MCM Ticket System</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">Track and manage monthly coaching meeting tickets</p>
+                <p className="mt-0.5 text-sm text-[#5F7288]">
+                  Track and manage monthly coaching meeting tickets
+                  {autoSyncing && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">Auto-syncing overdue MCMs...</span>}
+                </p>
               </div>
             </div>
             <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 bg-[#315D93] text-white hover:bg-[#274D7A]">
@@ -928,9 +1167,7 @@ export default function MCMTicketsPage() {
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{t.coachName || "—"}</td>
                         {/* Overdue */}
                         <td className="px-3 py-3 text-center">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${t.overdueCount >= 3 ? "bg-red-100 text-red-700" : t.overdueCount >= 1 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                            {t.overdueCount}
-                          </span>
+                          <OverdueBadge ticket={t} />
                         </td>
                         {/* Next MCM */}
                         <td className="whitespace-nowrap px-3 py-3 text-xs text-[#5F7288]">{fmtDate(t.nextMcmDate)}</td>
@@ -966,7 +1203,13 @@ export default function MCMTicketsPage() {
                             onQuickPatch={(id, data) => void patchTicket(id, data)}
                             onAddNote={() => setNoteTicket(t)}
                             onAddEvidence={() => setEvidenceTicket(t)}
+                            onEmail={() => handleEmailTicket(t)}
                           />
+                          {t.action === "emailed" && (
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                              <Mail className="h-3 w-3" /> Emailed
+                            </span>
+                          )}
                         </td>
                         {/* Edit */}
                         <td className="px-3 py-3">

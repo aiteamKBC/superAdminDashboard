@@ -25,9 +25,12 @@ export default function FilterSelect({
   minWidth = 160,
 }: FilterSelectProps) {
   const selected = options.find((o) => o.value === value);
+  const EMPTY_VALUE = "__filter_select_empty__";
+  const toSelectValue = (optionValue: string) => optionValue === "" ? EMPTY_VALUE : optionValue;
+  const fromSelectValue = (optionValue: string) => optionValue === EMPTY_VALUE ? "" : optionValue;
 
   return (
-    <RadixSelect.Root value={value} onValueChange={onChange}>
+    <RadixSelect.Root value={toSelectValue(value)} onValueChange={(next) => onChange(fromSelectValue(next))}>
       <RadixSelect.Trigger
         className={cn(
           "flex h-10 items-center justify-between gap-2 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm font-medium text-[#14264A] shadow-sm outline-none transition-colors hover:border-[#1E6ACB] hover:bg-[#F8FBFE] focus:border-[#1E6ACB] focus:ring-2 focus:ring-[#1E6ACB]/20 data-[state=open]:border-[#1E6ACB] data-[state=open]:ring-2 data-[state=open]:ring-[#1E6ACB]/20",
@@ -58,7 +61,7 @@ export default function FilterSelect({
             {options.map((opt) => (
               <RadixSelect.Item
                 key={opt.value}
-                value={opt.value}
+                value={toSelectValue(opt.value)}
                 className="relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#14264A] outline-none transition-colors hover:bg-[#EEF3FB] focus:bg-[#EEF3FB] data-[state=checked]:bg-[#EEF3FB] data-[state=checked]:font-semibold data-[state=checked]:text-[#1E6ACB]"
               >
                 <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>

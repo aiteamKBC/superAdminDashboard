@@ -153,6 +153,26 @@
     font: inherit;
   }
 
+  select {
+    color-scheme: light;
+  }
+
+  select option {
+    background-color: #fff;
+    color: #14264A;
+    font-size: 0.875rem;
+  }
+
+  select option:checked {
+    background-color: #EEF7FF;
+    color: #1E6ACB;
+    font-weight: 600;
+  }
+
+  select option:disabled {
+    color: #8AA0B6;
+  }
+
   table {
     width: 100%;
     border-collapse: separate;

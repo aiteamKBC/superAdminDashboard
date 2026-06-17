@@ -36,6 +36,7 @@ class AttendanceTicket(models.Model):
         ('follow_up_scheduled', 'Follow-up Scheduled'),
         ('support_plan_active', 'Support Plan Active'),
         ('resolved', 'Resolved'),
+        ('covered', 'Covered'),
     ]
     ACTION_CHOICES = [
         ('called', 'Called'),
@@ -117,6 +118,8 @@ class ProgressReviewTicket(models.Model):
     learner_phone = models.CharField(max_length=50, blank=True, default='')
     organisation = models.CharField(max_length=255, blank=True, default='')
     programme = models.CharField(max_length=255, blank=True, default='')
+    last_progress_review = models.CharField(max_length=255, blank=True, default='')
+    last_actually_completed_pr = models.CharField(max_length=255, blank=True, default='')
     last_pr_date = models.DateField(null=True, blank=True)
     next_pr_date = models.DateField(null=True, blank=True)
     overdue_count = models.IntegerField(default=0)
@@ -248,6 +251,7 @@ class MCMTicket(models.Model):
     next_mcm_date = models.CharField(max_length=20, blank=True, default='')
     last_mcm_date = models.CharField(max_length=20, blank=True, default='')
     mcm_status    = models.CharField(max_length=100, blank=True, default='')
+    mcm_history   = models.TextField(blank=True, default='')
     risk          = models.CharField(max_length=10, choices=RISK_CHOICES, default='amber')
     status        = models.CharField(max_length=30, choices=STATUS_CHOICES, default='new')
     assigned_owner = models.CharField(max_length=255, blank=True, default='')

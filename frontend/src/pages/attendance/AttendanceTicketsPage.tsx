@@ -66,7 +66,8 @@ type TicketStatus =
   | "under_review"
   | "follow_up_scheduled"
   | "support_plan_active"
-  | "resolved";
+  | "resolved"
+  | "covered";
 
 interface EvidenceFile {
   id: number;
@@ -159,6 +160,7 @@ const statusBadge = (status: TicketStatus) => {
     follow_up_scheduled: { label: "Follow-up Scheduled", cls: "bg-teal-100 text-teal-700 border-teal-200" },
     support_plan_active: { label: "Support Plan Active", cls: "bg-orange-100 text-orange-700 border-orange-200" },
     resolved: { label: "Resolved", cls: "bg-green-100 text-green-700 border-green-200" },
+    covered: { label: "Covered", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   };
   const { label, cls } = map[status] ?? map.new;
   return (
@@ -178,6 +180,8 @@ const daysSince = (iso: string) => {
   try { return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000); }
   catch { return 0; }
 };
+
+const isClosedTicketStatus = (status: TicketStatus) => status === "resolved" || status === "covered";
 
 const isImage = (mime: string, name: string) => {
   if (mime.startsWith("image/")) return true;
@@ -712,6 +716,7 @@ function TicketFormModal({
                 <SelectItem value="follow_up_scheduled">Follow-up Scheduled</SelectItem>
                 <SelectItem value="support_plan_active">Support Plan Active</SelectItem>
                 <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="covered">Covered</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1075,10 +1080,10 @@ function TicketActionsMenu({
             <RefreshCw className="h-4 w-4 text-green-600" /> Reopen / Set Active
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => onQuickAction(ticket.id, { status: "resolved" })}
+            onClick={() => onQuickAction(ticket.id, { status: "covered" })}
             className="cursor-pointer gap-2 rounded-lg text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-600"
           >
-            <XCircle className="h-4 w-4" /> Close Ticket
+            <XCircle className="h-4 w-4" /> Close / Covered
           </DropdownMenuItem>
 
           <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
@@ -1530,8 +1535,8 @@ export default function AttendanceTicketsPage() {
       if (ragFilter !== "all" && t.risk !== ragFilter) return false;
       if (notesFilter === "has" && !t.notes.trim()) return false;
       if (notesFilter === "missing" && t.notes.trim()) return false;
-      if (cardFilter === "open" && t.status === "resolved") return false;
-      if (cardFilter === "resolved" && t.status !== "resolved") return false;
+      if (cardFilter === "open" && isClosedTicketStatus(t.status)) return false;
+      if (cardFilter === "resolved" && !isClosedTicketStatus(t.status)) return false;
       if (weekStart && weekEnd) {
         if (!t.attendanceDate) return false;
         const parts = t.attendanceDate.split("-").map(Number);
@@ -1543,8 +1548,8 @@ export default function AttendanceTicketsPage() {
   }, [tickets, search, ragFilter, notesFilter, cardFilter, weekFilter]);
 
   const allCount = tickets.length;
-  const openCount = tickets.filter((t) => t.status !== "resolved").length;
-  const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
+  const openCount = tickets.filter((t) => !isClosedTicketStatus(t.status)).length;
+  const resolvedCount = tickets.filter((t) => isClosedTicketStatus(t.status)).length;
   const redCount = tickets.filter((t) => t.risk === "red").length;
   const amberCount = tickets.filter((t) => t.risk === "amber").length;
   const greenCount = tickets.filter((t) => t.risk === "green").length;
@@ -1737,8 +1742,8 @@ export default function AttendanceTicketsPage() {
                 },
                 {
                   key: "resolved" as const,
-                  label: "Resolved",
-                  sub: "Resolved cases",
+                  label: "Closed / Covered",
+                  sub: "Closed cases",
                   count: resolvedCount,
                   defaultCls: "border-[#DDE7F0] bg-white text-[#14264A]",
                   activeCls: "border-violet-600 bg-violet-600 text-white shadow-md",
@@ -1767,7 +1772,7 @@ export default function AttendanceTicketsPage() {
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-[#5F7288]">OPEN TICKET RAG</span>
             {(["all", "red", "amber", "green"] as const).map((r) => {
-              const cnt = r === "all" ? openCount : tickets.filter((t) => t.risk === r && t.status !== "resolved").length;
+              const cnt = r === "all" ? openCount : tickets.filter((t) => t.risk === r && !isClosedTicketStatus(t.status)).length;
               const active = ragFilter === r;
               const colors: Record<string, string> = { all: "bg-[#14264A] text-white border-[#14264A]", red: "bg-red-600 text-white border-red-600", amber: "bg-amber-500 text-white border-amber-500", green: "bg-green-600 text-white border-green-600" };
               return (

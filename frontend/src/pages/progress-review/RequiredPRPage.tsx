@@ -6,7 +6,9 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
+import AppFilterSelect from "@/components/FilterSelect";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -18,6 +20,7 @@ interface PRLearner {
   caseOwner: string;
   phone: string;
   organisation: string;
+  lastActuallyCompletedPr: string;
   lastProgressReview: string;
   nextPrDate: string;
   nextPrState: string;
@@ -126,12 +129,18 @@ const getProgressReviewMatchInRange = (
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
-  catch { return iso; }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 const statusIncludes = (value: unknown, text: string) =>
   String(value || "").toLowerCase().includes(text);
+
+const fmtProgressReviewText = (value: string | null) => {
+  const text = String(value || "").trim();
+  return text && text.toLowerCase() !== "n/a" ? text : "â€”";
+};
 
 const getPrTicketKey = (email: string, nextPrDate: string | null | undefined) =>
   `${String(email || "").trim().toLowerCase()}::${String(nextPrDate || "")}`;
@@ -141,7 +150,7 @@ const getLearnerKey = (learner: { email: string; id: number }) =>
 
 // ─── Filter Select ────────────────────────────────────────────────────
 
-function FilterSelect<T extends string>({
+function FilterSelect<T extends string | number>({
   label, value, onChange, options,
 }: {
   label: string;
@@ -149,22 +158,23 @@ function FilterSelect<T extends string>({
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
+  const selectOptions = options.map((o) => ({ value: String(o.value), label: o.label }));
+
   return (
     <div className="relative inline-flex items-center">
       <span className="pointer-events-none absolute left-3 z-10 whitespace-nowrap text-xs font-bold text-[#14264A]">
         {label}
       </span>
-      <select
+      <AppFilterSelect
         value={String(value)}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="h-10 appearance-none rounded-lg border border-[#D7E5F3] bg-white pr-8 text-sm font-semibold text-[#1E6ACB] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E6ACB]/30"
-        style={{ paddingLeft: `calc(0.75rem + ${label.length * 7 + 8}px)` }}
-      >
-        {options.map((o) => (
-          <option key={String(o.value)} value={String(o.value)}>{o.label}</option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[#5F7288]" />
+        onChange={(next) => {
+          const selected = options.find((o) => String(o.value) === next);
+          if (selected) onChange(selected.value);
+        }}
+        options={selectOptions}
+        className="pl-[7.25rem] font-semibold text-[#1E6ACB]"
+        minWidth={240}
+      />
     </div>
   );
 }
@@ -179,15 +189,13 @@ function SimpleSelect({ value, onChange, options, placeholder }: {
 }) {
   return (
     <div className="relative inline-flex min-w-[160px] flex-1">
-      <select
+      <AppFilterSelect
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full appearance-none rounded-lg border border-[#D7E5F3] bg-[#F8FBFE] px-3 pr-8 text-sm text-[#20344D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E6ACB]/30"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5F7288]" />
+        onChange={onChange}
+        options={[{ value: "", label: placeholder }, ...options.map((o) => ({ value: o, label: o }))]}
+        className="w-full flex-1 bg-[#F8FBFE] font-normal text-[#20344D]"
+        minWidth={160}
+      />
     </div>
   );
 }
@@ -203,7 +211,6 @@ export default function RequiredPRPage() {
   const [prOffset, setPrOffset] = useState<PrOffset>("last12weeks");
   const [programmeFilter, setProgrammeFilter] = useState("");
   const [coachFilter, setCoachFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Active");
   const [cardFilter, setCardFilter] = useState<"all" | "scheduled" | "notScheduled" | "inProgress" | "completed" | "overdue">("all");
   const autoCreateLast12WeeksKeyRef = useRef("");
 
@@ -226,6 +233,8 @@ export default function RequiredPRPage() {
   const ticketMap = useMemo(() => {
     const m = new Map<string, PRTicketInfo>();
     tickets.forEach((t) => {
+      const emailKey = t.learnerEmail.toLowerCase();
+      if (!m.has(emailKey)) m.set(emailKey, t);
       m.set(getPrTicketKey(t.learnerEmail, t.nextPrDate), t);
       if (!t.nextPrDate) m.set(getPrTicketKey(t.learnerEmail, ""), t);
     });
@@ -244,8 +253,6 @@ export default function RequiredPRPage() {
   const totalActive = useMemo(() =>
     learners.filter((l) => !!l.caseOwner).length,
   [learners]);
-
-  const statusOptions = ["Active", "Inactive", "All"];
 
   // ── All learners in range (completed + non-completed) — single population ──
   // ── Helper: categorise a learner's dates within the selected range ────
@@ -276,12 +283,14 @@ export default function RequiredPRPage() {
     const inProgressEntry = activeDates.find((d) =>
       statusIncludes(d.status, "in progress") || statusIncludes(d.status, "awaiting signature")
     );
-    const scheduledEntry = activeDates.find((d) =>
-      statusIncludes(d.status, "scheduled") &&
-      !statusIncludes(d.status, "not scheduled") &&
-      !statusIncludes(d.status, "in progress") &&
-      !statusIncludes(d.status, "awaiting signature")
-    );
+    const scheduledEntry = activeDates.find((d) => {
+      return (
+        statusIncludes(d.status, "scheduled") &&
+        !statusIncludes(d.status, "not scheduled") &&
+        !statusIncludes(d.status, "in progress") &&
+        !statusIncludes(d.status, "awaiting signature")
+      );
+    });
     const notScheduledEntry = activeDates.find((d) =>
       !statusIncludes(d.status, "scheduled") ||
       statusIncludes(d.status, "not scheduled")
@@ -316,7 +325,7 @@ export default function RequiredPRPage() {
       status.includes("scheduled") &&
       !status.includes("not scheduled")
     );
-    const notScheduled = Boolean(notScheduledEntry) || (
+    const notScheduled = (!completed && !inProgress && !scheduled && Boolean(notScheduledEntry)) || (
       Boolean(match) &&
       matchingDates.length === 0 &&
       !fallbackCompleted &&
@@ -330,6 +339,10 @@ export default function RequiredPRPage() {
       matchDate: match?.date || "",
       overdueDate: overdueMatch?.date || "",
       overdueStatus: overdueMatch?.status || "",
+      overdueItems: overdueDates.map((d) => ({
+        date: d.date,
+        status: d.status || "Not Scheduled",
+      })),
       scopedOverdueCount: overdueDates.length,
       completed,
       scheduled,
@@ -356,16 +369,18 @@ export default function RequiredPRPage() {
     const { start, end } = getPrDateRange(prOffset);
     const scheduledLearners = new Set<string>();
     const inProgressLearners = new Set<string>();
+    const notScheduledLearners = new Set<string>();
     allInRange.forEach((l) => {
       const status = getRangeStatus(l, start, end);
       if (status.scheduled) scheduledLearners.add(getLearnerKey(l));
       if (status.inProgress) inProgressLearners.add(getLearnerKey(l));
+      if (status.notScheduled) notScheduledLearners.add(getLearnerKey(l));
     });
 
     return {
       total:        allInRange.length,
       scheduled:    scheduledLearners.size,
-      notScheduled: allInRange.filter((l) => getRangeStatus(l, start, end).notScheduled).length,
+      notScheduled: notScheduledLearners.size,
       inProgress:   inProgressLearners.size,
       completed:    allInRange.filter((l) => getRangeStatus(l, start, end).completed).length,
       overdue:      allInRange.filter((l) => getRangeStatus(l, start, end).overdue).length,
@@ -423,13 +438,15 @@ export default function RequiredPRPage() {
           phone: learner.phone || "",
           organisation: learner.organisation || "",
           programme: learner.group || "",
-          assigned_owner: learner.caseOwner || "",
-          last_pr_date: learner.lastProgressReview || "",
+          assigned_owner: "",
+          last_progress_review: learner.lastProgressReview || "",
+          last_actually_completed_pr: learner.lastActuallyCompletedPr || "",
+          last_pr_date: "",
           next_pr_date: status.overdueDate,
           overdue_count: status.scopedOverdueCount || 1,
           risk: "amber",
           status: "new",
-          notes: `Auto-created for overdue PR in Last 12 Weeks. PR date: ${status.overdueDate}.`,
+          notes: "",
           created_by: "System",
         })),
       }),
@@ -444,15 +461,17 @@ export default function RequiredPRPage() {
     const scopedPrDate = getScopedTicketDate(l);
     const { start, end } = getPrDateRange(prOffset);
     const scopedStatus = getRangeStatus(l, start, end);
-    const existing = ticketMap.get(getPrTicketKey(l.email, scopedPrDate));
+    const existing = ticketMap.get(l.email.toLowerCase()) ?? ticketMap.get(getPrTicketKey(l.email, scopedPrDate));
     if (existing) {
       navigate(`/progress-review/tickets?open=${existing.id}`);
     } else {
       const params = new URLSearchParams({
         create: "1", email: l.email, name: l.fullName,
         phone: l.phone || "", organisation: l.organisation || "",
-        programme: l.group, caseOwner: l.caseOwner,
-        lastPrDate: l.lastProgressReview || "",
+        programme: l.group,
+        lastProgressReview: l.lastProgressReview || "",
+        lastActuallyCompletedPr: l.lastActuallyCompletedPr || "",
+        lastPrDate: "",
         nextPrDate: scopedPrDate,
         overdue: String(scopedStatus.scopedOverdueCount || l.overduePrCount),
       });
@@ -465,6 +484,38 @@ export default function RequiredPRPage() {
   const clearAll = () => {
     setPrOffset("last12weeks");
     setSearch(""); setProgrammeFilter(""); setCoachFilter(""); setCardFilter("all");
+  };
+
+  const highlightedColumns = useMemo(() => {
+    const columns: Record<typeof cardFilter, string[]> = {
+      all: [],
+      scheduled: ["lastPr"],
+      notScheduled: ["lastPr"],
+      inProgress: ["lastActual", "lastPr"],
+      completed: ["lastActual"],
+      overdue: ["overdue"],
+    };
+    return new Set(columns[cardFilter]);
+  }, [cardFilter]);
+
+  const highlightTone =
+    cardFilter === "scheduled" ? "teal" :
+    cardFilter === "notScheduled" ? "red" :
+    cardFilter === "inProgress" ? "blue" :
+    cardFilter === "completed" ? "green" :
+    cardFilter === "overdue" ? "amber" :
+    "";
+
+  const highlightClass = (column: string, target: "header" | "cell" = "cell") => {
+    if (!highlightedColumns.has(column)) return "";
+    const classes = {
+      teal: target === "header" ? "bg-teal-50/80 text-teal-800" : "bg-teal-50/45",
+      red: target === "header" ? "bg-red-50/80 text-red-800" : "bg-red-50/45",
+      blue: target === "header" ? "bg-blue-50/80 text-blue-800" : "bg-blue-50/45",
+      green: target === "header" ? "bg-green-50/80 text-green-800" : "bg-green-50/45",
+      amber: target === "header" ? "bg-amber-50/80 text-amber-800" : "bg-amber-50/45",
+    } as const;
+    return classes[highlightTone as keyof typeof classes] ?? "";
   };
 
   return (
@@ -504,20 +555,9 @@ export default function RequiredPRPage() {
               options={coachOptions}
               placeholder="All Coaches"
             />
-            {/* Status — API always returns active learners; shown for parity */}
-            <div className="relative inline-flex min-w-[130px]">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-10 w-full appearance-none rounded-lg border border-[#D7E5F3] bg-[#F8FBFE] px-3 pr-8 text-sm text-[#20344D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E6ACB]/30"
-              >
-                {statusOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5F7288]" />
-            </div>
           </div>
 
-          {/* Filter bar — row 2: search + PR quarter + PR status */}
+          {/* Filter bar — row 2: search + PR quarter */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
@@ -586,15 +626,32 @@ export default function RequiredPRPage() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
-                      {["Email", "Coach", "Programme", "Last PR", "Next PR Due", "State", "Overdue", "Follow-up"].map((h) => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                      <th rowSpan={2} className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                      {[
+                        { label: "Email", column: "email" },
+                        { label: "Coach", column: "coach" },
+                        { label: "Programme", column: "programme" },
+                        { label: "Last actual completed", column: "lastActual" },
+                        { label: "Last PR", column: "lastPr" },
+                      ].map(({ label, column }) => (
+                        <th key={label} rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#5F7288] ${highlightClass(column, "header")}`}>{label}</th>
                       ))}
+                      <th colSpan={2} className={`border-x border-[#CFE0F2] bg-[#EEF7FF] px-3 py-2 text-center text-xs font-bold text-[#1E6ACB] ${highlightedColumns.has("nextDate") || highlightedColumns.has("nextState") ? highlightClass("nextDate", "header") : ""}`}>
+                        Next Progress Review
+                      </th>
+                      <th rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("overdue", "header")}`}>Overdue</th>
+                      <th rowSpan={2} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Follow-up</th>
+                    </tr>
+                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                      <th className={`border-l border-[#CFE0F2] px-3 py-2 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("nextDate", "header")}`}>Date</th>
+                      <th className={`border-r border-[#CFE0F2] px-3 py-2 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("nextState", "header")}`}>State</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayedRows.map((l) => {
                       const ticket = ticketMap.get(l.email.toLowerCase());
+                      const { start, end } = getPrDateRange(prOffset);
+                      const rangeStatus = getRangeStatus(l, start, end);
                       const state = String(l.nextPrState || "").trim();
                       const stateL = state.toLowerCase();
                       const stateCls =
@@ -616,17 +673,40 @@ export default function RequiredPRPage() {
                           <td className="px-3 py-3 text-xs text-[#71849A]">{l.email}</td>
                           <td className="px-3 py-3 text-xs text-[#5F7288]">{l.caseOwner || "—"}</td>
                           <td className="px-3 py-3 text-xs text-[#5F7288]">{l.group || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(l.lastProgressReview)}</td>
-                          <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtDate(l.nextPrDate)}</td>
-                          <td className="px-3 py-3">
+                          <td className={`px-3 py-3 text-xs text-[#5F7288] ${highlightClass("lastActual")}`}>{fmtProgressReviewText(l.lastActuallyCompletedPr)}</td>
+                          <td className={`px-3 py-3 text-xs text-[#5F7288] ${highlightClass("lastPr")}`}>{fmtProgressReviewText(l.lastProgressReview)}</td>
+                          <td className={`px-3 py-3 text-xs font-semibold text-[#14264A] ${highlightClass("nextDate")}`}>{fmtDate(l.nextPrDate)}</td>
+                          <td className={`px-3 py-3 ${highlightClass("nextState")}`}>
                             {state
                               ? <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${stateCls}`}>{state}</span>
                               : <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${stateCls}`}>Not Scheduled</span>
                             }
                           </td>
-                          <td className="px-3 py-3">
-                            {l.overduePrCount > 0
-                              ? <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700"><AlertTriangle className="h-3 w-3" />{l.overduePrCount}</span>
+                          <td className={`px-3 py-3 ${highlightClass("overdue")}`}>
+                            {rangeStatus.scopedOverdueCount > 0
+                              ? (
+                                <TooltipProvider delayDuration={120}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex cursor-help items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        {rangeStatus.scopedOverdueCount}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
+                                      <p className="mb-2 text-xs font-bold text-red-700">Overdue meetings</p>
+                                      <div className="space-y-1.5">
+                                        {rangeStatus.overdueItems.map((item) => (
+                                          <div key={`${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
+                                            <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
+                                            <span className="text-[#5F7288]">{item.status}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )
                               : <span className="text-xs text-[#A0B0C0]">0</span>
                             }
                           </td>

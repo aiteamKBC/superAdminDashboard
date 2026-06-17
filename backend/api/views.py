@@ -227,6 +227,7 @@ def progress_review_summary(request):
                 "Email",
                 "Group",
                 "CaseOwner",
+                "Last Actually Completed PR",
                 "Last Progress Review",
                 "Next Review (Status)",
                 "Review Planned Date1", "Review Status1",
@@ -259,6 +260,7 @@ def progress_review_summary(request):
         next_due_date_from_planned = None
         next_due_state_from_planned = ""
         all_planned_dates = []
+        last_actually_completed_pr = row.get("Last Actually Completed PR") or ""
         last_progress_review = row.get("Last Progress Review") or ""
         excluded_planned_dates = set()
         countable_planned_dates = set()
@@ -331,6 +333,7 @@ def progress_review_summary(request):
             "caseOwner": row.get("CaseOwner") or "",
             "phone": extras.get("phone", ""),
             "organisation": extras.get("organisation", ""),
+            "lastActuallyCompletedPr": last_actually_completed_pr,
             "lastProgressReview": last_progress_review,
             "nextReviewStatus": next_review_raw,
             "nextPrDate": next_pr_date,
@@ -1546,6 +1549,8 @@ def _pr_ticket_to_dict(ticket):
         "learnerPhone": ticket.learner_phone,
         "organisation": ticket.organisation,
         "programme": ticket.programme,
+        "lastProgressReview": ticket.last_progress_review,
+        "lastActuallyCompletedPr": ticket.last_actually_completed_pr,
         "lastPrDate": ticket.last_pr_date.isoformat() if ticket.last_pr_date else None,
         "nextPrDate": ticket.next_pr_date.isoformat() if ticket.next_pr_date else None,
         "overdueCount": ticket.overdue_count,
@@ -1625,6 +1630,8 @@ def auto_create_pr_tickets(request):
             learner_phone=str(learner.get("phone") or "").strip(),
             organisation=str(learner.get("organisation") or "").strip(),
             programme=str(learner.get("programme") or "").strip(),
+            last_progress_review=str(learner.get("last_progress_review") or "").strip(),
+            last_actually_completed_pr=str(learner.get("last_actually_completed_pr") or "").strip(),
             last_pr_date=last_pr_date,
             next_pr_date=next_pr_date,
             overdue_count=int(learner.get("overdue_count") or 0),
@@ -1677,6 +1684,8 @@ def pr_tickets(request):
             learner_phone=str(body.get("learner_phone", "")).strip(),
             organisation=str(body.get("organisation", "")).strip(),
             programme=str(body.get("programme", "")).strip(),
+            last_progress_review=str(body.get("last_progress_review", "")).strip(),
+            last_actually_completed_pr=str(body.get("last_actually_completed_pr", "")).strip(),
             last_pr_date=_parse_date(body.get("last_pr_date")),
             next_pr_date=_parse_date(body.get("next_pr_date")),
             overdue_count=int(body.get("overdue_count") or 0),
@@ -1710,6 +1719,7 @@ def pr_ticket_detail(request, pk):
     if request.method == "PATCH":
         body = _json_body(request)
         str_fields = ["learner_name", "learner_phone", "organisation", "programme",
+                      "last_progress_review", "last_actually_completed_pr",
                       "risk", "status", "assigned_owner", "action", "notes"]
         for f in str_fields:
             if f in body:
@@ -1756,6 +1766,16 @@ def pr_ticket_archive(request, pk):
     ticket.is_archived = bool(body.get("archive", True))
     ticket.save(update_fields=["is_archived", "updated_at"])
     return JsonResponse(_pr_ticket_to_dict(ticket))
+
+
+@csrf_exempt
+def pr_tickets_reset_owners(request):
+    """One-time: clear assigned_owner for all PR tickets (was pre-filled from caseOwner)."""
+    from .models import ProgressReviewTicket
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    updated = ProgressReviewTicket.objects.exclude(assigned_owner="").update(assigned_owner="")
+    return JsonResponse({"cleared": updated})
 
 
 def _pr_evidence_file_to_dict(ef, request=None):
@@ -1819,6 +1839,11 @@ def pr_ticket_file_delete(request, pk, file_pk):
 # ─────────────────── MCM Ticket System ───────────────────
 
 def _mcm_ticket_to_dict(ticket):
+    try:
+        mcm_history = json.loads(ticket.mcm_history or "[]")
+    except Exception:
+        mcm_history = []
+
     return {
         "id": ticket.pk,
         "ticketRef": ticket.ticket_ref,
@@ -1832,6 +1857,7 @@ def _mcm_ticket_to_dict(ticket):
         "nextMcmDate": ticket.next_mcm_date,
         "lastMcmDate": ticket.last_mcm_date,
         "mcmStatus": ticket.mcm_status,
+        "mcmHistory": mcm_history,
         "risk": ticket.risk,
         "status": ticket.status,
         "assignedOwner": ticket.assigned_owner,
@@ -1856,32 +1882,246 @@ def _mcm_evidence_file_to_dict(f, request):
     }
 
 
+def _mcm_completed_status(value):
+    return "completed" in str(value or "").strip().lower()
+
+
+def _mcm_overdue_items(history):
+    today = date.today()
+    overdue = []
+    for item in history:
+        item_date = parse_date_safe(item.get("date"))
+        if not item_date:
+            continue
+        item_status = str(item.get("status") or "").strip()
+        completed = bool(item.get("completed")) or _mcm_completed_status(item_status)
+        if item_date < today and not completed:
+            overdue.append({
+                "date": item_date.isoformat(),
+                "status": item_status,
+                "completed": False,
+                "isPast": True,
+            })
+    return overdue
+
+
+def _mcm_completed_items(history):
+    completed = []
+    for item in history:
+        item_date = parse_date_safe(item.get("date"))
+        item_status = str(item.get("status") or "").strip()
+        if item_date and (bool(item.get("completed")) or _mcm_completed_status(item_status)):
+            completed.append({
+                "date": item_date.isoformat(),
+                "status": item_status,
+                "completed": True,
+            })
+    return completed
+
+
+def _mcm_next_item(history):
+    today = date.today()
+    next_items = []
+    for item in history:
+        item_date = parse_date_safe(item.get("date"))
+        if not item_date:
+            continue
+        item_status = str(item.get("status") or "").strip()
+        completed = bool(item.get("completed")) or _mcm_completed_status(item_status)
+        if item_date >= today and not completed:
+            next_items.append((item_date, item_status))
+    if not next_items:
+        return None
+    next_items.sort(key=lambda pair: pair[0])
+    return next_items[0]
+
+
+def _mcm_risk(overdue_count):
+    if overdue_count >= 3:
+        return "red"
+    if overdue_count >= 1:
+        return "amber"
+    return "green"
+
+
+def _mcm_auto_notes(row, overdue_items):
+    lines = [
+        "Auto-created for overdue Monthly Coaching Meeting follow-up.",
+        f"Overdue MCMs: {len(overdue_items)}",
+        f"Completed MCMs on record: {len(_mcm_completed_items(row.get('mcmDates') or []))}",
+    ]
+    if overdue_items:
+        lines.append("Overdue meetings:")
+        for item in overdue_items:
+            lines.append(f"- {item['date']} ({item.get('status') or 'No status'})")
+    return "\n".join(lines)
+
+
+def _mcm_payload_from_summary_row(row):
+    history = row.get("mcmDates") if isinstance(row.get("mcmDates"), list) else []
+    normalized_history = []
+    for item in history:
+        item_date = parse_date_safe(item.get("date"))
+        if not item_date:
+            continue
+        item_status = str(item.get("status") or "").strip()
+        normalized_history.append({
+            "date": item_date.isoformat(),
+            "status": item_status,
+            "completed": bool(item.get("completed")) or _mcm_completed_status(item_status),
+        })
+
+    overdue_items = _mcm_overdue_items(normalized_history)
+    next_item = _mcm_next_item(normalized_history)
+    completed_items = _mcm_completed_items(normalized_history)
+    completed_items.sort(key=lambda item: item["date"])
+    last_completed = completed_items[-1] if completed_items else None
+
+    next_mcm_date = next_item[0].isoformat() if next_item else str(row.get("nextDueDate") or row.get("nextMcm") or "").strip()
+    last_mcm_date = str((last_completed or {}).get("date") or row.get("lastActuallyCompletedMcm") or row.get("lastMcm") or "").strip()
+    overdue_count = len(overdue_items)
+
+    return {
+        "learner_email": str(row.get("email") or "").strip().lower(),
+        "learner_name": str(row.get("fullName") or "").strip(),
+        "learner_phone": str(row.get("learnerPhone") or "").strip(),
+        "organisation": str(row.get("organisationName") or "").strip(),
+        "programme": str(row.get("programme") or "").strip(),
+        "coach_name": str(row.get("caseOwner") or "").strip(),
+        "overdue_count": overdue_count,
+        "next_mcm_date": next_mcm_date,
+        "last_mcm_date": last_mcm_date,
+        "mcm_status": "Overdue follow-up required" if overdue_count else str(row.get("mcrStatus") or "").strip(),
+        "mcm_history": normalized_history,
+        "risk": _mcm_risk(overdue_count),
+        "notes": _mcm_auto_notes({**row, "mcmDates": normalized_history}, overdue_items),
+    }
+
+
+@csrf_exempt
+def auto_create_mcm_tickets(request):
+    from .models import MCMTicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    body = _json_body(request)
+    rows = body.get("rows", [])
+    if not isinstance(rows, list):
+        return JsonResponse({"error": "rows must be a list"}, status=400)
+
+    active_by_email = {
+        ticket.learner_email.strip().lower(): ticket
+        for ticket in MCMTicket.objects.filter(is_archived=False).exclude(status="resolved")
+    }
+    created = []
+    updated = []
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        payload = _mcm_payload_from_summary_row(row)
+        if not payload["learner_email"] or not payload["learner_name"] or payload["overdue_count"] <= 0:
+            continue
+
+        existing = active_by_email.get(payload["learner_email"])
+        if existing:
+            next_history = json.dumps(payload["mcm_history"])
+            needs_update = (
+                existing.learner_phone != payload["learner_phone"]
+                or existing.organisation != payload["organisation"]
+                or existing.programme != payload["programme"]
+                or existing.coach_name != payload["coach_name"]
+                or existing.overdue_count != payload["overdue_count"]
+                or existing.next_mcm_date != payload["next_mcm_date"]
+                or existing.last_mcm_date != payload["last_mcm_date"]
+                or existing.mcm_status != payload["mcm_status"]
+                or existing.risk != payload["risk"]
+                or (existing.mcm_history or "[]") != next_history
+            )
+            if needs_update:
+                existing.learner_phone = payload["learner_phone"]
+                existing.organisation = payload["organisation"]
+                existing.programme = payload["programme"]
+                existing.coach_name = payload["coach_name"]
+                existing.overdue_count = payload["overdue_count"]
+                existing.next_mcm_date = payload["next_mcm_date"]
+                existing.last_mcm_date = payload["last_mcm_date"]
+                existing.mcm_status = payload["mcm_status"]
+                existing.mcm_history = next_history
+                existing.risk = payload["risk"]
+                existing.save()
+                updated.append(_mcm_ticket_to_dict(existing))
+            continue
+
+        ticket = MCMTicket.objects.create(
+            ticket_ref="MCM-TMP",
+            learner_email=payload["learner_email"],
+            learner_name=payload["learner_name"],
+            learner_phone=payload["learner_phone"],
+            organisation=payload["organisation"],
+            programme=payload["programme"],
+            coach_name=payload["coach_name"],
+            overdue_count=payload["overdue_count"],
+            next_mcm_date=payload["next_mcm_date"],
+            last_mcm_date=payload["last_mcm_date"],
+            mcm_status=payload["mcm_status"],
+            mcm_history=json.dumps(payload["mcm_history"]),
+            risk=payload["risk"],
+            status="new",
+            action="",
+            notes=payload["notes"],
+            created_by="System",
+        )
+        ticket.ticket_ref = f"MCM-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        active_by_email[payload["learner_email"]] = ticket
+        created.append(_mcm_ticket_to_dict(ticket))
+
+    return JsonResponse({
+        "created": created,
+        "updated": updated,
+        "createdCount": len(created),
+        "updatedCount": len(updated),
+    }, status=201)
+
+
 @csrf_exempt
 def mcm_tickets(request):
     from .models import MCMTicket
+    def val(body, snake, camel=None, default=""):
+        if snake in body:
+            return body.get(snake)
+        if camel and camel in body:
+            return body.get(camel)
+        return default
+
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
         tickets = MCMTicket.objects.filter(is_archived=show_archived)
         return JsonResponse([_mcm_ticket_to_dict(t) for t in tickets], safe=False)
     if request.method == "POST":
         body = _json_body(request)
-        if not body.get("learner_email") or not body.get("learner_name"):
+        learner_email = str(val(body, "learner_email", "learnerEmail", "")).strip().lower()
+        learner_name = str(val(body, "learner_name", "learnerName", "")).strip()
+        if not learner_email or not learner_name:
             return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
         ticket = MCMTicket.objects.create(
             ticket_ref="MCM-TMP",
-            learner_email=str(body.get("learner_email", "")).strip().lower(),
-            learner_name=str(body.get("learner_name", "")).strip(),
-            learner_phone=str(body.get("learner_phone", "")).strip(),
+            learner_email=learner_email,
+            learner_name=learner_name,
+            learner_phone=str(val(body, "learner_phone", "learnerPhone", "")).strip(),
             organisation=str(body.get("organisation", "")).strip(),
             programme=str(body.get("programme", "")).strip(),
-            coach_name=str(body.get("coach_name", "")).strip(),
-            overdue_count=int(body.get("overdue_count") or 0),
-            next_mcm_date=str(body.get("next_mcm_date", "")).strip(),
-            last_mcm_date=str(body.get("last_mcm_date", "")).strip(),
-            mcm_status=str(body.get("mcm_status", "")).strip(),
+            coach_name=str(val(body, "coach_name", "coachName", "")).strip(),
+            overdue_count=int(val(body, "overdue_count", "overdueCount", 0) or 0),
+            next_mcm_date=str(val(body, "next_mcm_date", "nextMcmDate", "")).strip(),
+            last_mcm_date=str(val(body, "last_mcm_date", "lastMcmDate", "")).strip(),
+            mcm_status=str(val(body, "mcm_status", "mcmStatus", "")).strip(),
+            mcm_history=json.dumps(val(body, "mcm_history", "mcmHistory", []) or []),
             risk=str(body.get("risk", "amber")).strip(),
             status=str(body.get("status", "new")).strip(),
-            assigned_owner=str(body.get("assigned_owner", "")).strip(),
+            assigned_owner=str(val(body, "assigned_owner", "assignedOwner", "")).strip(),
             action=str(body.get("action", "")).strip(),
             notes=str(body.get("notes", "")).strip(),
             escalated=bool(body.get("escalated", False)),
@@ -1904,14 +2144,30 @@ def mcm_ticket_detail(request, pk):
         return JsonResponse(_mcm_ticket_to_dict(ticket))
     if request.method == "PATCH":
         body = _json_body(request)
-        str_fields = ["learner_name", "learner_phone", "organisation", "programme",
-                      "coach_name", "mcm_status", "next_mcm_date", "last_mcm_date",
-                      "risk", "status", "assigned_owner", "action", "notes"]
-        for f in str_fields:
-            if f in body:
-                setattr(ticket, f, str(body[f]).strip())
-        if "overdue_count" in body:
-            ticket.overdue_count = int(body["overdue_count"] or 0)
+        field_map = {
+            "learner_name": "learnerName",
+            "learner_email": "learnerEmail",
+            "learner_phone": "learnerPhone",
+            "organisation": "organisation",
+            "programme": "programme",
+            "coach_name": "coachName",
+            "mcm_status": "mcmStatus",
+            "next_mcm_date": "nextMcmDate",
+            "last_mcm_date": "lastMcmDate",
+            "risk": "risk",
+            "status": "status",
+            "assigned_owner": "assignedOwner",
+            "action": "action",
+            "notes": "notes",
+        }
+        for snake, camel in field_map.items():
+            if snake in body or camel in body:
+                value = body.get(snake, body.get(camel))
+                setattr(ticket, snake, str(value).strip())
+        if "overdue_count" in body or "overdueCount" in body:
+            ticket.overdue_count = int(body.get("overdue_count", body.get("overdueCount")) or 0)
+        if "mcm_history" in body or "mcmHistory" in body:
+            ticket.mcm_history = json.dumps(body.get("mcm_history", body.get("mcmHistory")) or [])
         if "escalated" in body:
             ticket.escalated = bool(body["escalated"])
         ticket.save()
