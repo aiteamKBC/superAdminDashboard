@@ -288,6 +288,66 @@ class MCMTicketEvidenceFile(models.Model):
         ordering = ['uploaded_at']
 
 
+class EPATicket(models.Model):
+    RISK_CHOICES = [('red', 'Red'), ('amber', 'Amber'), ('green', 'Green')]
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('open', 'Open'),
+        ('resolved', 'Resolved'),
+    ]
+    ACTION_CHOICES = [
+        ('called', 'Called'),
+        ('emailed', 'Emailed'),
+        ('epa_booked', 'EPA Booked'),
+        ('referred_support', 'Referred to Support'),
+        ('no_action', 'No Action Required'),
+    ]
+
+    ticket_ref = models.CharField(max_length=20, unique=True)
+    learner_email = models.CharField(max_length=255, db_index=True)
+    learner_name = models.CharField(max_length=255)
+    learner_phone = models.CharField(max_length=50, blank=True, default='')
+    organisation = models.CharField(max_length=255, blank=True, default='')
+    programme = models.CharField(max_length=255, blank=True, default='')
+    coach_name = models.CharField(max_length=255, blank=True, default='')
+    end_date = models.DateField(null=True, blank=True)
+    days_overdue = models.IntegerField(default=0)
+    risk = models.CharField(max_length=10, choices=RISK_CHOICES, default='amber')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='new')
+    assigned_owner = models.CharField(max_length=255, blank=True, default='')
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    is_archived = models.BooleanField(default=False)
+    escalated = models.BooleanField(default=False)
+    created_by = models.CharField(max_length=255, default='System')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'dashboard_epa_ticket'
+        ordering = ['-created_at']
+
+
+def epa_evidence_upload_path(instance, filename):
+    return f'epa_evidence/ticket_{instance.ticket_id}/{filename}'
+
+
+class EPATicketEvidenceFile(models.Model):
+    ticket = models.ForeignKey(
+        EPATicket,
+        on_delete=models.CASCADE,
+        related_name='evidence_files',
+    )
+    file = models.FileField(upload_to=epa_evidence_upload_path)
+    original_name = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=100, blank=True, default='')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'dashboard_epa_evidence'
+        ordering = ['uploaded_at']
+
+
 class DashboardBooking(models.Model):
     SESSION_TYPES = [
         ('PR', 'Progress Review'),

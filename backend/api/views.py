@@ -3,11 +3,12 @@ from django.shortcuts import render
 # Create your views here.
 import json
 import requests
+from decimal import Decimal
 from django.http import JsonResponse
 from django.db import connection, connections
 from django.contrib.auth import authenticate, get_user_model, login as django_login, logout as django_logout
 from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from django.conf import settings
 
 
@@ -806,6 +807,92 @@ def aptem_learners_summary(request):
     return JsonResponse(results, safe=False)
 
 
+def _epa_is_active(row):
+    program_status = str(row.get("Program-Status") or "").strip().lower()
+    subscription_status = str(row.get("Subscription Status") or "").strip().lower()
+    return program_status == "active" or subscription_status == "active"
+
+
+def _epa_rows():
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "ID",
+                "FullName",
+                "Email",
+                "Program Name",
+                "Program-Status",
+                "Subscription Status",
+                "End-Date",
+                "OwnerName",
+                "OrganizationName",
+                "ManagerName",
+                "ManagerEmail",
+                "Learner Phone"
+            FROM public.aptem_auto_extracting
+        """)
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def _epa_learner_dict(row, today=None):
+    today = today or date.today()
+    end_date = row.get("End-Date")
+    days_until = (end_date - today).days if end_date else None
+    days_late = (today - end_date).days if end_date else 0
+    return {
+        "id": row.get("ID"),
+        "fullName": row.get("FullName") or "",
+        "email": (row.get("Email") or "").strip().lower(),
+        "phone": row.get("Learner Phone") or "",
+        "organisation": row.get("OrganizationName") or "",
+        "programme": row.get("Program Name") or "",
+        "coach": row.get("OwnerName") or "",
+        "managerName": row.get("ManagerName") or "",
+        "managerEmail": (row.get("ManagerEmail") or "").strip().lower(),
+        "endDate": end_date.isoformat() if end_date else None,
+        "daysUntilEnd": days_until,
+        "daysOverdue": max(0, days_late - 7),
+        "programStatus": row.get("Program-Status") or "",
+        "subscriptionStatus": row.get("Subscription Status") or "",
+    }
+
+
+def epa_summary(request):
+    today = date.today()
+    close_to_epa = []
+    overdue = []
+    entered_epa = []
+
+    for row in _epa_rows():
+        program_status = str(row.get("Program-Status") or "").strip().lower()
+        if program_status == "enteredepa":
+            entered_epa.append(_epa_learner_dict(row, today))
+
+        end_date = row.get("End-Date")
+        if not _epa_is_active(row):
+            continue
+        if not end_date:
+            continue
+        item = _epa_learner_dict(row, today)
+        if 0 <= (end_date - today).days <= 30:
+            close_to_epa.append(item)
+        if today > end_date + timedelta(days=7):
+            overdue.append(item)
+
+    close_to_epa.sort(key=lambda item: item.get("endDate") or "")
+    overdue.sort(key=lambda item: item.get("daysOverdue") or 0, reverse=True)
+    entered_epa.sort(key=lambda item: item.get("endDate") or "")
+    return JsonResponse({
+        "closeToEpa": close_to_epa,
+        "epaOverdue": overdue,
+        "enteredEpa": entered_epa,
+        "closeToEpaCount": len(close_to_epa),
+        "epaOverdueCount": len(overdue),
+        "enteredEpaCount": len(entered_epa),
+    })
+
+
 def otj_at_risk_summary(request):
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
@@ -1227,44 +1314,52 @@ def dashboard_contact_log(request):
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-# KBC API Proxy Endpoint
+def _coaches_data_value(value):
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped and stripped[0] in "[{":
+            try:
+                return json.loads(stripped)
+            except Exception:
+                return value
+    return value
+
+
 def fetch_all_coaches_analytics(request):
     """
-    Fetches all coaches analytics data from the KBC API.
-    This endpoint proxies requests to the external KBC API.
+    Fetch coach analytics directly from public.coaches_data.
+    This replaces the old external KBC API integration.
     """
     try:
-        api_key = getattr(settings, 'KBC_API_KEY', '')
-        api_base_url = getattr(settings, 'KBC_API_BASE_URL', 'https://api.kentbusinesscollege.net')
-        
-        if not api_key:
-            return JsonResponse({"error": "KBC API key not configured"}, status=500)
-        
-        # Make request to KBC API
-        response = requests.get(
-            f"{api_base_url.rstrip('/')}/api/coaches/all",
-            headers={
-                "x-api-key": api_key,
-                "Accept": "application/json",
-            },
-            timeout=30,
-        )
-        
-        if response.status_code != 200:
-            return JsonResponse({
-                "error": f"KBC API returned status {response.status_code}",
-                "details": response.text[:500]  # Limit response size
-            }, status=response.status_code)
-        
-        # Return the data from KBC API
-        return JsonResponse(response.json(), safe=False)
-        
-    except requests.exceptions.Timeout:
-        return JsonResponse({"error": "KBC API request timed out"}, status=504)
-    except requests.exceptions.RequestException as e:
-        return JsonResponse({"error": f"Failed to connect to KBC API: {str(e)}"}, status=502)
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT * FROM public."coaches_data"')
+            columns = [col[0] for col in cursor.description]
+            rows = []
+            for raw in cursor.fetchall():
+                item = {
+                    column: _coaches_data_value(value)
+                    for column, value in zip(columns, raw)
+                }
+                phones = [
+                    str(item.get("owner_phone") or "").strip(),
+                    str(item.get("phone number") or "").strip(),
+                ]
+                item["phone_numbers"] = [
+                    phone for phone in phones
+                    if phone and phone.lower() not in {"empty", "null", "none"}
+                ]
+                rows.append(item)
+
+        return JsonResponse(rows, safe=False)
+
     except Exception as e:
-        return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)
+        return JsonResponse({"error": f"Failed to load coaches_data: {str(e)}"}, status=500)
 
 
 # ─────────────────── Attendance Ticket System ───────────────────
@@ -1296,6 +1391,90 @@ def _ticket_to_dict(ticket):
     }
 
 
+def _normalize_attendance_value(value):
+    if value is True or value == 1:
+        return 1
+    if value is False or value == 0:
+        return 0
+    normalized = str(value or "").strip().lower()
+    if normalized in {"1", "present", "attended", "yes", "true"}:
+        return 1
+    if normalized in {"0", "absent", "missed", "no", "false"}:
+        return 0
+    return None
+
+
+def _attendance_missing_learners_for_week(week_start, week_end):
+    """Build the same missed-learner payload the Track Attendance page used to send."""
+    learner_extras = {}
+    try:
+        with connections["aptem"].cursor() as cur:
+            cur.execute("""
+                SELECT
+                    "Email",
+                    "Learner Phone",
+                    "OrganizationName",
+                    "Program Name",
+                    "OwnerName"
+                FROM public.aptem_auto_extracting
+            """)
+            for row in cur.fetchall():
+                email = str(row[0] or "").strip().lower()
+                if email:
+                    learner_extras[email] = {
+                        "phone": str(row[1] or "").strip(),
+                        "organisation": str(row[2] or "").strip(),
+                        "programme": str(row[3] or "").strip(),
+                        "owner_name": str(row[4] or "").strip(),
+                    }
+    except Exception:
+        pass
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "FullName",
+                "Email",
+                "date",
+                "Attendance",
+                "module"
+            FROM public.kbc_attendance
+            WHERE "date" >= %s AND "date" <= %s
+            ORDER BY "Email", "date" ASC
+        """, [week_start, week_end])
+        rows = cursor.fetchall()
+
+    latest_by_email = {}
+    for full_name, email, attendance_date, attendance_value, module in rows:
+        clean_email = str(email or "").strip().lower()
+        if not clean_email or not attendance_date:
+            continue
+        latest_by_email[clean_email] = {
+            "email": clean_email,
+            "name": str(full_name or "").strip(),
+            "attendance_date": attendance_date.isoformat(),
+            "attendance_module": str(module or "").strip(),
+            "attendance": attendance_value,
+        }
+
+    learners = []
+    for email, learner in latest_by_email.items():
+        if _normalize_attendance_value(learner.get("attendance")) != 0:
+            continue
+        extras = learner_extras.get(email, {})
+        learners.append({
+            "email": email,
+            "name": learner.get("name") or "Unknown",
+            "phone": extras.get("phone", ""),
+            "organisation": extras.get("organisation", ""),
+            "programme": extras.get("programme", ""),
+            "attendance_date": learner.get("attendance_date"),
+            "attendance_module": learner.get("attendance_module", ""),
+        })
+
+    return learners
+
+
 @csrf_exempt
 def auto_create_attendance_tickets(request):
     """Auto-create tickets for absent learners in a given week if no ticket exists yet."""
@@ -1305,6 +1484,13 @@ def auto_create_attendance_tickets(request):
 
     body = _json_body(request)
     learners = body.get("learners", [])
+    if not learners:
+        try:
+            week_start = date.fromisoformat(str(body.get("week_start") or ""))
+            week_end = date.fromisoformat(str(body.get("week_end") or ""))
+            learners = _attendance_missing_learners_for_week(week_start, week_end)
+        except Exception:
+            learners = []
 
     created_list = []
     existing_list = []
@@ -1944,19 +2130,6 @@ def _mcm_risk(overdue_count):
     return "green"
 
 
-def _mcm_auto_notes(row, overdue_items):
-    lines = [
-        "Auto-created for overdue Monthly Coaching Meeting follow-up.",
-        f"Overdue MCMs: {len(overdue_items)}",
-        f"Completed MCMs on record: {len(_mcm_completed_items(row.get('mcmDates') or []))}",
-    ]
-    if overdue_items:
-        lines.append("Overdue meetings:")
-        for item in overdue_items:
-            lines.append(f"- {item['date']} ({item.get('status') or 'No status'})")
-    return "\n".join(lines)
-
-
 def _mcm_payload_from_summary_row(row):
     history = row.get("mcmDates") if isinstance(row.get("mcmDates"), list) else []
     normalized_history = []
@@ -1994,7 +2167,6 @@ def _mcm_payload_from_summary_row(row):
         "mcm_status": "Overdue follow-up required" if overdue_count else str(row.get("mcrStatus") or "").strip(),
         "mcm_history": normalized_history,
         "risk": _mcm_risk(overdue_count),
-        "notes": _mcm_auto_notes({**row, "mcmDates": normalized_history}, overdue_items),
     }
 
 
@@ -2050,7 +2222,11 @@ def auto_create_mcm_tickets(request):
                 existing.mcm_status = payload["mcm_status"]
                 existing.mcm_history = next_history
                 existing.risk = payload["risk"]
-                existing.save()
+                existing.save(update_fields=[
+                    "learner_phone", "organisation", "programme", "coach_name",
+                    "overdue_count", "next_mcm_date", "last_mcm_date",
+                    "mcm_status", "mcm_history", "risk", "updated_at",
+                ])
                 updated.append(_mcm_ticket_to_dict(existing))
             continue
 
@@ -2070,7 +2246,7 @@ def auto_create_mcm_tickets(request):
             risk=payload["risk"],
             status="new",
             action="",
-            notes=payload["notes"],
+            notes="",
             created_by="System",
         )
         ticket.ticket_ref = f"MCM-{ticket.pk:03d}"
@@ -2230,6 +2406,259 @@ def mcm_ticket_file_delete(request, pk, file_pk):
         return JsonResponse({"error": "File not found"}, status=404)
     ef.file.delete(save=False)
     ef.delete()
+    return JsonResponse({"success": True})
+
+
+# ─────────────────── EPA Ticket System ───────────────────
+
+def _epa_ticket_to_dict(ticket):
+    return {
+        "id": ticket.pk,
+        "ticketRef": ticket.ticket_ref,
+        "learnerEmail": ticket.learner_email,
+        "learnerName": ticket.learner_name,
+        "learnerPhone": ticket.learner_phone,
+        "organisation": ticket.organisation,
+        "programme": ticket.programme,
+        "coachName": ticket.coach_name,
+        "endDate": ticket.end_date.isoformat() if ticket.end_date else None,
+        "daysOverdue": ticket.days_overdue,
+        "risk": ticket.risk,
+        "status": ticket.status,
+        "assignedOwner": ticket.assigned_owner,
+        "action": ticket.action,
+        "notes": ticket.notes,
+        "isArchived": ticket.is_archived,
+        "escalated": ticket.escalated,
+        "createdBy": ticket.created_by,
+        "createdAt": ticket.created_at.isoformat(),
+        "updatedAt": ticket.updated_at.isoformat(),
+        "evidenceCount": ticket.evidence_files.count(),
+    }
+
+
+def _epa_evidence_file_to_dict(ef, request=None):
+    url = ef.file.url if ef.file else ""
+    if request and url:
+        url = request.build_absolute_uri(url)
+    return {
+        "id": ef.pk,
+        "name": ef.original_name,
+        "url": url,
+        "mimeType": ef.mime_type,
+        "uploadedAt": ef.uploaded_at.isoformat(),
+    }
+
+
+def _epa_ticket_risk(days_overdue):
+    if days_overdue >= 30:
+        return "red"
+    if days_overdue >= 1:
+        return "amber"
+    return "green"
+
+
+@csrf_exempt
+def auto_create_epa_tickets(request):
+    from .models import EPATicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    today = date.today()
+    created = []
+    existing = []
+    active_by_email = {
+        ticket.learner_email.strip().lower(): ticket
+        for ticket in EPATicket.objects.filter(is_archived=False).exclude(status="resolved")
+    }
+
+    for row in _epa_rows():
+        if not _epa_is_active(row):
+            continue
+        end_date = row.get("End-Date")
+        if not end_date or today <= end_date + timedelta(days=7):
+            continue
+        learner = _epa_learner_dict(row, today)
+        email = learner["email"]
+        if not email or not learner["fullName"]:
+            continue
+        days_overdue = int(learner["daysOverdue"] or 0)
+        ticket = active_by_email.get(email)
+        if ticket:
+            ticket.learner_phone = learner["phone"]
+            ticket.organisation = learner["organisation"]
+            ticket.programme = learner["programme"]
+            ticket.coach_name = learner["coach"]
+            ticket.end_date = end_date
+            ticket.days_overdue = days_overdue
+            ticket.risk = _epa_ticket_risk(days_overdue)
+            ticket.save()
+            existing.append(_epa_ticket_to_dict(ticket))
+            continue
+
+        ticket = EPATicket.objects.create(
+            ticket_ref="EPA-TMP",
+            learner_email=email,
+            learner_name=learner["fullName"],
+            learner_phone=learner["phone"],
+            organisation=learner["organisation"],
+            programme=learner["programme"],
+            coach_name=learner["coach"],
+            end_date=end_date,
+            days_overdue=days_overdue,
+            risk=_epa_ticket_risk(days_overdue),
+            status="new",
+            action="",
+            notes=f"Auto-created because EPA is overdue. End-Date: {end_date.isoformat()}. Grace period: 7 days.",
+            created_by="System",
+        )
+        ticket.ticket_ref = f"EPA-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        active_by_email[email] = ticket
+        created.append(_epa_ticket_to_dict(ticket))
+
+    return JsonResponse({
+        "created": created,
+        "existing": existing,
+        "createdCount": len(created),
+        "existingCount": len(existing),
+    }, status=201)
+
+
+@csrf_exempt
+def epa_tickets(request):
+    from .models import EPATicket
+
+    if request.method == "GET":
+        show_archived = request.GET.get("archived", "false").lower() == "true"
+        tickets = EPATicket.objects.filter(is_archived=show_archived)
+        return JsonResponse([_epa_ticket_to_dict(t) for t in tickets], safe=False)
+
+    if request.method == "POST":
+        body = _json_body(request)
+        email = str(body.get("learner_email") or "").strip().lower()
+        name = str(body.get("learner_name") or "").strip()
+        if not email or not name:
+            return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
+        end_date = parse_date_safe(body.get("end_date"))
+        days_overdue = int(body.get("days_overdue") or 0)
+        ticket = EPATicket.objects.create(
+            ticket_ref="EPA-TMP",
+            learner_email=email,
+            learner_name=name,
+            learner_phone=str(body.get("learner_phone") or "").strip(),
+            organisation=str(body.get("organisation") or "").strip(),
+            programme=str(body.get("programme") or "").strip(),
+            coach_name=str(body.get("coach_name") or "").strip(),
+            end_date=end_date,
+            days_overdue=days_overdue,
+            risk=str(body.get("risk") or _epa_ticket_risk(days_overdue)).strip(),
+            status=str(body.get("status") or "new").strip(),
+            assigned_owner=str(body.get("assigned_owner") or "").strip(),
+            action=str(body.get("action") or "").strip(),
+            notes=str(body.get("notes") or "").strip(),
+            escalated=bool(body.get("escalated", False)),
+            created_by=str(body.get("created_by") or "System").strip(),
+        )
+        ticket.ticket_ref = f"EPA-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        return JsonResponse(_epa_ticket_to_dict(ticket), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def epa_ticket_detail(request, pk):
+    from .models import EPATicket
+
+    try:
+        ticket = EPATicket.objects.get(pk=pk)
+    except EPATicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse(_epa_ticket_to_dict(ticket))
+
+    if request.method == "PATCH":
+        body = _json_body(request)
+        for field in ["learner_name", "learner_phone", "organisation", "programme", "coach_name", "risk", "status", "assigned_owner", "action", "notes"]:
+            if field in body:
+                setattr(ticket, field, str(body[field]).strip())
+        if "end_date" in body:
+            ticket.end_date = parse_date_safe(body.get("end_date"))
+        if "days_overdue" in body:
+            ticket.days_overdue = int(body.get("days_overdue") or 0)
+        if "escalated" in body:
+            ticket.escalated = bool(body["escalated"])
+        ticket.save()
+        return JsonResponse(_epa_ticket_to_dict(ticket))
+
+    if request.method == "DELETE":
+        if not ticket.is_archived:
+            return JsonResponse({"error": "Only archived tickets can be permanently deleted"}, status=400)
+        ticket.delete()
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def epa_ticket_archive(request, pk):
+    from .models import EPATicket
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        ticket = EPATicket.objects.get(pk=pk)
+    except EPATicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+    body = _json_body(request)
+    ticket.is_archived = bool(body.get("archive", True))
+    ticket.save(update_fields=["is_archived", "updated_at"])
+    return JsonResponse(_epa_ticket_to_dict(ticket))
+
+
+@csrf_exempt
+def epa_ticket_files(request, pk):
+    from .models import EPATicket, EPATicketEvidenceFile
+
+    try:
+        ticket = EPATicket.objects.get(pk=pk)
+    except EPATicket.DoesNotExist:
+        return JsonResponse({"error": "Ticket not found"}, status=404)
+
+    if request.method == "GET":
+        files = ticket.evidence_files.all()
+        return JsonResponse([_epa_evidence_file_to_dict(file, request) for file in files], safe=False)
+
+    if request.method == "POST":
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return JsonResponse({"error": "No file provided"}, status=400)
+        evidence = EPATicketEvidenceFile.objects.create(
+            ticket=ticket,
+            file=uploaded,
+            original_name=uploaded.name,
+            mime_type=uploaded.content_type or "",
+        )
+        return JsonResponse(_epa_evidence_file_to_dict(evidence, request), status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def epa_ticket_file_delete(request, pk, file_pk):
+    from .models import EPATicketEvidenceFile
+
+    if request.method != "DELETE":
+        return JsonResponse({"error": "DELETE required"}, status=405)
+    try:
+        evidence = EPATicketEvidenceFile.objects.get(pk=file_pk, ticket_id=pk)
+    except EPATicketEvidenceFile.DoesNotExist:
+        return JsonResponse({"error": "File not found"}, status=404)
+    evidence.file.delete(save=False)
+    evidence.delete()
     return JsonResponse({"success": True})
 
 

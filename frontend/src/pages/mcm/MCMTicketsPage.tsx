@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/auth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -18,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -68,6 +70,11 @@ interface MCMTicket {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const MCM_STATUS_LABELS: Record<string, string> = {
+  new: "New", open: "Open", session_booked: "Session Booked",
+  session_completed: "Session Completed", resolved: "Resolved",
+};
 
 const ACTION_OPTIONS = [
   { value: "", label: "— No action selected —" },
@@ -172,35 +179,56 @@ function OverdueBadge({ ticket }: { ticket: MCMTicket }) {
         ? "bg-amber-100 text-amber-700"
         : "bg-green-100 text-green-700";
 
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const show = () => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX + r.width / 2 });
+  };
+
   return (
-    <span className="group relative inline-flex justify-center">
+    <span className="inline-flex justify-center">
       <button
+        ref={btnRef}
         type="button"
+        onMouseEnter={show}
+        onFocus={show}
+        onMouseLeave={() => setPos(null)}
+        onBlur={() => setPos(null)}
         className={`rounded-full px-2 py-0.5 text-xs font-bold outline-none ring-offset-2 transition-shadow hover:ring-2 hover:ring-[#BFD5EE] focus-visible:ring-2 focus-visible:ring-[#315D93] ${tone}`}
         aria-label={`${ticket.overdueCount} overdue MCM meetings`}
       >
         {ticket.overdueCount}
       </button>
-      <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 hidden w-72 -translate-x-1/2 rounded-xl border border-[#DDE7F0] bg-white p-3 text-left shadow-xl group-hover:block group-focus-within:block">
-        <span className="mb-2 flex items-center gap-2 text-xs font-bold text-[#14264A]">
-          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-          Overdue MCM meetings
-        </span>
-        {overdueItems.length ? (
-          <span className="block max-h-56 space-y-1.5 overflow-y-auto">
-            {overdueItems.map((item, index) => (
-              <span key={`${item.date}-${item.status}-${index}`} className="block rounded-lg bg-red-50 px-2.5 py-2">
-                <span className="block text-xs font-bold text-red-700">{fmtDate(item.date)}</span>
-                <span className="block text-[11px] text-[#5F7288]">{item.status || "No status"}</span>
-              </span>
-            ))}
+
+      {pos && createPortal(
+        <div
+          className="pointer-events-none fixed z-[9999] w-72 -translate-x-1/2 rounded-xl border border-[#DDE7F0] bg-white p-3 text-left shadow-2xl"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          <span className="mb-2 flex items-center gap-2 text-xs font-bold text-[#14264A]">
+            <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+            Overdue MCM meetings
           </span>
-        ) : (
-          <span className="block rounded-lg bg-[#F8FBFE] px-2.5 py-2 text-xs text-[#5F7288]">
-            No overdue meeting details recorded for this ticket.
-          </span>
-        )}
-      </span>
+          {overdueItems.length ? (
+            <div className="max-h-56 space-y-1.5 overflow-y-auto">
+              {overdueItems.map((item, index) => (
+                <span key={`${item.date}-${item.status}-${index}`} className="block rounded-lg bg-red-50 px-2.5 py-2">
+                  <span className="block text-xs font-bold text-red-700">{fmtDate(item.date)}</span>
+                  <span className="block text-[11px] text-[#5F7288]">{item.status || "No status"}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="block rounded-lg bg-[#F8FBFE] px-2.5 py-2 text-xs text-[#5F7288]">
+              No overdue meeting details recorded for this ticket.
+            </span>
+          )}
+        </div>,
+        document.body
+      )}
     </span>
   );
 }
@@ -211,6 +239,193 @@ const isPdf = (mime: string, name: string) =>
   mime === "application/pdf" || /\.pdf$/i.test(name);
 const isHtml = (mime: string, name: string) =>
   mime === "text/html" || /\.html?$/i.test(name);
+
+// ─── Notes helpers ────────────────────────────────────────────────────────────
+
+function parseNoteEntry(line: string): { text: string; meta: string } {
+  const match = line.match(/^\[([^\]]+)\]\s*(.*)/s);
+  if (match) return { meta: match[1].trim(), text: match[2].trim() || line };
+  return { text: line, meta: "" };
+}
+
+function noteLines(notes: string) {
+  return notes ? notes.trim().split("\n").filter((l) => l.trim()) : [];
+}
+
+// ─── NotesCell ───────────────────────────────────────────────────────────────
+
+function NotesCell({ ticket, onOpen, onAddNote }: { ticket: MCMTicket; onOpen: () => void; onAddNote: () => void }) {
+  const count = noteLines(ticket.notes).length;
+  if (count === 0) {
+    return (
+      <button
+        onClick={onAddNote}
+        className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-[#C5D5E3] hover:bg-[#EEF3FB] hover:text-[#315D93]"
+        title="Add note"
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onOpen}
+      className="flex items-center gap-1 rounded-full bg-[#EEF3FB] px-2 py-0.5 text-[11px] font-semibold text-[#315D93] hover:bg-[#DCE9FB]"
+    >
+      <MessageSquare className="h-3 w-3" />
+      {count}
+    </button>
+  );
+}
+
+// ─── NotesModal ───────────────────────────────────────────────────────────────
+
+function NotesModal({
+  ticket, onClose, onAddNote,
+}: {
+  ticket: MCMTicket;
+  onClose: () => void;
+  onAddNote: () => void;
+}) {
+  const lines = noteLines(ticket.notes);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md overflow-hidden rounded-2xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 bg-[#14264A] px-4 py-3.5">
+          <MessageSquare className="h-4 w-4 text-white/70" />
+          <span className="flex-1 truncate text-sm font-semibold text-white">
+            Case Notes · {ticket.learnerName}
+          </span>
+          <button
+            onClick={() => { onClose(); onAddNote(); }}
+            className="rounded px-2 py-0.5 text-[11px] font-semibold text-white/70 hover:text-white"
+          >
+            + Add
+          </button>
+          <button onClick={onClose} className="rounded p-1 text-white/70 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Notes list */}
+        <div className="max-h-72 space-y-2.5 overflow-y-auto bg-white p-4">
+          {lines.length > 0 ? (
+            lines.map((line, i) => {
+              const { text, meta } = parseNoteEntry(line);
+              return (
+                <div key={i} className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-3">
+                  <p className="text-sm text-[#14264A]">{text}</p>
+                  {meta && <p className="mt-1.5 text-[11px] text-[#71849A]">{meta}</p>}
+                </div>
+              );
+            })
+          ) : (
+            <p className="py-4 text-center text-sm text-[#A0B0C0]">No notes added yet</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#DDE7F0] bg-[#F8FBFE] px-4 py-2.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#5F7288]">
+            <MessageSquare className="h-3 w-3" />
+            {lines.length} {lines.length === 1 ? "note" : "notes"}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#5F7288]">
+            <Paperclip className="h-3 w-3" />
+            {ticket.evidenceCount} {ticket.evidenceCount === 1 ? "file" : "files"}
+          </span>
+          <span className="ml-auto">
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusColor[ticket.status]}`}>
+              {statusLabel[ticket.status]}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── EvidenceCell ─────────────────────────────────────────────────────────────
+
+function EvidenceCell({
+  ticket, files, onLoad, onPreview,
+}: {
+  ticket: MCMTicket;
+  files: EvidenceFile[] | undefined;
+  onLoad: () => void;
+  onPreview: (f: EvidenceFile) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleOpen = async (val: boolean) => {
+    setOpen(val);
+    if (val && !files) {
+      setLoading(true);
+      onLoad();
+      setLoading(false);
+    }
+  };
+
+  const downloadFile = async (f: EvidenceFile) => {
+    try {
+      const res = await fetch(f.url.replace(/^https?:\/\/[^/]+/, ""));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = f.name; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch { /* fallback: open in new tab */ window.open(f.url, "_blank"); }
+  };
+
+  if (ticket.evidenceCount === 0) {
+    return <span className="text-xs text-[#C5D5E3]">—</span>;
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpen}>
+      <PopoverTrigger asChild>
+        <button className="flex items-center gap-1 rounded-full bg-[#EEF3FB] px-2 py-0.5 text-[11px] font-semibold text-[#315D93] hover:bg-[#DCE9FB]">
+          <Paperclip className="h-3 w-3" />
+          {ticket.evidenceCount}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start" side="bottom">
+        <div className="border-b border-[#DDE7F0] px-3 py-2">
+          <p className="text-xs font-bold text-[#315D93]">Evidence ({ticket.evidenceCount})</p>
+        </div>
+        <div className="max-h-52 overflow-y-auto p-2">
+          {loading || !files ? (
+            <p className="py-3 text-center text-xs text-[#8AA0B6]">Loading…</p>
+          ) : files.length === 0 ? (
+            <p className="py-3 text-center text-xs text-[#8AA0B6]">No files found</p>
+          ) : (
+            files.map((f) => (
+              <div key={f.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[#F4F8FC]">
+                <Paperclip className="h-3 w-3 shrink-0 text-[#8AA0B6]" />
+                <span className="flex-1 truncate text-xs text-[#14264A]" title={f.name}>{f.name}</span>
+                <button onClick={() => onPreview(f)} className="rounded p-0.5 text-[#8AA0B6] hover:text-[#315D93]" title="Preview">
+                  <Eye className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => void downloadFile(f)} className="rounded p-0.5 text-[#8AA0B6] hover:text-[#315D93]" title="Download">
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 // ─── EvidenceUploadZone ───────────────────────────────────────────────────────
 
@@ -373,18 +588,22 @@ function AddEvidenceModal({
 // ─── CreateTicketModal ────────────────────────────────────────────────────────
 
 function CreateTicketModal({
-  open, onClose, onCreate,
+  open, onClose, onCreate, initialEmail = "", initialName = "",
 }: {
-  open: boolean; onClose: () => void; onCreate: (t: MCMTicket) => void;
+  open: boolean; onClose: () => void; onCreate: (t: MCMTicket) => void; initialEmail?: string; initialName?: string;
 }) {
   const { user } = useAuth();
   const empty = {
-    learnerEmail: "", learnerName: "", learnerPhone: "", organisation: "",
+    learnerEmail: initialEmail, learnerName: initialName, learnerPhone: "", organisation: "",
     programme: "", coachName: "", overdueCount: 1, nextMcmDate: "", lastMcmDate: "",
     mcmStatus: "", risk: "amber" as MCMRisk, status: "new" as MCMStatus,
     assignedOwner: "", notes: "", mcmHistory: [] as McmHistoryItem[],
   };
   const [form, setForm] = useState(empty);
+
+  useEffect(() => {
+    if (open) setForm((p) => ({ ...p, learnerEmail: initialEmail, learnerName: initialName }));
+  }, [open, initialEmail, initialName]);
   const [saving, setSaving] = useState(false);
 
   const set = (k: keyof typeof empty, v: string | number) => setForm((p) => ({ ...p, [k]: v }));
@@ -840,6 +1059,21 @@ function MCMTicketActionsMenu({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
+          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#8AA0B6]">Risk Level</div>
+          <DropdownMenuItem onClick={() => onQuickPatch(ticket.id, { risk: "red" })} className="gap-2 px-3 text-sm">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ${ticket.risk === "red" ? "ring-2 ring-red-300" : ""}`} />
+            Red {ticket.risk === "red" && <span className="ml-auto text-[10px] text-[#A0B0C0]">current</span>}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onQuickPatch(ticket.id, { risk: "amber" })} className="gap-2 px-3 text-sm">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400 ${ticket.risk === "amber" ? "ring-2 ring-amber-200" : ""}`} />
+            Amber {ticket.risk === "amber" && <span className="ml-auto text-[10px] text-[#A0B0C0]">current</span>}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onQuickPatch(ticket.id, { risk: "green" })} className="gap-2 px-3 text-sm">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full bg-green-500 ${ticket.risk === "green" ? "ring-2 ring-green-200" : ""}`} />
+            Green {ticket.risk === "green" && <span className="ml-auto text-[10px] text-[#A0B0C0]">current</span>}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+
           <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#8AA0B6]">Action Taken</div>
           {ACTION_OPTIONS.filter((a) => a.value).map((a) => (
             <DropdownMenuItem
@@ -878,25 +1112,42 @@ export default function MCMTicketsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | MCMStatus>("all");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [createInitialEmail, setCreateInitialEmail] = useState("");
+  const [createInitialName, setCreateInitialName] = useState("");
   const [editTicket, setEditTicket] = useState<MCMTicket | null>(null);
   const [viewTicket, setViewTicket] = useState<MCMTicket | null>(null);
   const [noteTicket, setNoteTicket] = useState<MCMTicket | null>(null);
+  const [notesViewTicket, setNotesViewTicket] = useState<MCMTicket | null>(null);
   const [evidenceTicket, setEvidenceTicket] = useState<MCMTicket | null>(null);
 
   const [evidenceFiles, setEvidenceFiles] = useState<Record<number, EvidenceFile[]>>({});
   const [previewFile, setPreviewFile] = useState<EvidenceFile | null>(null);
   const [autoSyncing, setAutoSyncing] = useState(false);
   const autoSyncedRef = useRef(false);
+  const ticketsRef = useRef<MCMTicket[]>([]);
+  useEffect(() => { ticketsRef.current = tickets; }, [tickets]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`/api/mcm-tickets/?archived=${showArchived}`);
       if (res.ok) setTickets(await res.json());
-    } finally { setLoading(false); }
+    } finally { if (!silent) setLoading(false); }
   }, [showArchived]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const learner = searchParams.get("learner");
+    if (learner) setSearch(learner);
+    const newFor = searchParams.get("newFor");
+    const newName = searchParams.get("newName");
+    if (newFor) {
+      setCreateInitialEmail(newFor);
+      setCreateInitialName(newName || "");
+      setCreateOpen(true);
+    }
+  }, [searchParams]);
 
   const autoCreateOverdueTickets = useCallback(async () => {
     if (showArchived) return;
@@ -914,7 +1165,7 @@ export default function MCMTicketsPage() {
       });
       if (!syncRes.ok) return;
       const result = await syncRes.json();
-      if ((result.createdCount || 0) > 0 || (result.updatedCount || 0) > 0) void load();
+      if ((result.createdCount || 0) > 0 || (result.updatedCount || 0) > 0) void load(true);
     } finally {
       setAutoSyncing(false);
     }
@@ -935,16 +1186,29 @@ export default function MCMTicketsPage() {
   }, []);
 
   const patchTicket = useCallback(async (id: number, data: Partial<MCMTicket>) => {
+    const currentTicket = ticketsRef.current.find((t) => t.id === id);
+    let finalData = { ...data };
+
+    // Auto-append status-change note (only for explicit status-only patches)
+    if (data.status && currentTicket && data.status !== currentTicket.status && data.notes === undefined) {
+      const dateStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      const byLine = user?.fullName || user?.name || user?.email || "";
+      const note = `[${dateStr}${byLine ? ` · ${byLine}` : ""}] Status changed from "${MCM_STATUS_LABELS[currentTicket.status] || currentTicket.status}" to "${MCM_STATUS_LABELS[data.status] || data.status}"`;
+      const existing = currentTicket.notes?.trim() || "";
+      finalData.notes = existing ? `${existing}\n${note}` : note;
+    }
+
     const res = await fetch(`/api/mcm-tickets/${id}/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(finalData),
     });
     if (res.ok) {
       const updated: MCMTicket = await res.json();
       setTickets((p) => p.map((t) => (t.id === id ? updated : t)));
+      setNotesViewTicket((prev) => (prev?.id === id ? updated : prev));
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const emailedId = searchParams.get("emailed_ticket");
@@ -1178,23 +1442,21 @@ export default function MCMTicketsPage() {
                           </span>
                         </td>
                         {/* Notes */}
-                        <td className="max-w-[160px] px-3 py-3">
-                          {t.notes ? (
-                            <p className="line-clamp-2 text-xs text-[#5F7288]">{t.notes}</p>
-                          ) : (
-                            <span className="text-xs text-[#C5D5E3]">—</span>
-                          )}
+                        <td className="px-3 py-3">
+                          <NotesCell
+                            ticket={t}
+                            onOpen={() => setNotesViewTicket(t)}
+                            onAddNote={() => setNoteTicket(t)}
+                          />
                         </td>
                         {/* Evidence */}
                         <td className="px-3 py-3">
-                          {t.evidenceCount > 0 ? (
-                            <button
-                              onClick={() => { void loadFiles(t.id); setViewTicket(t); }}
-                              className="flex items-center gap-1 rounded-full bg-[#EEF3FB] px-2 py-0.5 text-[11px] font-semibold text-[#315D93] hover:bg-[#DCE9FB]"
-                            >
-                              <Paperclip className="h-3 w-3" />{t.evidenceCount}
-                            </button>
-                          ) : <span className="text-xs text-[#C5D5E3]">—</span>}
+                          <EvidenceCell
+                            ticket={t}
+                            files={evidenceFiles[t.id]}
+                            onLoad={() => void loadFiles(t.id)}
+                            onPreview={(f) => setPreviewFile(f)}
+                          />
                         </td>
                         {/* Actions dropdown */}
                         <td className="px-3 py-3">
@@ -1262,8 +1524,10 @@ export default function MCMTicketsPage() {
       {/* Modals */}
       <CreateTicketModal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => { setCreateOpen(false); setCreateInitialEmail(""); setCreateInitialName(""); }}
         onCreate={(t) => { setTickets((p) => [t, ...p]); }}
+        initialEmail={createInitialEmail}
+        initialName={createInitialName}
       />
 
       <EditTicketModal
@@ -1284,7 +1548,10 @@ export default function MCMTicketsPage() {
           ticket={noteTicket}
           open={!!noteTicket}
           onClose={() => setNoteTicket(null)}
-          onSaved={(t) => setTickets((p) => p.map((x) => (x.id === t.id ? t : x)))}
+          onSaved={(t) => {
+            setTickets((p) => p.map((x) => (x.id === t.id ? t : x)));
+            setNotesViewTicket((prev) => (prev?.id === t.id ? t : prev));
+          }}
         />
       )}
 
@@ -1298,6 +1565,14 @@ export default function MCMTicketsPage() {
       )}
 
       {previewFile && <FilePreviewModal target={previewFile} onClose={() => setPreviewFile(null)} />}
+
+      {notesViewTicket && (
+        <NotesModal
+          ticket={notesViewTicket}
+          onClose={() => setNotesViewTicket(null)}
+          onAddNote={() => { setNotesViewTicket(null); setNoteTicket(notesViewTicket); }}
+        />
+      )}
     </AppLayout>
   );
 }

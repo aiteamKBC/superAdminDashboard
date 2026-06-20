@@ -10,7 +10,6 @@ import {
   Mail,
   Menu,
   ShieldCheck,
-  SquareStack,
   UserPen,
   X,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import { useAuth } from "@/lib/auth";
 
 const navItems = [
   { path: "/", label: "Home", icon: LayoutDashboard, section: "Operations" },
-  { path: "/dashboard", label: "Dashboard", icon: SquareStack, section: "Operations" },
   { path: "/email-centre", label: "Email Centre", icon: Mail, section: "Operations" },
   { path: "/activity-report", label: "Activity Report", icon: BarChart3, section: "Reporting" },
   { path: "/calendar", label: "Calendar", icon: CalendarDays, section: "Reporting" },
@@ -106,7 +104,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         }`}
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EAF5FF] text-[#14264A] shadow-sm">
-          <SquareStack className="h-5 w-5" />
+          <LayoutDashboard className="h-5 w-5" />
         </div>
 
         <div

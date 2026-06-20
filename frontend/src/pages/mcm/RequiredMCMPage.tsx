@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarCheck2, CalendarClock, CheckCircle2, Clock, Download, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AlertTriangle, CalendarCheck2, CalendarClock, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ interface MCMRow {
   caseOwner: string;
   overdueMcmCount: number;
   nextDueDate: string | null;
+  lastMcm: string;
   lastActuallyCompletedMcm: string;
   mcrStatus: string;
   programme: string;
@@ -20,17 +22,93 @@ interface MCMRow {
   mcmDates: { date: string; status: string; completed: boolean }[];
 }
 
-const fmtDate = (s: string | null) => {
+const fmtDate = (s: string | null | undefined) => {
   if (!s) return "—";
-  try { return new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
-  catch { return s; }
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const nextMeetingStatus = (row: MCMRow): string | null => {
+  if (!row.nextDueDate) return null;
+  const nextDate = new Date(row.nextDueDate);
+  if (isNaN(nextDate.getTime())) return null;
+  const nextDateStr = nextDate.toDateString();
+  // Find the mcmDate entry matching nextDueDate
+  const match = row.mcmDates.find((d) => {
+    const dt = new Date(d.date);
+    return !isNaN(dt.getTime()) && dt.toDateString() === nextDateStr;
+  });
+  return match?.status || null;
+};
+
+const statusBadge = (status: string | null) => {
+  if (!status) return null;
+  const s = status.toLowerCase();
+  if (s.includes("completed"))
+    return <span className="inline-block whitespace-nowrap rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">Completed</span>;
+  if (s.includes("in progress") || s.includes("awaiting"))
+    return <span className="inline-block whitespace-nowrap rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">In Progress</span>;
+  if (s.includes("not scheduled"))
+    return <span className="inline-block whitespace-nowrap rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">Not Scheduled</span>;
+  if (s.includes("scheduled"))
+    return <span className="inline-block whitespace-nowrap rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">Scheduled</span>;
+  return <span className="inline-block whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{status}</span>;
 };
 
 const riskBadge = (count: number) => {
-  if (count === 0) return <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">On Track</span>;
-  if (count <= 2) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{count} Overdue</span>;
-  return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">{count} Overdue</span>;
+  if (count === 0) return (
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+      <CheckCircle2 className="h-3 w-3 shrink-0" /> On Track
+    </span>
+  );
+  if (count <= 2) return (
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+      <AlertTriangle className="h-3 w-3 shrink-0" /> {count}
+    </span>
+  );
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+      <AlertTriangle className="h-3 w-3 shrink-0" /> {count}
+    </span>
+  );
 };
+
+function OverdueBadge({ row }: { row: MCMRow }) {
+  const [show, setShow] = useState(false);
+
+  const overdueMeetings = row.mcmDates.filter((d) => {
+    if (d.completed) return false;
+    const dt = new Date(d.date);
+    if (isNaN(dt.getTime())) return false;
+    return dt < new Date();
+  });
+
+  if (row.overdueMcmCount === 0) return riskBadge(0);
+
+  return (
+    <div className="relative inline-block" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      {riskBadge(row.overdueMcmCount)}
+
+      {show && overdueMeetings.length > 0 && (
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 w-56 rounded-xl border border-[#DDE7F0] bg-white p-3 shadow-xl">
+          <p className="mb-2 text-[11px] font-bold text-[#5F7288] uppercase tracking-wide">Overdue Meetings</p>
+          <div className="space-y-1.5">
+            {overdueMeetings.map((d, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-red-50 px-2 py-1.5">
+                <span className="text-xs font-semibold text-[#14264A]">{fmtDate(d.date)}</span>
+                <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 capitalize">{d.status || "Overdue"}</span>
+              </div>
+            ))}
+          </div>
+          {/* arrow */}
+          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-white" />
+          <div className="absolute left-1/2 top-full -translate-x-1/2 translate-y-[-1px] border-4 border-transparent border-t-[#DDE7F0]" style={{ zIndex: -1 }} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Mirrors dashboard getMcrMonthRange / getMcrPeriodLabel logic exactly
 function getMcrRange(offset: number): { start: Date; end: Date } {
@@ -160,9 +238,13 @@ const CATEGORY_CARDS = [
   },
 ];
 
+type OpenTicket = { id: number; ticketRef: string; learnerEmail: string; status: string };
+
 export default function RequiredMCMPage() {
+  const navigate = useNavigate();
   const [all, setAll] = useState<MCMRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ticketMap, setTicketMap] = useState<Record<string, OpenTicket>>({});
   const [search, setSearch] = useState("");
   const [coachFilter, setCoachFilter] = useState("all");
   const [programmeFilter, setProgrammeFilter] = useState("all");
@@ -175,12 +257,24 @@ export default function RequiredMCMPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/mcr-summary/");
-      // Load ALL active learners — period filter determines "required", matching dashboard logic
       if (res.ok) setAll(await res.json());
     } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/api/mcm-tickets/?archived=false")
+      .then((r) => r.ok ? r.json() : [])
+      .then((tickets: OpenTicket[]) => {
+        const map: Record<string, OpenTicket> = {};
+        for (const t of tickets) {
+          if (t.status !== "resolved") map[t.learnerEmail.toLowerCase()] = t;
+        }
+        setTicketMap(map);
+      })
+      .catch(() => {});
+  }, []);
 
   // Count of period-filtered learners who have at least 1 overdue MCM
   const totalOverdue = useMemo(() => {
@@ -226,8 +320,8 @@ export default function RequiredMCMPage() {
   [periodFiltered, categoryFilter, periodOffset]);
 
   const exportCsv = () => {
-    const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "Next Due Date", "Last Completed MCM"];
-    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, r.overdueMcmCount, fmtDate(r.nextDueDate), fmtDate(r.lastActuallyCompletedMcm)]);
+    const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "Next Due Date", "Last MCM", "Last Completed MCM"];
+    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, r.overdueMcmCount, fmtDate(r.nextDueDate), r.lastMcm || "—", r.lastActuallyCompletedMcm || "—"]);
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "required-mcm.csv"; a.click();
   };
@@ -365,9 +459,17 @@ export default function RequiredMCMPage() {
                   <thead>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
-                      {["Email", "Programme", "Organisation", "Coach", "Overdue", "Next Due Date", "Last Completed MCM"].map((h) => (
+                      {["Email", "Programme", "Organisation", "Coach", "Overdue", "Last MCM", "Last Completed MCM"].map((h) => (
                         <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
+                      <th colSpan={2} className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-1.5 text-center text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">
+                        Next Due Date
+                        <div className="flex mt-1 border-t border-[#DDE7F0]">
+                          <span className="flex-1 py-1 text-[10px] font-semibold text-[#8AA0B6]">Date</span>
+                          <span className="flex-1 py-1 text-[10px] font-semibold text-[#8AA0B6]">State</span>
+                        </div>
+                      </th>
+                      <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -378,9 +480,46 @@ export default function RequiredMCMPage() {
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "—"}</td>
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "—"}</td>
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "—"}</td>
-                        <td className="px-3 py-3">{riskBadge(r.overdueMcmCount)}</td>
-                        <td className="px-3 py-3 text-xs font-semibold text-red-600">{fmtDate(r.nextDueDate)}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(r.lastActuallyCompletedMcm)}</td>
+                        <td className="whitespace-nowrap px-3 py-3"><OverdueBadge row={r} /></td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastMcm || "—"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastActuallyCompletedMcm || "—"}</td>
+                        {/* Next Due Date — Date cell */}
+                        <td className="border-l border-[#DDE7F0] px-3 py-3 text-xs font-semibold">
+                          {(() => {
+                            const d = r.nextDueDate ? new Date(r.nextDueDate) : null;
+                            const isOverdue = d && !isNaN(d.getTime()) && d < new Date();
+                            return <span className={isOverdue ? "text-red-600" : "text-[#14264A]"}>{fmtDate(r.nextDueDate)}</span>;
+                          })()}
+                        </td>
+                        {/* Next Due Date — State cell */}
+                        <td className="whitespace-nowrap px-3 py-3">{statusBadge(nextMeetingStatus(r))}</td>
+                        {/* Follow-up */}
+                        <td className="whitespace-nowrap border-l border-[#DDE7F0] px-3 py-3">
+                          {(() => {
+                            const ticket = ticketMap[r.email.toLowerCase()];
+                            if (ticket) {
+                              return (
+                                <button
+                                  onClick={() => navigate(`/coaching-meetings/tickets?learner=${encodeURIComponent(r.email)}`)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#315D93] hover:bg-[#D7E8F7] transition-colors"
+                                >
+                                  <Ticket className="h-3 w-3 shrink-0" />
+                                  {ticket.ticketRef}
+                                  <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                onClick={() => navigate(`/coaching-meetings/tickets?newFor=${encodeURIComponent(r.email)}&newName=${encodeURIComponent(r.fullName)}`)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#B8D7F2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#5F7288] hover:border-[#315D93] hover:bg-[#F0F7FF] hover:text-[#315D93] transition-colors"
+                              >
+                                <Plus className="h-3 w-3 shrink-0" />
+                                Open Ticket
+                              </button>
+                            );
+                          })()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

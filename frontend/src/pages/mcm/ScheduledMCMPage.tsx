@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarCheck2, CheckCircle2, Clock, Download, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AlertTriangle, CalendarCheck2, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ interface MCMRow {
   caseOwner: string;
   overdueMcmCount: number;
   nextDueDate: string | null;
+  lastMcm: string;
   lastActuallyCompletedMcm: string;
   mcrStatus: string;
   programme: string;
@@ -20,10 +22,13 @@ interface MCMRow {
   mcmDates: { date: string; status: string; completed: boolean }[];
 }
 
-const fmtDate = (s: string | null) => {
+type OpenTicket = { id: number; ticketRef: string; learnerEmail: string; status: string };
+
+const fmtDate = (s: string | null | undefined) => {
   if (!s) return "—";
-  try { return new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
-  catch { return s; }
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 // ─── Mirrors dashboard getMcrMonthRange exactly ───────────────────────────────
@@ -59,7 +64,6 @@ const PERIOD_OPTIONS = getMcmPeriodOptions();
 
 type ScheduledCategory = "scheduled" | "in_progress" | "completed";
 
-// Returns the matching MCM entry for the period plus its category
 function getScheduledEntry(
   mcmDates: { date: string; status: string; completed: boolean }[],
   offset: number,
@@ -130,7 +134,24 @@ const CATEGORY_CARDS: {
   },
 ];
 
+const categoryStyle: Record<ScheduledCategory, string> = {
+  completed:   "bg-green-100 text-green-700",
+  in_progress: "bg-blue-100 text-blue-700",
+  scheduled:   "bg-teal-100 text-teal-700",
+};
+const categoryLabel: Record<ScheduledCategory, string> = {
+  completed:   "Completed",
+  in_progress: "In Progress",
+  scheduled:   "Scheduled",
+};
+const categoryDateStyle: Record<ScheduledCategory, string> = {
+  completed:   "bg-green-50 text-green-700 border border-green-200",
+  in_progress: "bg-blue-50 text-blue-700 border border-blue-200",
+  scheduled:   "bg-teal-50 text-teal-700 border border-teal-200",
+};
+
 export default function ScheduledMCMPage() {
+  const navigate = useNavigate();
   const [all, setAll] = useState<MCMRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -139,6 +160,8 @@ export default function ScheduledMCMPage() {
   const [orgFilter, setOrgFilter] = useState("all");
   const [periodOffset, setPeriodOffset] = useState(-1);
   const [categoryFilter, setCategoryFilter] = useState<ScheduledCategory | null>(null);
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [ticketMap, setTicketMap] = useState<Record<string, OpenTicket>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,11 +173,23 @@ export default function ScheduledMCMPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    fetch("/api/mcm-tickets/?archived=false")
+      .then((r) => r.ok ? r.json() : [])
+      .then((tickets: OpenTicket[]) => {
+        const map: Record<string, OpenTicket> = {};
+        for (const t of tickets) {
+          if (t.status !== "resolved") map[t.learnerEmail.toLowerCase()] = t;
+        }
+        setTicketMap(map);
+      })
+      .catch(() => {});
+  }, []);
+
   const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).sort()], [all]);
   const programmes = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.programme).filter(Boolean))).sort()], [all]);
   const orgs = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.organisationName).filter(Boolean))).sort()], [all]);
 
-  // Period filter — attach scheduledDate + category
   const withScheduled = useMemo(() =>
     all
       .map((r) => {
@@ -164,24 +199,26 @@ export default function ScheduledMCMPage() {
       .filter((r): r is NonNullable<typeof r> => r !== null),
   [all, periodOffset]);
 
-  // Search + coach + programme + org filters (without category) — used for card counts
   const periodFiltered = useMemo(() => {
     const q = search.toLowerCase();
     return withScheduled.filter((r) => {
+      if (overdueOnly && r.overdueMcmCount < 1) return false;
       if (q && !r.fullName.toLowerCase().includes(q) && !r.email.toLowerCase().includes(q)) return false;
       if (coachFilter !== "all" && r.caseOwner !== coachFilter) return false;
       if (programmeFilter !== "all" && r.programme !== programmeFilter) return false;
       if (orgFilter !== "all" && r.organisationName !== orgFilter) return false;
       return true;
     });
-  }, [withScheduled, search, coachFilter, programmeFilter, orgFilter]);
+  }, [withScheduled, search, coachFilter, programmeFilter, orgFilter, overdueOnly]);
 
-  // Category filter on top → final table rows
+  const totalOverdue = useMemo(() =>
+    withScheduled.filter((r) => r.overdueMcmCount >= 1).length,
+  [withScheduled]);
+
   const filtered = useMemo(() =>
     categoryFilter ? periodFiltered.filter((r) => r.category === categoryFilter) : periodFiltered,
   [periodFiltered, categoryFilter]);
 
-  // Card counts per category
   const categoryCounts = useMemo(() => {
     const counts: Record<ScheduledCategory, number> = { scheduled: 0, in_progress: 0, completed: 0 };
     for (const r of periodFiltered) counts[r.category]++;
@@ -189,13 +226,20 @@ export default function ScheduledMCMPage() {
   }, [periodFiltered]);
 
   const exportCsv = () => {
-    const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Scheduled Date", "Last Completed MCM"];
-    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, fmtDate(r.scheduledDate), fmtDate(r.lastActuallyCompletedMcm)]);
+    const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Scheduled Date", "Status", "Last MCM", "Last Completed MCM"];
+    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, fmtDate(r.scheduledDate), categoryLabel[r.category], r.lastMcm || "—", r.lastActuallyCompletedMcm || "—"]);
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "scheduled-mcm.csv"; a.click();
   };
 
-  const hasFilters = coachFilter !== "all" || programmeFilter !== "all" || orgFilter !== "all" || periodOffset !== -1 || !!search || categoryFilter !== null;
+  const hasFilters = coachFilter !== "all" || programmeFilter !== "all" || orgFilter !== "all" || periodOffset !== -1 || !!search || categoryFilter !== null || overdueOnly;
+
+  const dateColLabel = useMemo(() => {
+    const opt = PERIOD_OPTIONS.find((o) => o.offset === periodOffset);
+    if (!opt) return "Date";
+    if (periodOffset === -1) return "Session Date";
+    return opt.label.replace(/^This Month - /, "");
+  }, [periodOffset]);
 
   return (
     <AppLayout>
@@ -259,39 +303,26 @@ export default function ScheduledMCMPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
             </div>
-            <FilterSelect
-              value={programmeFilter}
-              onChange={setProgrammeFilter}
-              options={[{ value: "all", label: "All Programmes" }, ...programmes.filter((p) => p !== "all").map((p) => ({ value: p, label: p }))]}
-              minWidth={180}
-            />
-            <FilterSelect
-              value={coachFilter}
-              onChange={setCoachFilter}
-              options={[{ value: "all", label: "All Coaches" }, ...coaches.filter((c) => c !== "all").map((c) => ({ value: c, label: c }))]}
-              minWidth={160}
-            />
-            <FilterSelect
-              value={orgFilter}
-              onChange={setOrgFilter}
-              options={[{ value: "all", label: "All Organizations" }, ...orgs.filter((o) => o !== "all").map((o) => ({ value: o, label: o }))]}
-              minWidth={180}
-            />
+            <FilterSelect value={programmeFilter} onChange={setProgrammeFilter} options={[{ value: "all", label: "All Programmes" }, ...programmes.filter((p) => p !== "all").map((p) => ({ value: p, label: p }))]} minWidth={180} />
+            <FilterSelect value={coachFilter} onChange={setCoachFilter} options={[{ value: "all", label: "All Coaches" }, ...coaches.filter((c) => c !== "all").map((c) => ({ value: c, label: c }))]} minWidth={160} />
+            <FilterSelect value={orgFilter} onChange={setOrgFilter} options={[{ value: "all", label: "All Organizations" }, ...orgs.filter((o) => o !== "all").map((o) => ({ value: o, label: o }))]} minWidth={180} />
           </div>
 
-          {/* Filters — row 2: MCM Period + actions */}
+          {/* Filters — row 2 */}
           <div className="mb-4 flex flex-wrap gap-2">
-            <FilterSelect
-              value={String(periodOffset)}
-              onChange={(v) => { setPeriodOffset(Number(v)); setCategoryFilter(null); }}
-              options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))}
-              minWidth={210}
-            />
+            <FilterSelect value={String(periodOffset)} onChange={(v) => { setPeriodOffset(Number(v)); setCategoryFilter(null); }} options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))} minWidth={210} />
+            <button
+              onClick={() => setOverdueOnly((p) => !p)}
+              className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors ${
+                overdueOnly ? "border-[#315D93] bg-[#315D93] text-white" : "border-[#315D93] bg-[#315D93] text-white hover:bg-[#274D7A]"
+              }`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Overdue
+              <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#315D93]">{totalOverdue}</span>
+            </button>
             {hasFilters && (
-              <button
-                onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setCategoryFilter(null); }}
-                className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
-              >
+              <button onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setCategoryFilter(null); setOverdueOnly(false); }} className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]">
                 Clear Filters
               </button>
             )}
@@ -314,40 +345,57 @@ export default function ScheduledMCMPage() {
                   <thead>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
-                      {["Email", "Programme", "Organisation", "Coach", "Scheduled Date", "Status", "Last Completed MCM"].map((h) => (
+                      {["Email", "Programme", "Organisation", "Coach", dateColLabel, "Status", "Last MCM", "Last Completed MCM"].map((h) => (
                         <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
+                      <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((r) => (
-                      <tr key={r.id} className="group border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
-                        <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
-                        <td className="px-3 py-3 text-xs text-[#71849A]">{r.email}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "—"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "—"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "—"}</td>
-                        <td className="px-3 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            r.category === "completed"  ? "bg-green-100 text-green-700" :
-                            r.category === "in_progress"? "bg-blue-100 text-blue-700"  :
-                                                          "bg-teal-100 text-teal-700"
-                          }`}>
-                            {fmtDate(r.scheduledDate)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                            r.category === "completed"   ? "border-green-200 bg-green-50 text-green-700"  :
-                            r.category === "in_progress" ? "border-blue-200 bg-blue-50 text-blue-700"    :
-                                                           "border-teal-200 bg-teal-50 text-teal-700"
-                          }`}>
-                            {r.category === "completed" ? "Completed" : r.category === "in_progress" ? "In Progress" : "Scheduled"}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(r.lastActuallyCompletedMcm)}</td>
-                      </tr>
-                    ))}
+                    {filtered.map((r) => {
+                      const ticket = ticketMap[r.email.toLowerCase()];
+                      return (
+                        <tr key={r.id} className="group border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
+                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
+                          <td className="px-3 py-3 text-xs text-[#71849A]">{r.email}</td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-3">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${categoryDateStyle[r.category]}`}>
+                              {fmtDate(r.scheduledDate)}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${categoryStyle[r.category]}`}>
+                              {categoryLabel[r.category]}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastMcm || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastActuallyCompletedMcm || "—"}</td>
+                          <td className="whitespace-nowrap border-l border-[#DDE7F0] px-3 py-3">
+                            {ticket ? (
+                              <button
+                                onClick={() => navigate(`/coaching-meetings/tickets?learner=${encodeURIComponent(r.email)}`)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#315D93] hover:bg-[#D7E8F7] transition-colors"
+                              >
+                                <Ticket className="h-3 w-3 shrink-0" />
+                                {ticket.ticketRef}
+                                <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => navigate(`/coaching-meetings/tickets?newFor=${encodeURIComponent(r.email)}&newName=${encodeURIComponent(r.fullName)}`)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#B8D7F2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#5F7288] hover:border-[#315D93] hover:bg-[#F0F7FF] hover:text-[#315D93] transition-colors"
+                              >
+                                <Plus className="h-3 w-3 shrink-0" />
+                                Open Ticket
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

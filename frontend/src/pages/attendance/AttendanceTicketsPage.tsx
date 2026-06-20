@@ -1300,6 +1300,9 @@ const getTicketWeekRange = (weekIndex: 0 | 1 | 2 | 3) => {
 
 const fmtShort = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
+const formatDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
 const getWeekOptions = () => {
   const opts: { value: string; label: string }[] = [{ value: "all", label: "All Weeks" }];
   const labels = ["This Week", "Previous Week", "2 Weeks Ago", "3 Weeks Ago"];
@@ -1311,6 +1314,31 @@ const getWeekOptions = () => {
 };
 
 const WEEK_OPTIONS = getWeekOptions();
+
+const ticketDateInWeek = (ticket: AttTicket, weekFilter: "all" | "0" | "1" | "2" | "3") => {
+  if (weekFilter === "all") return true;
+  if (!ticket.attendanceDate) return false;
+  const { start, end } = getTicketWeekRange(Number(weekFilter) as 0 | 1 | 2 | 3);
+  const parts = ticket.attendanceDate.split("-").map(Number);
+  const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+  return dt >= start && dt <= end;
+};
+
+const syncRecentAttendanceTickets = async () => {
+  await Promise.all(
+    ([0, 1, 2, 3] as const).map((weekIndex) => {
+      const { start, end } = getTicketWeekRange(weekIndex);
+      return fetch("/api/attendance-tickets/auto-create/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          week_start: formatDateKey(start),
+          week_end: formatDateKey(end),
+        }),
+      }).catch(() => null);
+    }),
+  );
+};
 
 const getAttendanceHistoryUrl = (email: string) => {
   const learnerEmail = String(email || "").trim().toLowerCase();
@@ -1352,6 +1380,7 @@ export default function AttendanceTicketsPage() {
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
+      if (!showArchived) await syncRecentAttendanceTickets();
       const res = await fetch(`/api/attendance-tickets/?archived=${showArchived}`);
       if (res.ok) setTickets(await res.json());
     } finally {
@@ -1522,38 +1551,31 @@ export default function AttendanceTicketsPage() {
     [loadTickets],
   );
 
+  const weekScopedTickets = useMemo(
+    () => tickets.filter((ticket) => ticketDateInWeek(ticket, weekFilter)),
+    [tickets, weekFilter],
+  );
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    // Pre-compute week range if needed
-    let weekStart: Date | null = null, weekEnd: Date | null = null;
-    if (weekFilter !== "all") {
-      const { start, end } = getTicketWeekRange(Number(weekFilter) as 0 | 1 | 2 | 3);
-      weekStart = start; weekEnd = end;
-    }
-    return tickets.filter((t) => {
+    return weekScopedTickets.filter((t) => {
       if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
       if (ragFilter !== "all" && t.risk !== ragFilter) return false;
       if (notesFilter === "has" && !t.notes.trim()) return false;
       if (notesFilter === "missing" && t.notes.trim()) return false;
       if (cardFilter === "open" && isClosedTicketStatus(t.status)) return false;
       if (cardFilter === "resolved" && !isClosedTicketStatus(t.status)) return false;
-      if (weekStart && weekEnd) {
-        if (!t.attendanceDate) return false;
-        const parts = t.attendanceDate.split("-").map(Number);
-        const dt = new Date(parts[0], parts[1] - 1, parts[2]);
-        if (dt < weekStart || dt > weekEnd) return false;
-      }
       return true;
     });
-  }, [tickets, search, ragFilter, notesFilter, cardFilter, weekFilter]);
+  }, [weekScopedTickets, search, ragFilter, notesFilter, cardFilter]);
 
-  const allCount = tickets.length;
-  const openCount = tickets.filter((t) => !isClosedTicketStatus(t.status)).length;
-  const resolvedCount = tickets.filter((t) => isClosedTicketStatus(t.status)).length;
-  const redCount = tickets.filter((t) => t.risk === "red").length;
-  const amberCount = tickets.filter((t) => t.risk === "amber").length;
-  const greenCount = tickets.filter((t) => t.risk === "green").length;
-  const escalatedCount = tickets.filter((t) => t.escalated).length;
+  const allCount = weekScopedTickets.length;
+  const openCount = weekScopedTickets.filter((t) => !isClosedTicketStatus(t.status)).length;
+  const resolvedCount = weekScopedTickets.filter((t) => isClosedTicketStatus(t.status)).length;
+  const redCount = weekScopedTickets.filter((t) => t.risk === "red").length;
+  const amberCount = weekScopedTickets.filter((t) => t.risk === "amber").length;
+  const greenCount = weekScopedTickets.filter((t) => t.risk === "green").length;
+  const escalatedCount = weekScopedTickets.filter((t) => t.escalated).length;
 
   const exportCsv = () => {
     const cols = ["Ticket", "Learner", "Email", "Organisation", "Risk", "Status", "Assigned Owner", "Date", "Created", "Days", "Notes"];
@@ -1715,7 +1737,7 @@ export default function AttendanceTicketsPage() {
             )}
             {weekFilter !== "all" && (
               <span className="ml-1 rounded-full bg-[#EEF3FB] px-3 py-1 text-xs font-semibold text-[#1E6ACB]">
-                {filtered.length} ticket{filtered.length !== 1 ? "s" : ""}
+                {allCount} ticket{allCount !== 1 ? "s" : ""}
               </span>
             )}
           </div>
@@ -1772,7 +1794,7 @@ export default function AttendanceTicketsPage() {
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-[#5F7288]">OPEN TICKET RAG</span>
             {(["all", "red", "amber", "green"] as const).map((r) => {
-              const cnt = r === "all" ? openCount : tickets.filter((t) => t.risk === r && !isClosedTicketStatus(t.status)).length;
+              const cnt = r === "all" ? openCount : weekScopedTickets.filter((t) => t.risk === r && !isClosedTicketStatus(t.status)).length;
               const active = ragFilter === r;
               const colors: Record<string, string> = { all: "bg-[#14264A] text-white border-[#14264A]", red: "bg-red-600 text-white border-red-600", amber: "bg-amber-500 text-white border-amber-500", green: "bg-green-600 text-white border-green-600" };
               return (
@@ -1788,7 +1810,7 @@ export default function AttendanceTicketsPage() {
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-[#5F7288]">NOTES / EVIDENCE</span>
             {(["all", "has", "missing"] as const).map((f) => {
-              const labels = { all: "All", has: `Has notes ${tickets.filter((t) => t.notes.trim()).length}`, missing: `Missing notes ${tickets.filter((t) => !t.notes.trim()).length}` };
+              const labels = { all: "All", has: `Has notes ${weekScopedTickets.filter((t) => t.notes.trim()).length}`, missing: `Missing notes ${weekScopedTickets.filter((t) => !t.notes.trim()).length}` };
               return (
                 <button key={f} onClick={() => setNotesFilter(f)}
                   className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${notesFilter === f ? "border-[#14264A] bg-[#14264A] text-white" : "border-[#DDE7F0] bg-white text-[#5F7288] hover:bg-[#EEF7FF]"}`}>

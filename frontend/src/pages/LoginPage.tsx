@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { FormEvent, useEffect, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { GraduationCap, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,6 @@ const randomState = () => {
 
 export default function LoginPage() {
   const { user, loading, login, loginWithMicrosoftToken } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -51,10 +50,7 @@ export default function LoginPage() {
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const from = useMemo(() => {
-    const stateFrom = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-    return stateFrom && stateFrom !== "/login" ? stateFrom : "/";
-  }, [location.state]);
+  const from = "/";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

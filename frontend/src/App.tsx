@@ -28,6 +28,9 @@ import MCMPage from "./pages/mcm/MCMPage";
 import RequiredMCMPage from "./pages/mcm/RequiredMCMPage";
 import ScheduledMCMPage from "./pages/mcm/ScheduledMCMPage";
 import MCMTicketsPage from "./pages/mcm/MCMTicketsPage";
+import GatewayPage from "./pages/gateway/GatewayPage";
+import EPALearnersPage from "./pages/gateway/EPALearnersPage";
+import EPATicketsPage from "./pages/gateway/EPATicketsPage";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +65,11 @@ const App = () => (
             <Route path="/coaching-meetings/required" element={<ProtectedRoute><RequiredMCMPage /></ProtectedRoute>} />
             <Route path="/coaching-meetings/scheduled" element={<ProtectedRoute><ScheduledMCMPage /></ProtectedRoute>} />
             <Route path="/coaching-meetings/tickets" element={<ProtectedRoute><MCMTicketsPage /></ProtectedRoute>} />
+            <Route path="/gateway" element={<ProtectedRoute><GatewayPage /></ProtectedRoute>} />
+            <Route path="/gateway/close" element={<ProtectedRoute><EPALearnersPage mode="close" /></ProtectedRoute>} />
+            <Route path="/gateway/overdue" element={<ProtectedRoute><EPALearnersPage mode="overdue" /></ProtectedRoute>} />
+            <Route path="/gateway/entered-epa" element={<ProtectedRoute><EPALearnersPage mode="entered" /></ProtectedRoute>} />
+            <Route path="/gateway/tickets" element={<ProtectedRoute><EPATicketsPage /></ProtectedRoute>} />
             <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
           </Routes>
         </AuthProvider>

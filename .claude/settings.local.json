@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python -c ' *)",
       "Bash(python manage.py check)",
-      "Bash(curl -s http://localhost:8000/api/require-marking/)"
+      "Bash(curl -s http://localhost:8000/api/require-marking/)",
+      "Bash(python manage.py migrate api 0014_clean_mcm_auto_notes)",
+      "Bash(python manage.py shell -c \"from api.models import MCMTicket; remaining = MCMTicket.objects.filter\\(notes__startswith='Auto-created'\\).count\\(\\); total = MCMTicket.objects.count\\(\\); print\\(f'Tickets with auto-notes remaining: {remaining}/{total}'\\)\")"
     ]
   }
 }

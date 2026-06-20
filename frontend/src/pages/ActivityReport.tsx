@@ -3,6 +3,13 @@ import AppLayout from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -110,6 +117,26 @@ function formatTableDate(dateStr: string) {
   });
 }
 
+function getMonthKey(dateStr: string) {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getCurrentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  if (!year || !month) return monthKey;
+  return new Date(year, month - 1, 1).toLocaleDateString([], {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function getCoachCalls(coach: KbcCoach): Record<string, CallItem[]> {
   const maybeCalls = (coach as any)?.calls;
   if (!maybeCalls || typeof maybeCalls !== "object") return {};
@@ -156,6 +183,7 @@ export default function ActivityReport() {
   const [apiData, setApiData] = useState<KbcCoach[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
 
   useEffect(() => {
     let ignore = false;
@@ -215,7 +243,7 @@ export default function ActivityReport() {
     return map;
   }, [apiData]);
 
-  const flatCalls = useMemo<FlatCallRow[]>(() => {
+  const allFlatCalls = useMemo<FlatCallRow[]>(() => {
     const rows: FlatCallRow[] = [];
 
     (apiData || []).forEach((coach) => {
@@ -257,6 +285,22 @@ export default function ActivityReport() {
     return rows.sort((a, b) => a.date.localeCompare(b.date));
   }, [apiData, learnerPhoneIndex]);
 
+  const monthOptions = useMemo(() => {
+    const months = new Set<string>([getCurrentMonthKey()]);
+    allFlatCalls.forEach((row) => {
+      const month = getMonthKey(row.date);
+      if (month) months.add(month);
+    });
+    return Array.from(months)
+      .sort((a, b) => b.localeCompare(a))
+      .map((value) => ({ value, label: formatMonthLabel(value) }));
+  }, [allFlatCalls]);
+
+  const flatCalls = useMemo(
+    () => allFlatCalls.filter((row) => getMonthKey(row.date) === selectedMonth),
+    [allFlatCalls, selectedMonth]
+  );
+
   const dailyActivity = useMemo<DailyLogRow[]>(() => {
     const grouped = new Map<string, DailyLogRow>();
 
@@ -283,8 +327,6 @@ export default function ActivityReport() {
       a.date.localeCompare(b.date)
     );
   }, [flatCalls]);
-
-  const last7 = useMemo(() => dailyActivity.slice(-7), [dailyActivity]);
 
   const totals = useMemo(
     () =>
@@ -343,9 +385,25 @@ export default function ActivityReport() {
             <h2 className="text-xl font-semibold text-foreground">
               Engagement Activity Report
             </h2>
-            <p className="text-sm text-muted-foreground">Last 30 days</p>
+            <p className="text-sm text-muted-foreground">
+              Activity for {formatMonthLabel(selectedMonth)}
+            </p>
           </div>
-          <Badge variant="secondary">Month to Date</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">Monthly View</Badge>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-10 w-[190px] rounded-lg border-[#D7E5F3] bg-white text-sm font-semibold text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] bg-white shadow-xl">
+                {monthOptions.map((month) => (
+                  <SelectItem key={month.value} value={month.value} className="rounded-lg">
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {error && (
@@ -371,10 +429,10 @@ export default function ActivityReport() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-5 lg:col-span-2">
             <p className="mb-4 text-sm font-medium text-foreground">
-              Calls by Day (Last 7 Days)
+              Calls by Day
             </p>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={last7}>
+              <BarChart data={dailyActivity}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(214,32%,91%)"
@@ -470,7 +528,7 @@ export default function ActivityReport() {
             </thead>
             <tbody>
               {dailyActivity
-                .slice(-14)
+                .slice()
                 .reverse()
                 .map((d) => (
                   <tr key={d.date} className="border-b">
