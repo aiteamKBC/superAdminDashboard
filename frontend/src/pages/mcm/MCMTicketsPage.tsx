@@ -1360,14 +1360,15 @@ export default function MCMTicketsPage() {
             </div>
 
             {/* Status filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#14264A]"
-            >
-              <option value="all">All Statuses</option>
-              {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All Statuses</SelectItem>
+                {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
 
             <button
               onClick={() => setShowArchived((p) => !p)}

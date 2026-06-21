@@ -8,6 +8,13 @@ import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -286,24 +293,27 @@ export default function TrackOTJPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
             </div>
-            <select
-              value={otjStatusFilter}
-              onChange={(e) => setOtjStatusFilter(e.target.value)}
-              className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none"
-            >
-              <option value="all">All OTJ Status</option>
-              <option value="at risk">At Risk</option>
-              <option value="on track">On Track</option>
-              <option value="need attention">Need Attention</option>
-            </select>
-            <select
-              value={coachFilter}
-              onChange={(e) => setCoachFilter(e.target.value)}
-              className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none"
-            >
-              <option value="all">All Coaches</option>
-              {coaches.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <Select value={otjStatusFilter} onValueChange={setOtjStatusFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All OTJ Status</SelectItem>
+                <SelectItem value="at risk">At Risk</SelectItem>
+                <SelectItem value="on track">On Track</SelectItem>
+                <SelectItem value="need attention">Need Attention</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={coachFilter} onValueChange={setCoachFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-72 rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All Coaches</SelectItem>
+                {coaches.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={load} className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>

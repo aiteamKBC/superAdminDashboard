@@ -8,6 +8,13 @@ import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -310,39 +317,77 @@ export default function ActiveLearnersPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation, programme…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
             </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none">
-              <option value="active">Active</option>
-              <option value="all">All Statuses</option>
-              {statusOptions.filter((s) => s.toLowerCase() !== "active").map((s) => <option key={s} value={s.toLowerCase()}>{s}</option>)}
-            </select>
-            <select value={coachFilter} onChange={(e) => setCoachFilter(e.target.value)} className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none">
-              <option value="all">All Coaches</option>
-              {coaches.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={ragFilter} onChange={(e) => setRagFilter(e.target.value)} className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none">
-              <option value="all">All Coach RAG</option>
-              <option value="red">Red</option>
-              <option value="amber">Amber</option>
-              <option value="green">Green</option>
-            </select>
-            <select value={otjFilter} onChange={(e) => setOtjFilter(e.target.value)} className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none">
-              <option value="all">All OTJ Status</option>
-              <option value="At Risk">At Risk</option>
-              <option value="On Track">On Track</option>
-              <option value="Need Attention">Need Attention</option>
-            </select>
-            <select value={levyFilter} onChange={(e) => setLevyFilter(e.target.value)} className="h-10 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm text-[#24486D] focus:outline-none">
-              <option value="all">All Levy</option>
-              {levyOptions.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {statusOptions.filter((s) => s.toLowerCase() !== "active").map((s) => (
+                  <SelectItem key={s} value={s.toLowerCase()}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={coachFilter} onValueChange={setCoachFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-72 rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All Coaches</SelectItem>
+                {coaches.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            <Select value={ragFilter} onValueChange={setRagFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[140px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All Coach RAG</SelectItem>
+                <SelectItem value="red">Red</SelectItem>
+                <SelectItem value="amber">Amber</SelectItem>
+                <SelectItem value="green">Green</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={otjFilter} onValueChange={setOtjFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All OTJ Status</SelectItem>
+                <SelectItem value="At Risk">At Risk</SelectItem>
+                <SelectItem value="On Track">On Track</SelectItem>
+                <SelectItem value="Need Attention">Need Attention</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={levyFilter} onValueChange={setLevyFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[120px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all">All Levy</SelectItem>
+                {levyOptions.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
             {activeFilters > 0 && (
               <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 gap-1 rounded-lg border-[#DDE7F0] bg-white text-[#5F7288]">
                 <X className="h-3.5 w-3.5" /> Clear ({activeFilters})
               </Button>
             )}
-            <span className="ml-auto text-xs text-[#71849A]">
-              {loading ? "Loading…" : `${filtered.length} of ${statusFiltered.length} learners`}
-            </span>
+            {loading ? (
+              <span className="ml-auto text-xs text-[#71849A]">Loading…</span>
+            ) : filtered.length < statusFiltered.length ? (
+              <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#14264A] px-3 py-1 text-xs font-bold text-white shadow-sm">
+                <span className="text-sm font-extrabold">{filtered.length}</span>
+                <span className="opacity-70">of {statusFiltered.length} learners</span>
+              </span>
+            ) : (
+              <span className="ml-auto text-xs text-[#71849A]">{filtered.length} learners</span>
+            )}
           </div>
 
           {/* Table */}
