@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, CalendarCheck2, CalendarClock, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
+import { AlertTriangle, CalendarCheck2, CalendarClock, CalendarRange, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
 import FilterSelect from "@/components/FilterSelect";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MCMRow {
   id: string;
@@ -75,8 +76,6 @@ const riskBadge = (count: number) => {
 };
 
 function OverdueBadge({ row }: { row: MCMRow }) {
-  const [show, setShow] = useState(false);
-
   const overdueMeetings = row.mcmDates.filter((d) => {
     if (d.completed) return false;
     const dt = new Date(d.date);
@@ -86,27 +85,29 @@ function OverdueBadge({ row }: { row: MCMRow }) {
 
   if (row.overdueMcmCount === 0) return riskBadge(0);
 
-  return (
-    <div className="relative inline-block" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
-      {riskBadge(row.overdueMcmCount)}
+  if (!overdueMeetings.length) return riskBadge(row.overdueMcmCount);
 
-      {show && overdueMeetings.length > 0 && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 w-56 rounded-xl border border-[#DDE7F0] bg-white p-3 shadow-xl">
-          <p className="mb-2 text-[11px] font-bold text-[#5F7288] uppercase tracking-wide">Overdue Meetings</p>
-          <div className="space-y-1.5">
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="cursor-default">{riskBadge(row.overdueMcmCount)}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[240px] p-0 border border-[#DDE7F0] bg-white shadow-xl rounded-xl overflow-hidden">
+          <div className="px-3 py-2 border-b border-[#DDE7F0] bg-[#F8FBFE]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5F7288]">Overdue Meetings</p>
+          </div>
+          <div className="flex flex-col gap-0 px-3 py-2">
             {overdueMeetings.map((d, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-red-50 px-2 py-1.5">
+              <div key={i} className="flex items-center justify-between gap-2 rounded-lg py-1">
                 <span className="text-xs font-semibold text-[#14264A]">{fmtDate(d.date)}</span>
-                <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 capitalize">{d.status || "Overdue"}</span>
+                <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 capitalize">{d.status || "Not Scheduled"}</span>
               </div>
             ))}
           </div>
-          {/* arrow */}
-          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-white" />
-          <div className="absolute left-1/2 top-full -translate-x-1/2 translate-y-[-1px] border-4 border-transparent border-t-[#DDE7F0]" style={{ zIndex: -1 }} />
-        </div>
-      )}
-    </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -142,6 +143,14 @@ function getMcmPeriodOptions() {
 }
 
 const PERIOD_OPTIONS = getMcmPeriodOptions();
+
+const fmtRangeDate = (d: Date) =>
+  d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+const getMcrRangeLabel = (offset: number): string => {
+  const { start, end } = getMcrRange(offset);
+  return `${fmtRangeDate(start)} – ${fmtRangeDate(end)}`;
+};
 
 // Exact same logic as dashboard coaching-due filter
 function matchesPeriod(row: MCMRow, offset: number): boolean {
@@ -289,7 +298,7 @@ export default function RequiredMCMPage() {
     }).length;
   }, [all, search, coachFilter, programmeFilter, orgFilter, periodOffset]);
 
-  const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).sort()], [all]);
+  const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase())).sort()], [all]);
   const programmes = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.programme).filter(Boolean))).sort()], [all]);
   const orgs = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.organisationName).filter(Boolean))).sort()], [all]);
 
@@ -420,6 +429,10 @@ export default function RequiredMCMPage() {
               options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))}
               minWidth={210}
             />
+            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
+              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+              {getMcrRangeLabel(periodOffset)}
+            </span>
             <button
               onClick={() => setOverdueOnly((p) => !p)}
               className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors ${

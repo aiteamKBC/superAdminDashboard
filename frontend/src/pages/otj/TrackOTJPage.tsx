@@ -171,7 +171,7 @@ export default function TrackOTJPage() {
 
   const coaches = useMemo(() => {
     const set = new Set(all.map((l) => l.ownerName).filter(Boolean));
-    return Array.from(set).sort();
+    return Array.from(set).filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase())).sort();
   }, [all]);
 
   const filtered = useMemo(() => {

@@ -213,7 +213,7 @@ export default function ActiveLearnersPage() {
   [all, statusFilter]);
 
   // Filter options derived from status-filtered base
-  const coaches = useMemo(() => Array.from(new Set(statusFiltered.map((l) => l.ownerName).filter(Boolean))).sort(), [statusFiltered]);
+  const coaches = useMemo(() => Array.from(new Set(statusFiltered.map((l) => l.ownerName).filter(Boolean))).filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase())).sort(), [statusFiltered]);
   const otjStatuses = useMemo(() => Array.from(new Set(statusFiltered.map((l) => l.otjHoursStatus).filter(Boolean))).sort(), [statusFiltered]);
   const levyOptions = useMemo(() => Array.from(new Set(statusFiltered.map((l) => l.levyOrNot).filter(Boolean))).sort(), [statusFiltered]);
 

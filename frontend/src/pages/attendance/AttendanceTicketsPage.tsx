@@ -1367,6 +1367,7 @@ export default function AttendanceTicketsPage() {
   const [notesFilter, setNotesFilter] = useState<"all" | "has" | "missing">("all");
   const [cardFilter, setCardFilter] = useState<"all" | "open" | "resolved">("all");
   const [weekFilter, setWeekFilter] = useState<"all" | "0" | "1" | "2" | "3">("all");
+  const [moduleFilter, setModuleFilter] = useState("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [createPrefill, setCreatePrefill] = useState<Partial<typeof EMPTY_FORM> | undefined>();
   const [editTicket, setEditTicket] = useState<AttTicket | null>(null);
@@ -1556,6 +1557,12 @@ export default function AttendanceTicketsPage() {
     [tickets, weekFilter],
   );
 
+  const moduleOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tickets) { if (t.attendanceModule) set.add(t.attendanceModule); }
+    return Array.from(set).sort();
+  }, [tickets]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return weekScopedTickets.filter((t) => {
@@ -1565,9 +1572,10 @@ export default function AttendanceTicketsPage() {
       if (notesFilter === "missing" && t.notes.trim()) return false;
       if (cardFilter === "open" && isClosedTicketStatus(t.status)) return false;
       if (cardFilter === "resolved" && !isClosedTicketStatus(t.status)) return false;
+      if (moduleFilter !== "all" && t.attendanceModule !== moduleFilter) return false;
       return true;
     });
-  }, [weekScopedTickets, search, ragFilter, notesFilter, cardFilter]);
+  }, [weekScopedTickets, search, ragFilter, notesFilter, cardFilter, moduleFilter]);
 
   const allCount = weekScopedTickets.length;
   const openCount = weekScopedTickets.filter((t) => !isClosedTicketStatus(t.status)).length;
@@ -1578,10 +1586,10 @@ export default function AttendanceTicketsPage() {
   const escalatedCount = weekScopedTickets.filter((t) => t.escalated).length;
 
   const exportCsv = () => {
-    const cols = ["Ticket", "Learner", "Email", "Organisation", "Risk", "Status", "Assigned Owner", "Date", "Created", "Days", "Notes"];
+    const cols = ["Ticket", "Learner", "Email", "Organisation", "Risk", "Status", "Group", "Absence Date", "Assigned Owner", "Created", "Days", "Notes"];
     const rows = filtered.map((t) => [
       t.ticketRef, t.learnerName, t.learnerEmail, t.organisation,
-      t.risk, t.status, t.assignedOwner, fmtDate(t.attendanceDate),
+      t.risk, t.status, t.attendanceModule, fmtDate(t.attendanceDate), t.assignedOwner,
       fmtDate(t.createdAt), daysSince(t.createdAt), t.notes.replace(/\n/g, " "),
     ]);
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -1712,7 +1720,7 @@ export default function AttendanceTicketsPage() {
             </DropdownMenu>
           </div>
 
-          {/* Week filter row */}
+          {/* Week + Module filter row */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Select value={weekFilter} onValueChange={(v) => setWeekFilter(v as typeof weekFilter)}>
               <SelectTrigger className="h-10 w-auto min-w-[260px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
@@ -1727,15 +1735,29 @@ export default function AttendanceTicketsPage() {
                 ))}
               </SelectContent>
             </Select>
-            {weekFilter !== "all" && (
+
+            <Select value={moduleFilter} onValueChange={setModuleFilter}>
+              <SelectTrigger className="h-10 w-auto min-w-[200px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+                <Filter className="mr-2 h-4 w-4 text-[#8AA0B6]" />
+                <SelectValue placeholder="All Modules / Groups" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72 rounded-xl border-[#DDE7F0] shadow-xl">
+                <SelectItem value="all" className="rounded-lg text-sm">All Modules / Groups</SelectItem>
+                {moduleOptions.map((m) => (
+                  <SelectItem key={m} value={m} className="rounded-lg text-sm">{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {(weekFilter !== "all" || moduleFilter !== "all") && (
               <button
-                onClick={() => setWeekFilter("all")}
+                onClick={() => { setWeekFilter("all"); setModuleFilter("all"); }}
                 className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
               >
-                <X className="h-3.5 w-3.5" /> Clear Week
+                <X className="h-3.5 w-3.5" /> Clear Filters
               </button>
             )}
-            {weekFilter !== "all" && (
+            {(weekFilter !== "all" || moduleFilter !== "all") && (
               <span className="ml-1 rounded-full bg-[#EEF3FB] px-3 py-1 text-xs font-semibold text-[#1E6ACB]">
                 {allCount} ticket{allCount !== 1 ? "s" : ""}
               </span>
@@ -1849,7 +1871,7 @@ export default function AttendanceTicketsPage() {
                 <table className="w-full min-w-[1120px] text-sm">
                   <thead>
                     <tr className="sticky top-0 z-10 border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      {["Ticket", "Learner", "Attendance history", "Risk", "Status", "Assigned Owner", "Created", "Days", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
+                      {["Ticket", "Learner", "Attendance history", "Risk", "Status", "Group", "Absence Date", "Assigned Owner", "Created", "Days", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
                         <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
                     </tr>
@@ -1890,6 +1912,16 @@ export default function AttendanceTicketsPage() {
                         </td>
                         <td className="px-3 py-3">{riskBadge(t.risk)}</td>
                         <td className="px-3 py-3">{statusBadge(t.status)}</td>
+                        <td className="max-w-[180px] px-3 py-3 text-xs text-[#5F7288]">
+                          {t.attendanceModule ? (
+                            <span className="line-clamp-2">{t.attendanceModule}</span>
+                          ) : (
+                            <span className="italic text-[#A0B0C0]">—</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#14264A]">
+                          {t.attendanceDate ? fmtDate(t.attendanceDate) : <span className="font-normal italic text-[#A0B0C0]">—</span>}
+                        </td>
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(t.createdAt)}</td>
                         <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{daysSince(t.createdAt)}</td>

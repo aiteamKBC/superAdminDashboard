@@ -1472,6 +1472,37 @@ def _attendance_missing_learners_for_week(week_start, week_end):
             "attendance_module": learner.get("attendance_module", ""),
         })
 
+    # Compute missed-session counts per (email, module) across ALL history
+    if learners:
+        absent_emails = list({l["email"] for l in learners})
+        placeholders = ",".join(["%s"] * len(absent_emails))
+        with connection.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT "Email", "module", "date", "Attendance"
+                FROM public.kbc_attendance
+                WHERE lower("Email") IN ({placeholders})
+                """,
+                absent_emails,
+            )
+            # Deduplicate by (email, module, date) — same logic as frontend tooltip
+            seen = {}  # (email, module, date) → is_missed
+            for em, mod, dt, att in cur.fetchall():
+                clean_email = str(em or "").strip().lower()
+                clean_mod = str(mod or "").strip()
+                key = (clean_email, clean_mod, str(dt))
+                is_missed = _normalize_attendance_value(att) == 0
+                seen[key] = seen.get(key, False) or is_missed
+
+        missed_counts = {}
+        for (em, mod, _dt), is_missed in seen.items():
+            if is_missed:
+                missed_counts[(em, mod)] = missed_counts.get((em, mod), 0) + 1
+
+        for learner in learners:
+            key = (learner["email"], learner["attendance_module"])
+            learner["missed_count"] = missed_counts.get(key, 1)
+
     return learners
 
 
@@ -1524,6 +1555,8 @@ def auto_create_attendance_tickets(request):
                 "created": False,
             })
         else:
+            missed_count = int(learner.get("missed_count") or 1)
+            risk = "red" if missed_count >= 3 else "amber"
             ticket = AttendanceTicket.objects.create(
                 ticket_ref="ATT-TMP",
                 learner_email=email,
@@ -1533,7 +1566,7 @@ def auto_create_attendance_tickets(request):
                 programme=str(learner.get("programme") or "").strip(),
                 attendance_date=att_date,
                 attendance_module=str(learner.get("attendance_module") or "").strip(),
-                risk="amber",
+                risk=risk,
                 status="new",
                 assigned_owner="",
                 action="no_action",

@@ -247,7 +247,7 @@ export default function GlobalFilters({
     }
   };
 
-  const EXCLUDED_COACHES = new Set(["unknown", "api do not delete", "phone 1", "phone 2", "ella steven", "elaf mansour", "marwa mahmoud", "omar ham"]);
+  const EXCLUDED_COACHES = new Set(["unknown", "api do not delete", "phone 1", "phone 2", "ella steven", "elaf mansour", "marwa mahmoud", "omar ham", "default owner", "enrolment team"]);
 
   const coachOptions = useMemo(() => {
     const names = safeRows

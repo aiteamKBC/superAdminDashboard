@@ -93,6 +93,14 @@ const buildQuarterOptions = (): { value: PrOffset; label: string }[] => {
 
 const QUARTER_OPTIONS = buildQuarterOptions();
 
+const fmtRangeDate = (d: Date) =>
+  d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+const getPrRangeLabel = (offset: PrOffset): string => {
+  const { start, end } = getPrDateRange(offset);
+  return `${fmtRangeDate(start)} – ${fmtRangeDate(end)}`;
+};
+
 // ─── PR match helper (same logic as main dashboard) ───────────────────
 
 const parseBookedDate = (raw: unknown): Date | null => {
@@ -247,7 +255,9 @@ export default function RequiredPRPage() {
   [learners]);
 
   const coachOptions = useMemo(() =>
-    Array.from(new Set(learners.map((l) => l.caseOwner).filter(Boolean))).sort(),
+    Array.from(new Set(learners.map((l) => l.caseOwner).filter(Boolean)))
+      .filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase()))
+      .sort(),
   [learners]);
 
   const totalActive = useMemo(() =>
@@ -571,6 +581,10 @@ export default function RequiredPRPage() {
               onChange={setPrOffset}
               options={QUARTER_OPTIONS}
             />
+            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
+              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+              {getPrRangeLabel(prOffset)}
+            </span>
             {hasFilters && (
               <button onClick={clearAll}
                 className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-xs font-semibold text-[#71849A] hover:bg-[#F0F4F8]">

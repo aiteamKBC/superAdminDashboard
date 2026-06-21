@@ -19,6 +19,7 @@ import LearnerDrawer from "@/components/LearnerDrawer";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { Learner } from "@/types/dashboard";
 
@@ -55,6 +56,7 @@ interface AttendanceLearner extends Learner {
   emailed: boolean;
   note: string;
   hasAttendanceInWindow: boolean;
+  allRecords: AttRec[];
 }
 
 const parseAttendanceDate = (raw: string): Date | null => {
@@ -230,6 +232,7 @@ export default function TrackAttendancePage() {
   const [coachFilter, setCoachFilter] = useState("all");
   const [organisationFilter, setOrganisationFilter] = useState("all");
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>("all");
+  const [moduleFilter, setModuleFilter] = useState("all");
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadTickets = useCallback(async () => {
@@ -407,6 +410,7 @@ export default function TrackAttendancePage() {
         emailed: contactState.emailed,
         note: contactState.note,
         hasAttendanceInWindow: metrics.hasAttendanceInWindow,
+        allRecords: record.records || [],
       };
     });
   }, [
@@ -437,7 +441,9 @@ export default function TrackAttendancePage() {
     () =>
       Array.from(
         new Set(allLearners.map((learner) => learner.coachName).filter(Boolean))
-      ).sort(),
+      )
+      .filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase()))
+      .sort(),
     [allLearners]
   );
   const organisations = useMemo(
@@ -449,6 +455,42 @@ export default function TrackAttendancePage() {
       ).sort(),
     [allLearners]
   );
+
+  const moduleOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          attendanceData.flatMap((row) =>
+            (row.records || []).map((r) => r.module).filter(Boolean)
+          )
+        )
+      ).sort(),
+    [attendanceData]
+  );
+
+  // Total missed / total sessions for each learner — in the filtered module (or their current module if no filter)
+  const missedByModule = useMemo(() => {
+    const map = new Map<string, { missed: number; total: number; sessions: { date: string; missed: boolean }[] }>();
+    for (const learner of allLearners) {
+      const targetModule =
+        moduleFilter !== "all" ? moduleFilter : learner.attendanceModule;
+      if (!targetModule) { map.set(learner.email, { missed: 0, total: 0, sessions: [] }); continue; }
+      const moduleRecords = learner.allRecords.filter((r) => r.module === targetModule);
+      // Deduplicate by date: if any record on that date is Missed → mark as missed
+      const byDate = new Map<string, boolean>();
+      for (const r of moduleRecords) {
+        if (!r.date) continue;
+        const isMissed = normalizeAttendanceValue(r.attendance) === 0;
+        byDate.set(r.date, (byDate.get(r.date) ?? false) || isMissed);
+      }
+      const sessions = Array.from(byDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, missed]) => ({ date, missed }));
+      const missed = sessions.filter((s) => s.missed).length;
+      map.set(learner.email, { missed, total: sessions.length, sessions });
+    }
+    return map;
+  }, [allLearners, moduleFilter]);
 
   const entityFiltered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -471,11 +513,14 @@ export default function TrackAttendancePage() {
       ) {
         return false;
       }
+      if (moduleFilter !== "all" && learner.attendanceModule !== moduleFilter)
+        return false;
       return true;
     });
   }, [
     coachFilter,
     missedLearners,
+    moduleFilter,
     organisationFilter,
     programmeFilter,
     search,
@@ -616,9 +661,10 @@ export default function TrackAttendancePage() {
       "Phone",
       "Organisation",
       "Programme",
+      "Group",
       "Coach",
       "Last Session",
-      "Missed in Row",
+      "Total Missed Sessions",
       "Absence Ratio",
       "Called",
       "Emailed",
@@ -631,9 +677,10 @@ export default function TrackAttendancePage() {
       learner.phone,
       learner.organisation,
       learner.programme,
+      learner.attendanceModule,
       learner.coachName,
       learner.lastSessionDate,
-      learner.missedInRow,
+      (() => { const s = missedByModule.get(learner.email); return s ? `${s.missed}/${s.total}` : "—"; })(),
       `${learner.absenceRatio}%`,
       learner.called ? "Yes" : "No",
       learner.emailed ? "Yes" : "No",
@@ -665,6 +712,7 @@ export default function TrackAttendancePage() {
     programmeFilter !== "all" ||
     coachFilter !== "all" ||
     organisationFilter !== "all" ||
+    moduleFilter !== "all" ||
     followUpFilter !== "all";
 
   const clearFilters = () => {
@@ -672,6 +720,7 @@ export default function TrackAttendancePage() {
     setProgrammeFilter("all");
     setCoachFilter("all");
     setOrganisationFilter("all");
+    setModuleFilter("all");
     setFollowUpFilter("all");
   };
 
@@ -798,6 +847,18 @@ export default function TrackAttendancePage() {
               ]}
               minWidth={190}
             />
+            <FilterSelect
+              value={moduleFilter}
+              onChange={setModuleFilter}
+              options={[
+                { value: "all", label: "All Modules / Groups" },
+                ...moduleOptions.map((mod) => ({
+                  value: mod,
+                  label: mod,
+                })),
+              ]}
+              minWidth={200}
+            />
           </div>
 
           <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -884,10 +945,11 @@ export default function TrackAttendancePage() {
                         "Phone",
                         "Organisation",
                         "Programme",
+                        "Group",
                         "Coach",
                         "Last Session",
                         "Session Status",
-                        "Missed in Row",
+                        "Total Missed Sessions",
                         "Absence Ratio",
                         "Called",
                         "Emailed",
@@ -936,6 +998,9 @@ export default function TrackAttendancePage() {
                             {learner.programme || "N/A"}
                           </td>
                           <td className="px-3 py-3 text-xs text-[#5F7288]">
+                            {learner.attendanceModule || "—"}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-[#5F7288]">
                             {learner.coachName || "Unassigned"}
                           </td>
                           <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#14264A]">
@@ -948,7 +1013,38 @@ export default function TrackAttendancePage() {
                             </span>
                           </td>
                           <td className="px-3 py-3 text-center text-xs font-bold text-red-600">
-                            {learner.missedInRow}
+                            {(() => {
+                              const s = missedByModule.get(learner.email);
+                              if (!s) return <span>—</span>;
+                              if (!s.sessions.length) return <span>{s.missed}/{s.total}</span>;
+                              return (
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="cursor-default underline decoration-dotted decoration-red-400">{s.missed}/{s.total}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[240px] p-0 border border-[#DDE7F0] bg-white shadow-lg rounded-xl overflow-hidden">
+                                      <div className="px-3 py-2 border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#5F7288]">Sessions</p>
+                                      </div>
+                                      <div className="flex flex-col gap-0 px-3 py-2">
+                                        {s.sessions.map((sess) => (
+                                          <div key={sess.date} className="flex items-center gap-2 py-1">
+                                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sess.missed ? "bg-red-500" : "bg-emerald-500"}`} />
+                                            <span className={`text-xs ${sess.missed ? "font-semibold text-red-600" : "text-[#3D5166]"}`}>
+                                              {formatAttendanceDate(sess.date)}
+                                            </span>
+                                            <span className={`ml-auto text-[10px] font-medium ${sess.missed ? "text-red-500" : "text-emerald-600"}`}>
+                                              {sess.missed ? "Missed" : "Present"}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
                           </td>
                           <td className="px-3 py-3">
                             <span

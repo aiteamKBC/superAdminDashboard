@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, CalendarCheck2, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
+import { AlertTriangle, CalendarCheck2, CalendarRange, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,14 @@ function getMcmPeriodOptions() {
 }
 
 const PERIOD_OPTIONS = getMcmPeriodOptions();
+
+const fmtRangeDate = (d: Date) =>
+  d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+const getMcrRangeLabel = (offset: number): string => {
+  const { start, end } = getMcrRange(offset);
+  return `${fmtRangeDate(start)} – ${fmtRangeDate(end)}`;
+};
 
 type ScheduledCategory = "scheduled" | "in_progress" | "completed";
 
@@ -186,7 +194,7 @@ export default function ScheduledMCMPage() {
       .catch(() => {});
   }, []);
 
-  const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).sort()], [all]);
+  const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase())).sort()], [all]);
   const programmes = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.programme).filter(Boolean))).sort()], [all]);
   const orgs = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.organisationName).filter(Boolean))).sort()], [all]);
 
@@ -311,6 +319,10 @@ export default function ScheduledMCMPage() {
           {/* Filters — row 2 */}
           <div className="mb-4 flex flex-wrap gap-2">
             <FilterSelect value={String(periodOffset)} onChange={(v) => { setPeriodOffset(Number(v)); setCategoryFilter(null); }} options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))} minWidth={210} />
+            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
+              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+              {getMcrRangeLabel(periodOffset)}
+            </span>
             <button
               onClick={() => setOverdueOnly((p) => !p)}
               className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors ${

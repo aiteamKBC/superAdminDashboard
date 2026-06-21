@@ -221,7 +221,7 @@ const matchesValue = (candidate: unknown, selected: string) => lower(candidate) 
 const anyMatch = (values: unknown[], selected: string) =>
   values.some((value) => matchesValue(value, selected));
 
-const EXCLUDED_COACHES = new Set(["marwa mahmoud", "omar ham"]);
+const EXCLUDED_COACHES = new Set(["marwa mahmoud", "omar ham", "default owner", "enrolment team"]);
 
 export function applyDashboardFilters(rows: UiCoach[], filters: DashboardFilters): UiCoach[] {
   const safeRows = Array.isArray(rows) ? rows : [];
