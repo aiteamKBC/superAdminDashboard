@@ -235,7 +235,7 @@ function OTJTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#DDE7F0]">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-[#14264A]">{ticketId ? "Edit OTJ Ticket" : "Create OTJ Ticket"}</DialogTitle>
+          <DialogTitle className="text-base font-semibold text-[#14264A]">{ticketId ? "Edit OTJH Ticket" : "Create OTJH Ticket"}</DialogTitle>
         </DialogHeader>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {([["learnerEmail", "Learner Email *", "learner@example.com"], ["learnerName", "Learner Name *", "Full name"], ["learnerPhone", "Phone", "07700 000000"], ["organisation", "Organisation", "Organisation name"], ["programme", "Programme", "e.g. Team Leader"], ["assignedOwner", "Assigned Owner", "Coach or staff name"]] as const).map(([key, label, placeholder]) => (
@@ -253,7 +253,7 @@ function OTJTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open
             <Input type="number" min={0} step={0.5} value={form.otjExpected} onChange={(e) => set("otjExpected", Number(e.target.value))} className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">OTJ Hours Status</Label>
+            <Label className="text-xs font-semibold text-[#24486D]">OTJH Status</Label>
             <Input value={form.otjStatus} onChange={(e) => set("otjStatus", e.target.value)} placeholder="e.g. at risk, on track" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
@@ -628,17 +628,17 @@ export default function OTJTicketsPage() {
     const cols = ["Ticket", "Learner", "Email", "Organisation", "Programme", "Risk", "Status", "Owner", "Completed", "Target Now", "Req. to Submit", "Created"];
     const rows = filtered.map((t) => [t.ticketRef, t.learnerName, t.learnerEmail, t.organisation, t.programme, t.risk, t.status, t.assignedOwner, fmtHoursMin(t.otjCompleted), fmtHoursMin(t.otjExpected), fmtHoursMin(reqToSubmitHours(t.otjExpected, t.otjCompleted)), fmtDate(t.createdAt)]);
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "otj-tickets.csv"; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "otjh-tickets.csv"; a.click();
   };
 
   return (
     <AppLayout>
       <div className="min-h-full bg-[#F4F8FC]">
         <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
-          <BackButton to="/otj-hours" label="OTJ Hours" />
+          <BackButton to="/otj-hours" label="OTJH" />
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">OTJ Ticket System</h1>
+              <h1 className="text-xl font-bold text-[#14264A]">OTJH Ticket System</h1>
               <p className="mt-0.5 text-sm text-[#5F7288]">Manage off-the-job hours support tickets</p>
             </div>
             <Button onClick={() => setCreateOpen(true)} className="h-9 gap-1.5 rounded-lg bg-[#24557F] text-white hover:bg-[#1B466B]">
@@ -811,7 +811,7 @@ export default function OTJTicketsPage() {
                   ))}
                 </div>
 
-                {/* OTJ Metrics */}
+                {/* OTJH Metrics */}
                 <div className="grid grid-cols-4 gap-px bg-[#F0F4F8] border-b border-[#F0F4F8]">
                   {[
                     { label: "Completed", value: fmtHoursMin(comp), cls: "text-[#14264A]" },
@@ -829,7 +829,7 @@ export default function OTJTicketsPage() {
                 {/* Progress bar */}
                 <div className="px-6 py-3 bg-white border-b border-[#F0F4F8]">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-semibold text-[#A0B0C0]">OTJ Progress vs Target</span>
+                    <span className="text-[11px] font-semibold text-[#A0B0C0]">OTJH Progress vs Target</span>
                     <span className={`text-[11px] font-bold ${ahead ? "text-green-600" : "text-red-500"}`}>{barPct}% complete</span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8EFF7]">

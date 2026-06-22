@@ -131,7 +131,7 @@ export const mockEmailTemplates: EmailTemplate[] = [
   },
   {
     id: 'tpl-4',
-    name: 'OTJ Hours Catch-Up Guidance',
+    name: 'OTJH Catch-Up Guidance',
     subject: 'Off-the-Job Hours – Action Plan Needed | {{programme}}',
     body: 'Dear {{learnerName}},\n\nOur records show you are currently {{behindPercent}}% behind on your off-the-job training hours.\n\nExpected hours: {{expectedHours}}\nActual hours logged: {{actualHours}}\n\nPlease speak with your coach {{coachName}} and your line manager {{lineManagerName}} to develop a catch-up plan.\n\nKind regards,\n{{senderName}}\nEngagement Coordinator\nKent Business College',
     kpiCategory: 'otj-behind',
@@ -195,7 +195,7 @@ export function getKpiCards(learners: Learner[]): KpiCardData[] {
     },
     {
       id: 'otj-behind',
-      title: 'OTJ Hours Behind > 20%',
+      title: 'OTJH Behind > 20%',
       count: otjBehind.length,
       total,
       percentage: total ? Math.round((otjBehind.length / total) * 100) : 0,

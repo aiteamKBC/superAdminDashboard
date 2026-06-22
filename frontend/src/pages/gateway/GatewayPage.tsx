@@ -7,7 +7,7 @@ const CARDS = [
   {
     key: "close",
     title: "Close to EPA",
-    description: "Active learners with an End-Date in the next 30 days",
+    description: "Active learners with an End-Date in the next 60 days",
     icon: CalendarClock,
     path: "/gateway/close",
     iconBg: "bg-blue-50",

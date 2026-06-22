@@ -2084,7 +2084,7 @@ export default function Dashboard() {
   const loadOtjAtRiskData = useCallback(async () => {
     try {
       const res = await fetch("/api/otj-at-risk/");
-      if (!res.ok) throw new Error("Failed to load OTJ at risk data");
+      if (!res.ok) throw new Error("Failed to load OTJH at risk data");
       const data = await res.json();
       setOtjAtRiskData(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -3325,7 +3325,7 @@ export default function Dashboard() {
       mk("review-booked", "Progress Review Scheduled", reviewBooked, total, previousReviewBooked),
       mk("coaching-due", "Monthly Coaching Meeting Required", coachingDue, total, previousCoachingDue),
       mk("coaching-booked", "Monthly Coaching Meeting Scheduled", coachingBookedCount, total, previousCoachingBooked),
-      mk("otj-behind", "OTJ Behind", otjBehind),
+      mk("otj-behind", "OTJH Behind", otjBehind),
       mk(
         "coach-marking-overdue",
         "Coach Marking - Overdue",

@@ -72,7 +72,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
     'Missed Session': p.caseloadHealth.missedSession,
     'PR Due': p.caseloadHealth.reviewDue,
     'MCM Required': p.caseloadHealth.coachingDue,
-    'OTJ Behind': p.caseloadHealth.otjBehind,
+    'OTJH Behind': p.caseloadHealth.otjBehind,
     'High Priority': p.caseloadHealth.highPriority,
     'Not contacted 0-2d': p.ageingBuckets['0-2'],
     'Not contacted 3-7d': p.ageingBuckets['3-7'],

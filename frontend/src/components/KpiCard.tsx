@@ -70,7 +70,7 @@ const kpiVisuals: Record<KpiCardData["id"], KpiVisual> = {
     soft: "#FFF8E8",
     text: "#94610A",
     icon: Target,
-    subtitle: "Learners behind their OTJ target",
+    subtitle: "Learners behind their OTJH target",
   },
   "coach-marking-overdue": {
     accent: "#31506F",

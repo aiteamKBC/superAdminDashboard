@@ -75,7 +75,7 @@ const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
   "review-due": "Review Due",
   "coaching-due": "Coaching Required",
-  "otj-behind": "OTJ Behind",
+  "otj-behind": "OTJH Behind",
 };
 
 const outcomeOptions: CallOutcome[] = [
@@ -531,7 +531,7 @@ export default function LearnerDrawer({
           <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> OTJ Hours
+                <Clock className="w-3 h-3" /> OTJH
               </p>
 
               {otjHoursStatusRaw && (
@@ -853,7 +853,7 @@ export default function LearnerDrawer({
                 const sourceLabels: Record<string, string> = {
                   "pr-due": "PR Due",
                   "mcm-due": "MCM Required",
-                  "otj-behind": "OTJ Behind",
+                  "otj-behind": "OTJH Behind",
                   "attendance": "Attendance",
                 };
                 const dt = new Date(log.createdAt);

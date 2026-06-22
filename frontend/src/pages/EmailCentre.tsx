@@ -33,7 +33,7 @@ const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
   "review-due": "Review Due",
   "coaching-due": "Coaching Required",
-  "otj-behind": "OTJ Behind",
+  "otj-behind": "OTJH Behind",
 };
 
 type EmailCentreLocationState = {
@@ -406,7 +406,7 @@ const createEmailEvidenceImage = async ({
     "Missed Session": "ATTENDANCE ACTION REQUIRED",
     "Review Due": "PROGRESS REVIEW FOLLOW-UP",
     "Coaching Required": "MONTHLY COACHING MEETING FOLLOW-UP",
-    "OTJ Behind": "OFF-THE-JOB TRAINING SUPPORT",
+    "OTJH Behind": "OFF-THE-JOB TRAINING SUPPORT",
   };
   const eyebrow = eyebrowByTemplate[templateLabel] || "LEARNER SUPPORT UPDATE";
 
@@ -995,7 +995,7 @@ export default function EmailCentre() {
             }
             className="mb-4 inline-flex items-center gap-1.5 text-[0px] font-semibold text-[#1E6ACB] hover:underline">
             <span className="text-sm">
-              ← Back to {isFromAttendanceTicket ? "Attendance" : isFromPrTicket ? "PR" : isFromMcmTicket ? "MCM" : "OTJ"} Tickets
+              ← Back to {isFromAttendanceTicket ? "Attendance" : isFromPrTicket ? "PR" : isFromMcmTicket ? "MCM" : "OTJH"} Tickets
             </span>
           </button>
         )}
@@ -1274,7 +1274,7 @@ export default function EmailCentre() {
 
               {manualRecipients.length === 0 && selectedTemplate.kpiCategory === "otj-behind" && (
                 <p className="text-xs text-muted-foreground">
-                  OTJ Behind is a live at-risk list and does not have a dated event in the source data.
+                  OTJH Behind is a live at-risk list and does not have a dated event in the source data.
                 </p>
               )}
 

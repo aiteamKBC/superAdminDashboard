@@ -250,7 +250,7 @@ export default function ActiveLearnersPage() {
   const clearFilters = () => { setSearch(""); setCoachFilter("all"); setRagFilter("all"); setOtjFilter("all"); setLevyFilter("all"); setStatusFilter("active"); };
 
   const exportCsv = () => {
-    const cols = ["Name", "Email", "Phone", "Organisation", "Programme", "Subprogramme", "Coach", "Coach RAG", "Start Date", "End Date", "Elapsed Days", "OTJ Status", "OTJ Completed", "OTJ Target Now", "vs Target %", "KSB Status", "Comp Status", "Comp %", "Subscription Status", "Levy", "Working Hours", "Gender", "Disability"];
+    const cols = ["Name", "Email", "Phone", "Organisation", "Programme", "Subprogramme", "Coach", "Coach RAG", "Start Date", "End Date", "Elapsed Days", "OTJH Status", "OTJH Completed", "OTJH Target Now", "vs Target %", "KSB Status", "Comp Status", "Comp %", "Subscription Status", "Levy", "Working Hours", "Gender", "Disability"];
     const rows = filtered.map((l) => [
       l.fullName, l.email, l.learnerPhone, l.organizationName, l.programName, l.subprogramme,
       l.ownerName, l.coachRag, fmtDate(l.startDate), fmtDate(l.endDate), l.elapsedDays ?? "",
@@ -298,7 +298,7 @@ export default function ActiveLearnersPage() {
             {[
               { label: "Total", value: stats.total, icon: Users, color: "text-[#14264A]", bg: "bg-[#EEF3FA] border-[#DDE7F0]" },
               { label: "Red Coach RAG", value: stats.redRag, icon: Shield, color: "text-red-700", bg: "bg-red-50 border-red-200" },
-              { label: "OTJ At Risk", value: stats.otjAtRisk, icon: AlertTriangle, color: "text-red-700", bg: "bg-red-50 border-red-200" },
+              { label: "OTJH At Risk", value: stats.otjAtRisk, icon: AlertTriangle, color: "text-red-700", bg: "bg-red-50 border-red-200" },
               { label: "Need Attention", value: stats.otjBehind, icon: TrendingUp, color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
             ].map(({ label, value, icon: Icon, color, bg }) => (
               <div key={label} className={`rounded-xl border p-4 ${bg}`}>
@@ -357,7 +357,7 @@ export default function ActiveLearnersPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
-                <SelectItem value="all">All OTJ Status</SelectItem>
+                <SelectItem value="all">All OTJH Status</SelectItem>
                 <SelectItem value="At Risk">At Risk</SelectItem>
                 <SelectItem value="On Track">On Track</SelectItem>
                 <SelectItem value="Need Attention">Need Attention</SelectItem>
@@ -409,12 +409,12 @@ export default function ActiveLearnersPage() {
                       <th className="sticky left-0 top-0 z-30 border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-1.5" />
                       {/* Info columns (Organisation … End Date) = 7 */}
                       <th colSpan={7} className="sticky top-0 z-20 bg-[#F8FBFE] px-3 py-1.5" />
-                      {/* OTJ Hours group = 6 columns */}
+                      {/* OTJH group = 6 columns */}
                       <th
                         colSpan={6}
                         className="sticky top-0 z-20 whitespace-nowrap border-b-2 border-orange-300 bg-orange-50 px-3 py-1.5 text-center text-[11px] font-bold text-orange-700"
                       >
-                        OTJ Hours
+                        OTJH
                       </th>
                       {/* KSB group = 1 column */}
                       <th
@@ -435,8 +435,8 @@ export default function ActiveLearnersPage() {
                       {["Organisation", "Manager", "Programme", "Coach", "Coach RAG", "Start Date", "End Date"].map((h) => (
                         <th key={h} className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
-                      {/* OTJ group columns */}
-                      {["OTJ Status", "Planned Hours", "Completed", "Target Now", "% Behind / Ahead", "Req. to Submit"].map((h) => (
+                      {/* OTJH group columns */}
+                      {["OTJH Status", "Planned Hours", "Completed", "Target Now", "% Behind / Ahead", "Req. to Submit"].map((h) => (
                         <th key={h} className="sticky top-[34px] z-20 whitespace-nowrap bg-orange-50 px-3 py-2.5 text-left text-xs font-semibold text-orange-800">{h}</th>
                       ))}
                       {/* KSB group column */}
@@ -494,7 +494,7 @@ export default function ActiveLearnersPage() {
                           <td className="px-3 py-3">{ragBadge(l.coachRag)}</td>
                           <td className="px-3 py-3 whitespace-nowrap text-xs text-[#5F7288]">{fmtDate(l.startDate)}</td>
                           <td className="px-3 py-3 whitespace-nowrap text-xs text-[#5F7288]">{fmtDate(l.endDate)}</td>
-                          {/* OTJ group cells */}
+                          {/* OTJH group cells */}
                           <td className="bg-orange-50/30 px-3 py-3">{otjBadge(l.otjHoursStatus)}</td>
                           <td className="bg-orange-50/30 px-3 py-3 text-right text-xs text-[#71849A]">{fmtHoursMin(l.otjPlanned)}</td>
                           <td className="bg-orange-50/30 px-3 py-3 text-right text-xs font-semibold text-[#14264A]">{fmtHoursMin(l.otjCompleted)}</td>

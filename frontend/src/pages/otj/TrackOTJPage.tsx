@@ -77,9 +77,9 @@ const parseProgressHours = (s: string): number => {
   return isNaN(n) ? 0 : n;
 };
 
-const otjKpi = (completed: number, targetNow: number) => {
-  const barPct = targetNow > 0 ? Math.min(Math.round((completed / targetNow) * 100), 100) : 0;
+const otjKpi = (completed: number, targetNow: number, variancePct: number) => {
   const ahead = completed >= targetNow;
+  const barPct = Math.min(Math.max(Math.round(Math.abs(variancePct)), 0), 100);
   return { barPct, ahead };
 };
 
@@ -205,7 +205,7 @@ export default function TrackOTJPage() {
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = "otj-track.csv";
+    a.download = "otjh-track.csv";
     a.click();
   };
 
@@ -228,21 +228,34 @@ export default function TrackOTJPage() {
   };
 
   const atRiskCount = useMemo(() => all.filter((l) => (l.otjHoursStatus || "").toLowerCase().trim() === "at risk").length, [all]);
+  const activeLearnersCount = useMemo(() => {
+    const activeKeys = new Set<string>();
+    all.forEach((learner) => {
+      if ((learner.programStatus || "").toLowerCase().trim() !== "active") return;
+      activeKeys.add((learner.email || learner.id || learner.fullName).toLowerCase().trim());
+    });
+    return activeKeys.size;
+  }, [all]);
 
   return (
     <AppLayout>
       <div className="min-h-full bg-[#F4F8FC]">
         {/* Header */}
         <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
-          <BackButton to="/otj-hours" label="OTJ Hours" />
+          <BackButton to="/otj-hours" label="OTJH" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F0F7]">
                 <Clock className="h-5 w-5 text-[#24557F]" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">Track OTJ</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">Learners behind on off-the-job hours</p>
+                <h1 className="text-xl font-bold text-[#14264A]">Track OTJH</h1>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-[#5F7288]">Learners behind on off-the-job hours</p>
+                  <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
+                    Active learners: {loading ? "..." : activeLearnersCount}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
@@ -252,7 +265,7 @@ export default function TrackOTJPage() {
                 </span>
               )}
               <Button onClick={() => navigate("/otj-hours/tickets")} className="h-9 gap-1.5 rounded-lg bg-[#24557F] text-white hover:bg-[#1B466B]">
-                <Ticket className="h-4 w-4" /> OTJ Tickets
+                <Ticket className="h-4 w-4" /> OTJH Tickets
               </Button>
             </div>
           </div>
@@ -298,7 +311,7 @@ export default function TrackOTJPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
-                <SelectItem value="all">All OTJ Status</SelectItem>
+                <SelectItem value="all">All OTJH Status</SelectItem>
                 <SelectItem value="at risk">At Risk</SelectItem>
                 <SelectItem value="on track">On Track</SelectItem>
                 <SelectItem value="need attention">Need Attention</SelectItem>
@@ -345,9 +358,16 @@ export default function TrackOTJPage() {
                   <tbody>
                     {filtered.map((l) => {
                       const targetNow = calcTargetNow(l.startDate, l.endDate, l.otjPlanned);
-                      const { barPct, ahead } = otjKpi(l.otjCompleted, targetNow);
                       const varianceNum = parseFloat(l.progressVariance || "0") || 0;
                       const diffPct = Math.abs(Math.round(varianceNum));
+                      const { barPct, ahead } = otjKpi(l.otjCompleted, targetNow, varianceNum);
+                      const progressTone = ahead
+                        ? "bg-green-500"
+                        : barPct >= 50
+                          ? "bg-red-600"
+                          : barPct >= 25
+                            ? "bg-orange-500"
+                            : "bg-red-500";
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
                           <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
@@ -367,7 +387,7 @@ export default function TrackOTJPage() {
                             <div className="flex flex-col gap-1">
                               <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#E8EFF7]">
                                 <div
-                                  className={`h-full rounded-full transition-all ${ahead ? "bg-green-500" : barPct >= 80 ? "bg-amber-500" : "bg-red-500"}`}
+                                  className={`h-full rounded-full transition-all ${progressTone}`}
                                   style={{ width: `${barPct}%` }}
                                 />
                               </div>

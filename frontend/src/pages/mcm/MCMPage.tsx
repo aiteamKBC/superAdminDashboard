@@ -14,16 +14,17 @@ const CARDS = [
     iconColor: "text-[#5F7288]",
     border: "border-[#DDE7F0] hover:border-[#9DB4CC]",
   },
-  {
-    key: "scheduled",
-    title: "Scheduled MCM",
-    description: "Learners with upcoming monthly coaching sessions already booked",
-    icon: CalendarCheck2,
-    path: "/coaching-meetings/scheduled",
-    iconBg: "bg-[#E7F2FC]",
-    iconColor: "text-[#315D93]",
-    border: "border-[#C9DFF3] hover:border-[#78AADB]",
-  },
+  // Scheduled MCM is intentionally hidden from the user-facing MCM landing page.
+  // {
+  //   key: "scheduled",
+  //   title: "Scheduled MCM",
+  //   description: "Learners with upcoming monthly coaching sessions already booked",
+  //   icon: CalendarCheck2,
+  //   path: "/coaching-meetings/scheduled",
+  //   iconBg: "bg-[#E7F2FC]",
+  //   iconColor: "text-[#315D93]",
+  //   border: "border-[#C9DFF3] hover:border-[#78AADB]",
+  // },
   {
     key: "tickets",
     title: "MCM Ticket System",
@@ -56,7 +57,7 @@ export default function MCMPage() {
         </div>
 
         <div className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {CARDS.map(({ key, title, description, icon: Icon, path, iconBg, iconColor, border }) => (
               <button
                 key={key}

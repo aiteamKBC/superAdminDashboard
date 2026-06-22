@@ -167,7 +167,7 @@ export default function PerformanceDashboard({
                 <TableHead className="text-right">Missed Sess.</TableHead>
                 <TableHead className="text-right">PR Due</TableHead>
                 <TableHead className="text-right">MCM Required</TableHead>
-                <TableHead className="text-right">OTJ Behind</TableHead>
+                <TableHead className="text-right">OTJH Behind</TableHead>
                 <TableHead className="text-right">High Priority</TableHead>
                 <TableHead className="text-right">0–2d</TableHead>
                 <TableHead className="text-right">3–7d</TableHead>

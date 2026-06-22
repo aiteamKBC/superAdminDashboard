@@ -875,7 +875,7 @@ def epa_summary(request):
         if not end_date:
             continue
         item = _epa_learner_dict(row, today)
-        if 0 <= (end_date - today).days <= 30:
+        if 0 <= (end_date - today).days <= 60:
             close_to_epa.append(item)
         if today > end_date + timedelta(days=7):
             overdue.append(item)

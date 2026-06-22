@@ -6,7 +6,7 @@ import BackButton from "@/components/BackButton";
 const CARDS = [
   {
     key: "track",
-    title: "Track OTJ",
+    title: "Track OTJH",
     description: "Learners behind on off-the-job hours — status: At Risk",
     icon: Clock,
     path: "/otj-hours/track",
@@ -16,7 +16,7 @@ const CARDS = [
   },
   {
     key: "tickets",
-    title: "OTJ Ticket System",
+    title: "OTJH Ticket System",
     description: "Manage and track off-the-job hours support tickets",
     icon: Ticket,
     path: "/otj-hours/tickets",
@@ -40,7 +40,7 @@ export default function OTJPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-[#14264A]">Off The Job Hours</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Monitor and manage learner OTJ hours</p>
+              <p className="mt-0.5 text-sm text-[#5F7288]">Monitor and manage learner OTJH</p>
             </div>
           </div>
         </div>

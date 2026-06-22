@@ -542,6 +542,9 @@ export default function RequiredPRPage() {
                 <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
                   Last 12 Weeks
                 </span>
+                <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+                  {loading ? "..." : totalActive} active learners
+                </span>
               </p>
             </div>
             <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8]">
@@ -604,6 +607,8 @@ export default function RequiredPRPage() {
               { key: "overdue",       label: "Overdue PR",    count: summary.overdue,      icon: <AlertTriangle className="h-4 w-4" />, base: "border-amber-200 bg-amber-50 text-amber-800",          active: "border-amber-500 bg-amber-500 text-white shadow-md",           sub: "Past date, not completed" },
             ] as const).map(({ key, label, count, icon, base, active, sub }) => {
               const isActive = cardFilter === key;
+              const showPercentage = key !== "all" && key !== "overdue";
+              const pct = summary.total > 0 ? Math.round((count / summary.total) * 100) : 0;
               return (
                 <button
                   key={key}
@@ -612,10 +617,12 @@ export default function RequiredPRPage() {
                 >
                   <div className="flex items-center gap-2 opacity-70">{icon}<span className="text-xs font-semibold">{label}</span></div>
                   <p className="mt-1 text-2xl font-bold">{count}</p>
-                  <p className="mt-0.5 text-sm font-semibold opacity-75">
-                    {totalActive > 0 ? Math.round((count / totalActive) * 100) : 0}%
-                    <span className="ml-1 text-[10px] font-normal opacity-70">of {totalActive} active</span>
-                  </p>
+                  {showPercentage && (
+                    <p className="mt-0.5 text-sm font-semibold opacity-75">
+                      {pct}%
+                      <span className="ml-1 text-[10px] font-normal opacity-70">of {summary.total} shown</span>
+                    </p>
+                  )}
                   <p className="mt-0.5 text-[10px] opacity-50">{sub}</p>
                 </button>
               );

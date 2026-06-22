@@ -347,9 +347,14 @@ export default function RequiredMCMPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-[#14264A]">Required MCM</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">
-                  Learners requiring monthly coaching action in the{" "}
-                  <strong className="font-bold text-[#315D93]">Last 30 days</strong>
+                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#5F7288]">
+                  <span>
+                    Learners requiring monthly coaching action in the{" "}
+                    <strong className="font-bold text-[#315D93]">Last 30 days</strong>
+                  </span>
+                  <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+                    {loading ? "..." : all.length} active learners
+                  </span>
                 </p>
               </div>
             </div>
@@ -357,27 +362,36 @@ export default function RequiredMCMPage() {
         </div>
 
         <div className="p-4 sm:p-6">
-          {/* Summary card */}
-          <div className="mb-4">
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold text-[#5F7288]">Required MCM</p>
-              <p className="mt-1 text-3xl font-bold text-[#315D93]">
-                {periodFiltered.length}
-                <span className="ml-2 text-base font-normal text-[#8AA0B6]">of {all.length} active learners</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Category cards — same pattern as PR page */}
-          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* Summary cards — same pattern as PR page */}
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {(() => {
+              const count = periodFiltered.length;
+              const isActive = categoryFilter === null && !overdueOnly;
+              return (
+                <button
+                  onClick={() => { setCategoryFilter(null); setOverdueOnly(false); }}
+                  className={`rounded-xl border p-3 text-left transition-all duration-150 hover:shadow-sm active:scale-[0.98] ${isActive ? "border-[#14264A] bg-[#14264A] text-white shadow-md" : "border-[#DDE7F0] bg-white text-[#14264A]"}`}
+                >
+                  <div className="flex items-center gap-2 opacity-70">
+                    <CalendarRange className="h-4 w-4" />
+                    <span className="text-xs font-semibold">Total Shown</span>
+                  </div>
+                  <p className="mt-1 text-2xl font-bold">{count}</p>
+                  <p className="mt-0.5 text-[11px] opacity-60">
+                    Period: {PERIOD_OPTIONS.find((option) => option.offset === periodOffset)?.label || "Selected period"}
+                  </p>
+                </button>
+              );
+            })()}
             {CATEGORY_CARDS.map(({ key, label, sub, icon, base, active }) => {
               const count = categoryCounts[key];
-              const pct = all.length ? Math.round((count / all.length) * 100) : 0;
+              const totalShown = periodFiltered.length;
+              const pct = totalShown ? Math.round((count / totalShown) * 100) : 0;
               const isActive = categoryFilter === key;
               return (
                 <button
                   key={key}
-                  onClick={() => setCategoryFilter(isActive ? null : key)}
+                  onClick={() => { setOverdueOnly(false); setCategoryFilter(isActive ? null : key); }}
                   className={`rounded-xl border p-3 text-left transition-all duration-150 hover:shadow-sm active:scale-[0.98] ${isActive ? active : base}`}
                 >
                   <div className="flex items-center gap-2 opacity-70">
@@ -387,12 +401,28 @@ export default function RequiredMCMPage() {
                   <p className="mt-1 text-2xl font-bold">{count}</p>
                   <p className="mt-0.5 text-sm font-semibold opacity-75">
                     {pct}%
-                    <span className="ml-1 text-[10px] font-normal opacity-70">of {all.length}</span>
+                    <span className="ml-1 text-[10px] font-normal opacity-70">of {totalShown} shown</span>
                   </p>
                   <p className="mt-0.5 text-[11px] opacity-60">{sub}</p>
                 </button>
               );
             })}
+            {(() => {
+              const count = totalOverdue;
+              return (
+                <button
+                  onClick={() => { setCategoryFilter(null); setOverdueOnly((current) => !current); }}
+                  className={`rounded-xl border p-3 text-left transition-all duration-150 hover:shadow-sm active:scale-[0.98] ${overdueOnly ? "border-amber-500 bg-amber-500 text-white shadow-md" : "border-amber-200 bg-amber-50 text-amber-800"}`}
+                >
+                  <div className="flex items-center gap-2 opacity-70">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-xs font-semibold">Overdue</span>
+                  </div>
+                  <p className="mt-1 text-2xl font-bold">{count}</p>
+                  <p className="mt-0.5 text-[11px] opacity-60">Past date, not completed</p>
+                </button>
+              );
+            })()}
           </div>
 
           {/* Filters — row 1 */}
@@ -433,18 +463,6 @@ export default function RequiredMCMPage() {
               <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
               {getMcrRangeLabel(periodOffset)}
             </span>
-            <button
-              onClick={() => setOverdueOnly((p) => !p)}
-              className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors ${
-                overdueOnly
-                  ? "border-[#315D93] bg-[#315D93] text-white"
-                  : "border-[#315D93] bg-[#315D93] text-white hover:bg-[#274D7A]"
-              }`}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Overdue
-              <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#315D93]">{totalOverdue}</span>
-            </button>
             {(coachFilter !== "all" || programmeFilter !== "all" || orgFilter !== "all" || periodOffset !== -1 || search || overdueOnly || categoryFilter) && (
               <button
                 onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setOverdueOnly(false); setCategoryFilter(null); }}

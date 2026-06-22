@@ -19,7 +19,7 @@ const kpiLabels: Record<string, string> = {
   'missed-session': 'Missed Session',
   'review-due': 'PR Due',
   'coaching-due': 'MCM Required',
-  'otj-behind': 'OTJ Behind',
+  'otj-behind': 'OTJH Behind',
 };
 
 const workloadColors: Record<string, string> = {
@@ -232,7 +232,7 @@ export default function AllocationManager({
             <SelectItem value="missed-session">Missed Session</SelectItem>
             <SelectItem value="review-due">PR Due</SelectItem>
             <SelectItem value="coaching-due">MCM Required</SelectItem>
-            <SelectItem value="otj-behind">OTJ Behind</SelectItem>
+            <SelectItem value="otj-behind">OTJH Behind</SelectItem>
           </SelectContent>
         </Select>
       </div>

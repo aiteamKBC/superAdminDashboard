@@ -569,10 +569,10 @@ export default function GlobalFilters({
             </div>
 
             <div className="rounded-lg border border-[#F1D79D] bg-[#FFF8E8] p-3">
-              <p className="font-semibold text-[#94610A]">Attendance and OTJ</p>
+              <p className="font-semibold text-[#94610A]">Attendance and OTJH</p>
               <ul className="mt-2 space-y-1 text-xs text-[#5F748B]">
                 <li>Missed attendance uses the selected absence window.</li>
-                <li>OTJ Behind uses learners flagged as at risk in the OTJ source data.</li>
+                <li>OTJH Behind uses learners flagged as at risk in the OTJH source data.</li>
               </ul>
             </div>
           </div>

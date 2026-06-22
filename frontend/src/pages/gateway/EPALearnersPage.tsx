@@ -96,7 +96,7 @@ export default function EPALearnersPage({ mode }: { mode: "close" | "overdue" | 
   const Icon = isClose ? CalendarClock : isEntered ? Medal : AlertTriangle;
   const title = isClose ? "Close to EPA" : isEntered ? "Entered EPA" : "EPA Overdue";
   const description = isClose
-    ? "Active learners with End-Date in the next 30 days"
+    ? "Active learners with End-Date in the next 60 days"
     : isEntered
       ? "Learners currently in EPA stage"
       : "Active learners more than 7 days past End-Date";
@@ -149,11 +149,11 @@ export default function EPALearnersPage({ mode }: { mode: "close" | "overdue" | 
               </div>
             ) : (
               <div className="max-h-[calc(100vh-300px)] overflow-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[1120px] text-sm">
                   <thead>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       {["Learner", "Email", "Coach", "Programme", "Organisation", "End-Date", isClose ? "Days Left" : isEntered ? "EPA Stage" : "Days Overdue", "Status", ...(!isClose && !isEntered ? ["Follow-up"] : [])].map((head) => (
-                        <th key={head} className="sticky top-0 bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">{head}</th>
+                        <th key={head} className="sticky top-0 min-w-[120px] whitespace-nowrap bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">{head}</th>
                       ))}
                     </tr>
                   </thead>
@@ -166,13 +166,13 @@ export default function EPALearnersPage({ mode }: { mode: "close" | "overdue" | 
                         <td className="px-4 py-3 text-xs text-[#24486D]">{row.programme || "-"}</td>
                         <td className="px-4 py-3 text-xs text-[#5F7288]">{row.organisation || "-"}</td>
                         <td className="px-4 py-3 font-semibold text-[#14264A]">{fmtDate(row.endDate)}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${isClose ? "bg-blue-50 text-blue-700" : isEntered ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"}`}>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          <span className={`inline-flex min-w-[72px] items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${isClose ? "bg-blue-50 text-blue-700" : isEntered ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"}`}>
                             {isClose ? `${row.daysUntilEnd ?? "-"}d` : isEntered ? "Entered" : `${row.daysOverdue}d`}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isEntered ? "bg-violet-50 text-violet-700" : "bg-green-50 text-green-700"}`}>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          <span className={`inline-flex min-w-[92px] items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${isEntered ? "bg-emerald-50 text-emerald-700" : "bg-green-50 text-green-700"}`}>
                             {isEntered ? "Entered EPA" : "Active"}
                           </span>
                         </td>

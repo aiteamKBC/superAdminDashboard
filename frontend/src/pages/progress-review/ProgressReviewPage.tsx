@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Calendar, Ticket } from "lucide-react";
+import { BookOpen, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 
@@ -14,16 +14,17 @@ const CARDS = [
     iconColor: "text-slate-600",
     border: "border-slate-200 hover:border-slate-400",
   },
-  {
-    key: "scheduled",
-    title: "Scheduled PR",
-    description: "Learners with an upcoming scheduled progress review",
-    icon: Calendar,
-    path: "/progress-review/scheduled",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
-    border: "border-blue-200 hover:border-blue-400",
-  },
+  // Scheduled PR is intentionally hidden from the user-facing PR landing page.
+  // {
+  //   key: "scheduled",
+  //   title: "Scheduled PR",
+  //   description: "Learners with an upcoming scheduled progress review",
+  //   icon: Calendar,
+  //   path: "/progress-review/scheduled",
+  //   iconBg: "bg-blue-100",
+  //   iconColor: "text-blue-600",
+  //   border: "border-blue-200 hover:border-blue-400",
+  // },
   {
     key: "tickets",
     title: "Ticket System",
@@ -49,7 +50,7 @@ export default function ProgressReviewPage() {
         </div>
 
         <div className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {CARDS.map(({ key, title, description, icon: Icon, path, iconBg, iconColor, border }) => (
               <button
                 key={key}
