@@ -320,7 +320,7 @@ export default function ScheduledPRPage() {
   const onFollowUp = (l: PRLearner) => {
     const existing = ticketMap.get(l.email.toLowerCase());
     if (existing) {
-      navigate(`/progress-review/tickets?open=${existing.id}`);
+      navigate(`/progress-review/tickets?ticket=${existing.id}`);
     } else {
       const params = new URLSearchParams({
         create: "1", email: l.email, name: l.fullName,

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Archive, AlertTriangle, CalendarCheck2, CheckCircle2, Clock, Download, Eye,
-  File as FileIcon, FileText, Flag, Image as ImageIcon, MessageSquare,
+  File as FileIcon, FileText, Flag, Image as ImageIcon, Info, MessageSquare,
   Mail, MoreHorizontal, Paperclip, Plus, RefreshCw, Search, Ticket,
   Trash2, UploadCloud, X, XCircle, ZoomIn,
 } from "lucide-react";
@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,6 +139,20 @@ const daysOpen = (createdAt: string) => {
   const diff = Date.now() - new Date(createdAt).getTime();
   return Math.max(0, Math.floor(diff / 86_400_000));
 };
+
+const DaysCreatedHeader = ({ label = "Days Open" }: { label?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex cursor-help items-center gap-1">
+        {label}
+        <Info className="h-3.5 w-3.5 text-[#8A4DFF]" />
+      </span>
+    </TooltipTrigger>
+    <TooltipContent side="top" align="center" sideOffset={12} className="w-64 whitespace-normal rounded-lg border border-[#1F2937] bg-[#111827] px-3 py-2 text-left text-xs font-semibold leading-relaxed text-white shadow-none">
+      Number of days this ticket has been open since it was created.
+    </TooltipContent>
+  </Tooltip>
+);
 
 const initials = (name: string) =>
   name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
@@ -1149,6 +1164,15 @@ export default function MCMTicketsPage() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const learner = searchParams.get("learner");
+    if (!learner || loading) return;
+    const ticket = tickets.find((item) => item.learnerEmail.toLowerCase() === learner.toLowerCase());
+    if (!ticket) return;
+    setSearch(ticket.learnerEmail);
+    setSearchParams({}, { replace: true });
+  }, [loading, searchParams, setSearchParams, tickets]);
+
   const autoCreateOverdueTickets = useCallback(async () => {
     if (showArchived) return;
     setAutoSyncing(true);
@@ -1398,7 +1422,9 @@ export default function MCMTicketsPage() {
                       <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Ticket</th>
                       <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
                       {["Risk", "Status", "Owner", "Coach", "Overdue", "Next MCM", "Days Open", "Notes", "Evidence", "Actions"].map((h) => (
-                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                          {h === "Days Open" ? <DaysCreatedHeader /> : h}
+                        </th>
                       ))}
                       <th className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-3 text-xs font-semibold text-[#5F7288]">Edit</th>
                       <th className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-3 text-xs font-semibold text-[#5F7288]">Archive</th>
@@ -1506,7 +1532,9 @@ export default function MCMTicketsPage() {
                         {/* View */}
                         <td className="px-3 py-3">
                           <button
-                            onClick={() => setViewTicket(t)}
+                            onClick={() => {
+                              setSearch(t.learnerEmail);
+                            }}
                             className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-[#EEF3FB] hover:text-[#315D93]"
                           >
                             <Eye className="h-4 w-4" />

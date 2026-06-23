@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Info,
   Mail,
   MessageSquare,
   MoreHorizontal,
@@ -27,6 +28,7 @@ import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +80,20 @@ const statusColor: Record<EPATicket["status"], string> = {
   open: "bg-blue-100 text-blue-700",
   resolved: "bg-green-100 text-green-700",
 };
+
+const DaysOverdueHeader = () => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex cursor-help items-center gap-1">
+        Days Overdue
+        <Info className="h-3.5 w-3.5 text-[#8A4DFF]" />
+      </span>
+    </TooltipTrigger>
+    <TooltipContent side="top" align="center" sideOffset={12} className="w-64 whitespace-normal rounded-lg border border-[#1F2937] bg-[#111827] px-3 py-2 text-left text-xs font-semibold leading-relaxed text-white shadow-none">
+      Number of days past the learner's EPA End-Date.
+    </TooltipContent>
+  </Tooltip>
+);
 
 const actionLabel: Record<string, string> = {
   called: "Called",
@@ -648,7 +664,7 @@ function EPATicketActionsMenu({
 
 export default function EPATicketsPage() {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tickets, setTickets] = useState<EPATicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -690,6 +706,15 @@ export default function EPATicketsPage() {
     const newFor = searchParams.get("newFor");
     if (newFor) setShowCreateModal(true);
   }, [searchParams]);
+
+  useEffect(() => {
+    const learner = searchParams.get("learner");
+    if (!learner || loading) return;
+    const ticket = tickets.find((item) => item.learnerEmail.toLowerCase() === learner.toLowerCase());
+    if (!ticket) return;
+    setSearch(ticket.learnerEmail);
+    setSearchParams({}, { replace: true });
+  }, [loading, searchParams, setSearchParams, tickets]);
 
   useEffect(() => {
     if (loading || showArchived || syncedRef.current) return;
@@ -862,7 +887,9 @@ export default function EPATicketsPage() {
                   <thead>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       {["Ticket", "Learner", "Risk", "Status", "Coach", "End-Date", "Days Overdue", "Assigned Owner", "Notes", "Evidence", "Actions", "Edit", "View", "Archive"].map((head) => (
-                        <th key={head} className="sticky top-0 bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">{head}</th>
+                        <th key={head} className="sticky top-0 bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                          {head === "Days Overdue" ? <DaysOverdueHeader /> : head}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -906,7 +933,14 @@ export default function EPATicketsPage() {
                           </button>
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => setViewTicket(ticket)} className="text-xs font-bold text-[#1E6ACB] hover:underline">View</button>
+                          <button
+                            onClick={() => {
+                              setSearch(ticket.learnerEmail);
+                            }}
+                            className="text-xs font-bold text-[#1E6ACB] hover:underline"
+                          >
+                            View
+                          </button>
                         </td>
                         <td className="px-4 py-3">
                           <button onClick={() => void archiveToggle(ticket)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5F7288] hover:bg-amber-50 hover:text-amber-700">

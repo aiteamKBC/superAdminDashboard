@@ -2,6 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 import json
+import re
 import requests
 from decimal import Decimal
 from django.http import JsonResponse
@@ -1110,34 +1111,65 @@ def kbc_attendance_summary(request):
         columns = [col[0] for col in cursor.description]
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-    grouped = defaultdict(lambda: {"fullName": "", "records": []})
+    def _attendance_identity(row):
+        full_name = re.sub(r"\s+", " ", str(row.get("FullName") or "").strip()).lower()
+        raw_key = str(row.get("key") or "").strip()
+        key_match = re.match(r"^(\d+)_", raw_key)
+        if key_match:
+            return f"id:{key_match.group(1)}"
+        if full_name:
+            return f"name:{full_name}"
+        email = (row.get("Email") or "").strip().lower()
+        return f"email:{email}"
+
+    grouped = defaultdict(lambda: {
+        "fullName": "",
+        "records": [],
+        "emails": [],
+        "latest_email": "",
+        "latest_date": None,
+    })
 
     for row in rows:
         email = (row.get("Email") or "").strip().lower()
         if not email:
             continue
-        if not grouped[email]["fullName"]:
-            grouped[email]["fullName"] = row.get("FullName") or ""
-        grouped[email]["records"].append({
+        identity = _attendance_identity(row)
+        group = grouped[identity]
+        row_date = row.get("date")
+        if row.get("FullName"):
+            group["fullName"] = row.get("FullName") or group["fullName"]
+        if email not in group["emails"]:
+            group["emails"].append(email)
+        if row_date and (group["latest_date"] is None or row_date >= group["latest_date"]):
+            group["latest_date"] = row_date
+            group["latest_email"] = email
+        group["records"].append({
             "date": row["date"].isoformat() if row.get("date") else None,
             "attendance": row.get("Attendance"),
             "module": row.get("module") or "",
             "key": row.get("key") or "",
+            "email": email,
         })
 
     results = []
-    for email, data in grouped.items():
+    for data in grouped.values():
         if not data["records"]:
             continue
+        emails = data["emails"]
+        latest_email = data["latest_email"] or (emails[0] if emails else "")
+        email_with_extras = next((em for em in emails if em in learner_extras), "")
+        email = latest_email if latest_email in learner_extras else email_with_extras or latest_email
         extras = learner_extras.get(email, {})
         results.append({
             "email": email,
+            "emails": emails,
             "fullName": data["fullName"],
             "phone": extras.get("phone", ""),
             "organisation": extras.get("organisation", ""),
             "aptemProgramme": extras.get("programme", ""),
             "ownerName": extras.get("owner_name", ""),
-            "records": data["records"],
+            "records": sorted(data["records"], key=lambda record: record.get("date") or ""),
         })
 
     return JsonResponse(results, safe=False)

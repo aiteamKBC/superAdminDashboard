@@ -15,7 +15,6 @@ import {
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import FilterSelect from "@/components/FilterSelect";
-import LearnerDrawer from "@/components/LearnerDrawer";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -136,6 +135,17 @@ const parseModuleParts = (module: string) => {
   };
 };
 
+const normalizeModuleIdentity = (module: string) => {
+  const programme = parseModuleParts(module).programme || module;
+  return programme.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+};
+
+const isSameModuleProgramme = (module: string, targetModule: string) => {
+  const moduleIdentity = normalizeModuleIdentity(module);
+  const targetIdentity = normalizeModuleIdentity(targetModule);
+  return Boolean(moduleIdentity && targetIdentity && moduleIdentity === targetIdentity);
+};
+
 const normEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
 
 function buildAttendanceMetrics(records: AttRec[], absenceWindow: AbsenceWindow = 0) {
@@ -188,7 +198,7 @@ function buildAttendanceMetrics(records: AttRec[], absenceWindow: AbsenceWindow 
 
   const latestModule = last?.module || "";
   const moduleRecords = latestModule
-    ? sorted.filter((record) => record.module === latestModule)
+    ? sorted.filter((record) => isSameModuleProgramme(record.module, latestModule))
     : source;
   const absenceRatio = safePct(
     moduleRecords.filter((record) => normalizeAttendanceValue(record.attendance) === 0).length,
@@ -224,8 +234,6 @@ export default function TrackAttendancePage() {
   const [contactActions, setContactActions] = useState<Record<string, ContactActionState>>({});
   const [tickets, setTickets] = useState<TicketInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedLearner, setSelectedLearner] = useState<AttendanceLearner | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [absenceWindow, setAbsenceWindow] = useState<AbsenceWindow>(0);
   const [search, setSearch] = useState("");
   const [programmeFilter, setProgrammeFilter] = useState("all");
@@ -470,22 +478,20 @@ export default function TrackAttendancePage() {
 
   // Total missed / total sessions for each learner — in the filtered module (or their current module if no filter)
   const missedByModule = useMemo(() => {
-    const map = new Map<string, { missed: number; total: number; sessions: { date: string; missed: boolean }[] }>();
+    const map = new Map<string, { missed: number; total: number; sessions: { key: string; date: string; missed: boolean }[] }>();
     for (const learner of allLearners) {
       const targetModule =
         moduleFilter !== "all" ? moduleFilter : learner.attendanceModule;
       if (!targetModule) { map.set(learner.email, { missed: 0, total: 0, sessions: [] }); continue; }
-      const moduleRecords = learner.allRecords.filter((r) => r.module === targetModule);
+      const moduleRecords = learner.allRecords.filter((r) => r.date && isSameModuleProgramme(r.module, targetModule));
       // Deduplicate by date: if any record on that date is Missed → mark as missed
-      const byDate = new Map<string, boolean>();
-      for (const r of moduleRecords) {
-        if (!r.date) continue;
-        const isMissed = normalizeAttendanceValue(r.attendance) === 0;
-        byDate.set(r.date, (byDate.get(r.date) ?? false) || isMissed);
-      }
-      const sessions = Array.from(byDate.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, missed]) => ({ date, missed }));
+      const sessions = moduleRecords
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+        .map((record, index) => ({
+          key: `${record.date}-${index}`,
+          date: record.date!,
+          missed: normalizeAttendanceValue(record.attendance) === 0,
+        }));
       const missed = sessions.filter((s) => s.missed).length;
       map.set(learner.email, { missed, total: sessions.length, sessions });
     }
@@ -513,7 +519,7 @@ export default function TrackAttendancePage() {
       ) {
         return false;
       }
-      if (moduleFilter !== "all" && learner.attendanceModule !== moduleFilter)
+      if (moduleFilter !== "all" && !isSameModuleProgramme(learner.attendanceModule, moduleFilter))
         return false;
       return true;
     });
@@ -598,18 +604,6 @@ export default function TrackAttendancePage() {
           note: payload.note,
         },
       }));
-      setSelectedLearner((previous) => {
-        if (!previous || previous.attendanceContactKey !== payload.contactKey)
-          return previous;
-        return {
-          ...previous,
-          called: payload.called,
-          emailed: payload.emailed,
-          isResolved: payload.resolved,
-          note: payload.note,
-        };
-      });
-
       try {
         const response = await fetch("/api/learner-contact-actions/", {
           method: "PATCH",
@@ -638,7 +632,7 @@ export default function TrackAttendancePage() {
       ? ticketMaps.byAttendance.get(`${email}||${learner.attendanceDate}`)
       : ticketMaps.byEmail.get(email);
     if (ticket) {
-      navigate(`/attendance/tickets?open=${ticket.id}`);
+      navigate(`/attendance/tickets?ticket=${ticket.id}`);
       return;
     }
 
@@ -729,7 +723,6 @@ export default function TrackAttendancePage() {
     { value: "1", label: `Previous week - ${getWeekLabel(1)}` },
     { value: "2", label: `2 weeks ago - ${getWeekLabel(2)}` },
     { value: "3", label: `3 weeks ago - ${getWeekLabel(3)}` },
-    { value: "all", label: "All attendance history" },
   ];
 
   return (
@@ -865,9 +858,7 @@ export default function TrackAttendancePage() {
             <FilterSelect
               value={String(absenceWindow)}
               onChange={(value) =>
-                setAbsenceWindow(
-                  value === "all" ? "all" : (Number(value) as 0 | 1 | 2 | 3)
-                )
+                setAbsenceWindow(Number(value) as 0 | 1 | 2 | 3)
               }
               options={weekOptions}
               minWidth={260}
@@ -976,11 +967,7 @@ export default function TrackAttendancePage() {
                       return (
                         <tr
                           key={learner.id}
-                          onClick={() => {
-                            setSelectedLearner(learner);
-                            setDrawerOpen(true);
-                          }}
-                          className="group cursor-pointer border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]"
+                          className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]"
                         >
                           <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
                             <p className="whitespace-nowrap font-semibold text-[#14264A]">
@@ -1029,7 +1016,7 @@ export default function TrackAttendancePage() {
                                       </div>
                                       <div className="flex flex-col gap-0 px-3 py-2">
                                         {s.sessions.map((sess) => (
-                                          <div key={sess.date} className="flex items-center gap-2 py-1">
+                                          <div key={sess.key} className="flex items-center gap-2 py-1">
                                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sess.missed ? "bg-red-500" : "bg-emerald-500"}`} />
                                             <span className={`text-xs ${sess.missed ? "font-semibold text-red-600" : "text-[#3D5166]"}`}>
                                               {formatAttendanceDate(sess.date)}
@@ -1132,12 +1119,6 @@ export default function TrackAttendancePage() {
         </div>
       </div>
 
-      <LearnerDrawer
-        learner={selectedLearner}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onUpdateContactAction={updateContactAction}
-      />
     </AppLayout>
   );
 }

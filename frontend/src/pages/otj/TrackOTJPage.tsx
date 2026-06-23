@@ -402,7 +402,7 @@ export default function TrackOTJPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => navigate(`/otj-hours/tickets?open=${ticketMap[l.email]}`)}
+                                onClick={() => navigate(`/otj-hours/tickets?ticket=${ticketMap[l.email]}`)}
                                 className="h-7 gap-1 rounded-lg border-green-200 bg-green-50 px-2 text-xs font-semibold text-green-700 hover:bg-green-100"
                               >
                                 <ExternalLink className="h-3 w-3" /> View Ticket

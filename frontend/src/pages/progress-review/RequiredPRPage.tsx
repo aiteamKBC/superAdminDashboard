@@ -473,7 +473,7 @@ export default function RequiredPRPage() {
     const scopedStatus = getRangeStatus(l, start, end);
     const existing = ticketMap.get(l.email.toLowerCase()) ?? ticketMap.get(getPrTicketKey(l.email, scopedPrDate));
     if (existing) {
-      navigate(`/progress-review/tickets?open=${existing.id}`);
+      navigate(`/progress-review/tickets?ticket=${existing.id}`);
     } else {
       const params = new URLSearchParams({
         create: "1", email: l.email, name: l.fullName,

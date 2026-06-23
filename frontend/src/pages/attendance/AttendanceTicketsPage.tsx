@@ -16,6 +16,7 @@ import {
   Flag,
   History,
   Image as ImageIcon,
+  Info,
   Mail,
   MessageSquare,
   MoreHorizontal,
@@ -56,6 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -136,6 +138,20 @@ const EMPTY_FORM = {
   notes: "",
   escalated: false,
 };
+
+const DaysCreatedHeader = ({ label = "Days" }: { label?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex cursor-help items-center gap-1">
+        {label}
+        <Info className="h-3.5 w-3.5 text-[#8A4DFF]" />
+      </span>
+    </TooltipTrigger>
+    <TooltipContent side="top" align="center" sideOffset={12} className="w-64 whitespace-normal rounded-lg border border-[#1F2937] bg-[#111827] px-3 py-2 text-left text-xs font-semibold leading-relaxed text-white shadow-none">
+      Number of days this ticket has been open since it was created.
+    </TooltipContent>
+  </Tooltip>
+);
 
 // ─── Visual helpers ──────────────────────────────────────────────────
 
@@ -1391,14 +1407,14 @@ export default function AttendanceTicketsPage() {
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
 
-  // Handle ?open=<id> and ?create=1&email=...&name=... query params
+  // Handle ?ticket=<id> / legacy ?open=<id> and ?create=1&email=...&name=... query params
   useEffect(() => {
-    const openId = searchParams.get("open");
+    const openId = searchParams.get("ticket") || searchParams.get("open");
     const createFlag = searchParams.get("create");
     if (openId && !loading) {
       const ticket = tickets.find((t) => String(t.id) === openId);
       if (ticket) {
-        setViewTicket(ticket);
+        setSearch(ticket.learnerEmail);
         setSearchParams({}, { replace: true });
       }
     } else if (createFlag === "1") {
@@ -1872,7 +1888,9 @@ export default function AttendanceTicketsPage() {
                   <thead>
                     <tr className="sticky top-0 z-10 border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       {["Ticket", "Learner", "Attendance history", "Risk", "Status", "Group", "Absence Date", "Assigned Owner", "Created", "Days", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                          {h === "Days" ? <DaysCreatedHeader /> : h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -1992,7 +2010,14 @@ export default function AttendanceTicketsPage() {
                           )}
                         </td>
                         <td className="px-3 py-3">
-                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">View</button>
+                          <button
+                            onClick={() => {
+                              setSearch(t.learnerEmail);
+                            }}
+                            className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                          >
+                            View
+                          </button>
                         </td>
                       </tr>
                     ))}

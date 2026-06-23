@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle, Archive, CalendarClock, CheckCircle2, ChevronDown,
   ClipboardCheck, Download, Eye, File as FileIcon, FileText, Filter, Flag,
-  Image as ImageIcon, Mail, MessageSquare, MoreHorizontal, Paperclip, Plus,
+  Image as ImageIcon, Info, Mail, MessageSquare, MoreHorizontal, Paperclip, Plus,
   RefreshCw, Search, Trash2, UploadCloud, X, XCircle, ZoomIn,
 } from "lucide-react";
 import {
@@ -99,6 +99,20 @@ const reviewText = (value: string | undefined | null, fallbackDate?: string | nu
   const text = String(value || "").trim();
   return text || fmtDate(fallbackDate || null);
 };
+
+const DaysCreatedHeader = ({ label = "Days Open" }: { label?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex cursor-help items-center gap-1">
+        {label}
+        <Info className="h-3.5 w-3.5 text-[#8A4DFF]" />
+      </span>
+    </TooltipTrigger>
+    <TooltipContent side="top" align="center" sideOffset={12} className="w-64 whitespace-normal rounded-lg border border-[#1F2937] bg-[#111827] px-3 py-2 text-left text-xs font-semibold leading-relaxed text-white shadow-none">
+      Number of days this ticket has been open since it was created.
+    </TooltipContent>
+  </Tooltip>
+);
 const isCompletedReviewStatus = (status: string) =>
   String(status || "").toLowerCase().includes("completed");
 const daysSince = (iso: string) => { try { return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000); } catch { return 0; } };
@@ -533,11 +547,14 @@ export default function PRTicketsPage() {
   }, [quickEvidenceTicket]);
 
   useEffect(() => {
-    const openId = searchParams.get("open");
+    const openId = searchParams.get("ticket") || searchParams.get("open");
     const createFlag = searchParams.get("create");
     if (openId && !loading) {
       const t = tickets.find((t) => String(t.id) === openId);
-      if (t) { setViewTicket(t); setSearchParams({}, { replace: true }); }
+      if (t) {
+        setSearch(t.learnerEmail);
+        setSearchParams({}, { replace: true });
+      }
     } else if (createFlag === "1") {
       setCreatePrefill({
         learnerEmail: searchParams.get("email") ?? "",
@@ -756,7 +773,9 @@ export default function PRTicketsPage() {
                       <th className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Ticket</th>
                       <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
                       {["Risk", "Status", "Assigned owner", "Last actual completed", "Last PR", "Next PR", "Overdue", "Days Open", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                          {h === "Days Open" ? <DaysCreatedHeader /> : h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -825,7 +844,16 @@ export default function PRTicketsPage() {
                           </button>
                           {t.isArchived && <button onClick={() => setDeleteConfirm(t)} className="mt-1 flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete</button>}
                         </td>
-                        <td className="px-3 py-3"><button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">View</button></td>
+                        <td className="px-3 py-3">
+                          <button
+                            onClick={() => {
+                              setSearch(t.learnerEmail);
+                            }}
+                            className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                          >
+                            View
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
