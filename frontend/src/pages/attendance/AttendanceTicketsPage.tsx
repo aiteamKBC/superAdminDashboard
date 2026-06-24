@@ -2010,12 +2010,7 @@ export default function AttendanceTicketsPage() {
                           )}
                         </td>
                         <td className="px-3 py-3">
-                          <button
-                            onClick={() => {
-                              setSearch(t.learnerEmail);
-                            }}
-                            className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]"
-                          >
+                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">
                             View
                           </button>
                         </td>

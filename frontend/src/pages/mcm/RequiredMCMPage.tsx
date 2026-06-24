@@ -152,6 +152,26 @@ const getMcrRangeLabel = (offset: number): string => {
   return `${fmtRangeDate(start)} – ${fmtRangeDate(end)}`;
 };
 
+const parseMcmStatusDate = (status: string | null | undefined): Date | null => {
+  const match = String(status || "").match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+  if (!match) return null;
+  const year = match[3].length === 2 ? Number(`20${match[3]}`) : Number(match[3]);
+  const dt = new Date(year, Number(match[2]) - 1, Number(match[1]));
+  if (Number.isNaN(dt.getTime())) return null;
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const getMcmScopeDate = (entry: { date: string; status: string; completed: boolean }) => {
+  const statusLower = String(entry.status || "").toLowerCase();
+  const statusDate = statusLower.includes("not scheduled") ? null : parseMcmStatusDate(entry.status);
+  const plannedDate = new Date(entry.date);
+  const fallback = Number.isNaN(plannedDate.getTime()) ? null : plannedDate;
+  const dt = statusDate || fallback;
+  if (dt) dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
 // Exact same logic as dashboard coaching-due filter
 function matchesPeriod(row: MCMRow, offset: number): boolean {
   const { start, end } = getMcrRange(offset);
@@ -160,9 +180,8 @@ function matchesPeriod(row: MCMRow, offset: number): boolean {
   const mcrToday = new Date(); mcrToday.setHours(0, 0, 0, 0);
 
   return row.mcmDates.some((d) => {
-    const dt = new Date(d.date);
-    if (isNaN(dt.getTime())) return false;
-    dt.setHours(0, 0, 0, 0);
+    const dt = getMcmScopeDate(d);
+    if (!dt) return false;
     // mirror isDateWithinRange(dt, start, end, excludeStart)
     if (dt > end) return false;
     if (excludeStart ? dt <= start : dt < start) return false;
@@ -187,9 +206,8 @@ function getMcmCategory(row: MCMRow, offset: number): MCMCategory {
   // Keep category selection identical to Scheduled MCM: use the first
   // qualifying entry in the source order for the selected period.
   const match = row.mcmDates.find((d) => {
-    const dt = new Date(d.date);
-    if (isNaN(dt.getTime())) return false;
-    dt.setHours(0, 0, 0, 0);
+    const dt = getMcmScopeDate(d);
+    if (!dt) return false;
     if (dt > end) return false;
     if (excludeStart ? dt <= start : dt < start) return false;
 

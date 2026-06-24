@@ -70,6 +70,26 @@ const getMcrRangeLabel = (offset: number): string => {
   return `${fmtRangeDate(start)} – ${fmtRangeDate(end)}`;
 };
 
+const parseMcmStatusDate = (status: string | null | undefined): Date | null => {
+  const match = String(status || "").match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+  if (!match) return null;
+  const year = match[3].length === 2 ? Number(`20${match[3]}`) : Number(match[3]);
+  const dt = new Date(year, Number(match[2]) - 1, Number(match[1]));
+  if (Number.isNaN(dt.getTime())) return null;
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const getMcmScopeDate = (entry: { date: string; status: string; completed: boolean }) => {
+  const statusLower = String(entry.status || "").toLowerCase();
+  const statusDate = statusLower.includes("not scheduled") ? null : parseMcmStatusDate(entry.status);
+  const plannedDate = new Date(entry.date);
+  const fallback = Number.isNaN(plannedDate.getTime()) ? null : plannedDate;
+  const dt = statusDate || fallback;
+  if (dt) dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
 type ScheduledCategory = "scheduled" | "in_progress" | "completed";
 
 function getScheduledEntry(
@@ -81,9 +101,8 @@ function getScheduledEntry(
   const excludeStart = offset === -1;
 
   const match = mcmDates.find((d) => {
-    const dt = new Date(d.date);
-    if (isNaN(dt.getTime())) return false;
-    dt.setHours(0, 0, 0, 0);
+    const dt = getMcmScopeDate(d);
+    if (!dt) return false;
     if (dt > end) return false;
     if (excludeStart ? dt <= start : dt < start) return false;
 

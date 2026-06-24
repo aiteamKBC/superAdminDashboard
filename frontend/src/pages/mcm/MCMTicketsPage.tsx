@@ -1426,9 +1426,9 @@ export default function MCMTicketsPage() {
                           {h === "Days Open" ? <DaysCreatedHeader /> : h}
                         </th>
                       ))}
-                      <th className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-3 text-xs font-semibold text-[#5F7288]">Edit</th>
-                      <th className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-3 text-xs font-semibold text-[#5F7288]">Archive</th>
-                      <th className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-3 text-xs font-semibold text-[#5F7288]">View</th>
+                      <th className="sticky top-0 z-10 w-[72px] bg-[#F8FBFE] px-3 py-3 text-center text-xs font-semibold text-[#5F7288]">Edit</th>
+                      <th className="sticky top-0 z-10 w-[72px] bg-[#F8FBFE] px-3 py-3 text-center text-xs font-semibold text-[#5F7288]">Archive</th>
+                      <th className="sticky top-0 z-10 w-[72px] bg-[#F8FBFE] px-3 py-3 text-center text-xs font-semibold text-[#5F7288]">View</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1501,20 +1501,20 @@ export default function MCMTicketsPage() {
                           )}
                         </td>
                         {/* Edit */}
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 text-center">
                           <button
                             onClick={() => setEditTicket(t)}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-[#EEF3FB] hover:text-[#315D93]"
+                            className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-[#EEF3FB] hover:text-[#315D93]"
                           >
                             <FileText className="h-4 w-4" />
                           </button>
                         </td>
                         {/* Archive / Delete */}
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 text-center">
                           {t.isArchived ? (
                             <button
                               onClick={() => void deleteTicket(t)}
-                              className="flex h-7 w-7 items-center justify-center rounded-lg text-red-400 hover:bg-red-50"
+                              className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg text-red-400 hover:bg-red-50"
                               title="Delete permanently"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1522,7 +1522,7 @@ export default function MCMTicketsPage() {
                           ) : (
                             <button
                               onClick={() => void archiveToggle(t)}
-                              className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-amber-50 hover:text-amber-600"
+                              className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-amber-50 hover:text-amber-600"
                               title="Archive"
                             >
                               <Archive className="h-4 w-4" />
@@ -1530,12 +1530,10 @@ export default function MCMTicketsPage() {
                           )}
                         </td>
                         {/* View */}
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 text-center">
                           <button
-                            onClick={() => {
-                              setSearch(t.learnerEmail);
-                            }}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-[#EEF3FB] hover:text-[#315D93]"
+                            onClick={() => setViewTicket(t)}
+                            className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg text-[#5F7288] hover:bg-[#EEF3FB] hover:text-[#315D93]"
                           >
                             <Eye className="h-4 w-4" />
                           </button>

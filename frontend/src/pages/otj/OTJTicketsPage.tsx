@@ -772,12 +772,7 @@ export default function OTJTicketsPage() {
                           {t.isArchived && <button onClick={() => setDeleteConfirm(t)} className="mt-1 flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete</button>}
                         </td>
                         <td className="px-3 py-3">
-                          <button
-                            onClick={() => {
-                              setSearch(t.learnerEmail);
-                            }}
-                            className="rounded px-2 py-1 text-xs font-semibold text-[#24557F] hover:bg-[#EEF7FF]"
-                          >
+                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#24557F] hover:bg-[#EEF7FF]">
                             View
                           </button>
                         </td>

@@ -601,6 +601,22 @@ const parseBookedDate = (value: unknown): Date | null => {
   return dt;
 };
 
+const parseMcmStatusDate = (status: unknown): Date | null => {
+  const match = String(status || "").match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+  if (!match) return null;
+  const year = match[3].length === 2 ? Number(`20${match[3]}`) : Number(match[3]);
+  const dt = new Date(year, Number(match[2]) - 1, Number(match[1]));
+  if (Number.isNaN(dt.getTime())) return null;
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+};
+
+const getMcmScopeDate = (entry: any): Date | null => {
+  const statusLower = String(entry?.status || "").toLowerCase();
+  const statusDate = statusLower.includes("not scheduled") ? null : parseMcmStatusDate(entry?.status);
+  return statusDate || parseBookedDate(entry?.date);
+};
+
 const isTodayOrFuture = (value: unknown) => {
   const dt = parseBookedDate(value);
   if (!dt) return false;
@@ -3191,7 +3207,7 @@ export default function Dashboard() {
         mcrData
           .filter((row: any) =>
             (row.mcmDates || []).some((d: any) => {
-              const dt = parseBookedDate(d.date);
+              const dt = getMcmScopeDate(d);
               if (!isDateWithinRange(dt, start, end, excludeStart)) return false;
               if (pastPeriod) return true;
               if (d.completed) return false;
@@ -3215,7 +3231,7 @@ export default function Dashboard() {
         mcrData
           .filter((row: any) =>
             (row.mcmDates || []).some((d: any) => {
-              const dt = parseBookedDate(d.date);
+              const dt = getMcmScopeDate(d);
               if (!isDateWithinRange(dt, start, end, excludeStart)) return false;
               const statusLower = String(d.status || "").toLowerCase();
               if (pastPeriod) {
@@ -3238,7 +3254,7 @@ export default function Dashboard() {
       mcrData
         .filter((row: any) =>
           (row.mcmDates || []).some((d: any) => {
-            const dt = parseBookedDate(d.date);
+            const dt = getMcmScopeDate(d);
             if (!isDateWithinRange(dt, mcrStart, mcrEnd, excludeMcrStart)) return false;
             // Past months: include all statuses (Completed, In Progress, Awaiting Signature, Scheduled)
             if (isPastMonth) return true;
@@ -3266,7 +3282,7 @@ export default function Dashboard() {
       mcrData
         .filter((row: any) =>
           (row.mcmDates || []).some((d: any) => {
-            const dt = parseBookedDate(d.date);
+            const dt = getMcmScopeDate(d);
             if (!isDateWithinRange(dt, mcrStart, mcrEnd, excludeMcrStart)) return false;
             const statusLower = String(d.status || "").toLowerCase();
             if (isPastMonth) {
@@ -3484,7 +3500,7 @@ export default function Dashboard() {
           if (mcrDueByEmail.has(email)) continue;
 
           const matchDate = (row.mcmDates || []).find((d: any) => {
-            const dt = parseBookedDate(d.date);
+            const dt = getMcmScopeDate(d);
             return isDateWithinRange(dt, mcrStart, mcrEnd, excludeMcrStartFL);
           });
 
@@ -3503,7 +3519,7 @@ export default function Dashboard() {
 
             mcrDueByEmail.set(email, {
               ...row,
-              matchedDate: matchDate.date,
+              matchedDate: formatDateKey(getMcmScopeDate(matchDate) || parseBookedDate(matchDate.date)!),
               matchedStatus: matchDate.status,
               overdueNotScheduledCount,
               accumulatedOverdue: 0,
@@ -3534,7 +3550,7 @@ export default function Dashboard() {
         const email = normEmail(row.email);
         if (!email) continue;
         const matchDate = (row.mcmDates || []).find((d: any) => {
-          const dt = parseBookedDate(d.date);
+          const dt = getMcmScopeDate(d);
           if (!isDateWithinRange(dt, mcrStart, mcrEnd, excludeMcrStartFL)) return false;
           if (isPastMonthFL) return true;
           if (d.completed) return false;
@@ -3562,7 +3578,7 @@ export default function Dashboard() {
 
           mcrDueByEmail.set(email, {
             ...row,
-            matchedDate: matchDate.date,
+            matchedDate: formatDateKey(getMcmScopeDate(matchDate) || parseBookedDate(matchDate.date)!),
             matchedStatus: matchDate.status,
             overdueNotScheduledCount,
             accumulatedOverdue,
@@ -3603,7 +3619,7 @@ export default function Dashboard() {
         const email = normEmail(row.email);
         if (!email) continue;
         const matchDate = (row.mcmDates || []).find((d: any) => {
-          const dt = parseBookedDate(d.date);
+          const dt = getMcmScopeDate(d);
           if (!isDateWithinRange(dt, mcrStartB, mcrEndB, excludeMcrStartBooked)) return false;
           const statusLower = String(d.status || "").toLowerCase();
           if (isPastMonthBooked) {
@@ -3616,7 +3632,11 @@ export default function Dashboard() {
           return statusLower.includes("scheduled") && !statusLower.includes("not");
         });
         if (matchDate && !mcrBookedByEmail.has(email)) {
-          mcrBookedByEmail.set(email, { ...row, matchedDate: matchDate.date, matchedStatus: matchDate.status });
+          mcrBookedByEmail.set(email, {
+            ...row,
+            matchedDate: formatDateKey(getMcmScopeDate(matchDate) || parseBookedDate(matchDate.date)!),
+            matchedStatus: matchDate.status,
+          });
         }
       }
       result = activeLearners

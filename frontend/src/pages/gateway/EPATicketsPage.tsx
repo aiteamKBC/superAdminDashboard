@@ -933,12 +933,7 @@ export default function EPATicketsPage() {
                           </button>
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => {
-                              setSearch(ticket.learnerEmail);
-                            }}
-                            className="text-xs font-bold text-[#1E6ACB] hover:underline"
-                          >
+                          <button onClick={() => setViewTicket(ticket)} className="text-xs font-bold text-[#1E6ACB] hover:underline">
                             View
                           </button>
                         </td>

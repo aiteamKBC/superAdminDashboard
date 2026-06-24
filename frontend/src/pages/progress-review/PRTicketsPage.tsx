@@ -845,12 +845,7 @@ export default function PRTicketsPage() {
                           {t.isArchived && <button onClick={() => setDeleteConfirm(t)} className="mt-1 flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete</button>}
                         </td>
                         <td className="px-3 py-3">
-                          <button
-                            onClick={() => {
-                              setSearch(t.learnerEmail);
-                            }}
-                            className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]"
-                          >
+                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">
                             View
                           </button>
                         </td>
@@ -870,31 +865,55 @@ export default function PRTicketsPage() {
 
       {/* View Modal */}
       <Dialog open={Boolean(viewTicket)} onOpenChange={(o) => !o && setViewTicket(null)}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-2xl border-[#DDE7F0] bg-[#F4F8FC] p-0 shadow-2xl">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-2xl border-[#DDE7F0] bg-[#F8FBFE] p-0 shadow-2xl">
+          <div className="h-1 bg-[#315D93]" />
           <DialogHeader className="border-b border-[#DDE7F0] bg-white px-6 py-5">
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold text-[#14264A]">
-              <span className="font-mono text-[#1E6ACB]">{viewTicket?.ticketRef}</span>
-              {viewTicket && riskBadge(viewTicket.risk)}
+            <DialogTitle className="flex flex-wrap items-start justify-between gap-4 text-left">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#EEF3FB] px-2.5 py-1 font-mono text-xs font-bold text-[#1E6ACB]">{viewTicket?.ticketRef}</span>
+                  {viewTicket && riskBadge(viewTicket.risk)}
+                  {viewTicket && statusBadge(viewTicket.status)}
+                </div>
+                <p className="mt-3 truncate text-lg font-bold text-[#14264A]">{viewTicket?.learnerName || "PR Ticket"}</p>
+                <p className="mt-1 truncate text-xs font-medium text-[#71849A]">{viewTicket?.learnerEmail}</p>
+              </div>
+              {viewTicket?.escalated && (
+                <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">Escalated</span>
+              )}
             </DialogTitle>
           </DialogHeader>
           {viewTicket && (
-            <div className="space-y-4 p-6 text-sm">
-              <div className="flex items-center gap-2">{statusBadge(viewTicket.status)}{viewTicket.escalated && <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700">Escalated</span>}</div>
+            <div className="space-y-5 p-6 text-sm">
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-semibold text-[#71849A]">Assigned owner</p>
+                  <p className="mt-1 text-sm font-semibold text-[#14264A]">{viewTicket.assignedOwner || "Unassigned"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-[#71849A]">Overdue PRs</p>
+                  <p className="mt-1 text-sm font-semibold text-[#14264A]">{viewTicket.overdueCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-[#71849A]">Created By</p>
+                  <p className="mt-1 text-sm font-semibold text-[#14264A]">{viewTicket.createdBy} - {fmtDate(viewTicket.createdAt)}</p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {[["Learner", viewTicket.learnerName], ["Email", viewTicket.learnerEmail], ["Phone", viewTicket.learnerPhone || "—"], ["Organisation", viewTicket.organisation || "—"], ["Programme", viewTicket.programme || "—"], ["Last actual completed", getLastActuallyCompleted(viewTicket)], ["Last PR", getLastProgressReview(viewTicket)], ["Next PR Date", fmtDate(viewTicket.nextPrDate)], ["Overdue PRs", String(viewTicket.overdueCount)], ["Assigned owner", viewTicket.assignedOwner || "Unassigned"], ["Action Taken", (viewTicket.action && viewTicket.action !== "no_action") ? (ACTION_OPTIONS.find((o) => o.value === viewTicket.action)?.label ?? "") : ""], ["Created By", `${viewTicket.createdBy} · ${fmtDate(viewTicket.createdAt)}`]].map(([k, v]) => (
-                  <div key={k} className="rounded-xl border border-[#DDE7F0] bg-white p-3 shadow-sm">
+                {[["Phone", viewTicket.learnerPhone || "-"], ["Organisation", viewTicket.organisation || "-"], ["Programme", viewTicket.programme || "-"], ["Last actual completed", getLastActuallyCompleted(viewTicket)], ["Last PR", getLastProgressReview(viewTicket)], ["Next PR Date", fmtDate(viewTicket.nextPrDate)], ["Action Taken", (viewTicket.action && viewTicket.action !== "no_action") ? (ACTION_OPTIONS.find((o) => o.value === viewTicket.action)?.label ?? "") : ""]].map(([k, v]) => (
+                  <div key={k} className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold text-[#71849A]">{k}</p>
-                    {v ? <p className="mt-1 text-sm font-medium text-[#14264A]">{v}</p> : <p className="mt-1 text-sm italic text-[#A0B0C0]">{k === "Action Taken" ? "No actions yet" : "—"}</p>}
+                    {v ? <p className="mt-1 text-sm font-medium text-[#14264A]">{v}</p> : <p className="mt-1 text-sm italic text-[#A0B0C0]">{k === "Action Taken" ? "No actions yet" : "-"}</p>}
                   </div>
                 ))}
               </div>
-              {cleanTicketNotes(viewTicket.notes) && <div><p className="mb-1 text-xs font-semibold text-[#71849A]">Notes</p><p className="whitespace-pre-wrap rounded-lg bg-white p-3 text-xs text-[#14264A]">{cleanTicketNotes(viewTicket.notes)}</p></div>}
+              {cleanTicketNotes(viewTicket.notes) && <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm"><p className="mb-2 text-xs font-semibold text-[#71849A]">Notes</p><p className="whitespace-pre-wrap text-xs leading-relaxed text-[#14264A]">{cleanTicketNotes(viewTicket.notes)}</p></div>}
               {viewFiles.length > 0 && (
-                <div>
+                <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
                   <p className="mb-2 text-xs font-semibold text-[#71849A]">Evidence Files ({viewFiles.length})</p>
                   <div className="space-y-2">
                     {viewFiles.map((f) => (
-                      <div key={f.id} className="flex items-center gap-3 rounded-lg border border-[#DDE7F0] bg-white p-2.5">
+                      <div key={f.id} className="flex items-center gap-3 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] p-2.5">
                         <button type="button" onClick={() => setViewPreview({ url: f.url, name: f.name, mime: f.mimeType })} className="relative shrink-0 overflow-hidden rounded-md">
                           {isImage(f.mimeType, f.name)
                             ? <img src={f.url} alt={f.name} className="h-10 w-10 object-cover" />
