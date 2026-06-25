@@ -24,7 +24,7 @@ import type { Learner } from "@/types/dashboard";
 
 type AbsenceWindow = "all" | 0 | 1 | 2 | 3;
 type FollowUpFilter = "all" | "unresolved" | "contacted" | "resolved";
-type AttRec = { date: string | null; attendance: unknown; module: string };
+type AttRec = { date: string | null; attendance: unknown; module: string; note?: string };
 type ContactActionState = { called: boolean; emailed: boolean; resolved: boolean; note: string };
 
 interface AttendanceSourceRow {
@@ -147,6 +147,21 @@ const isSameModuleProgramme = (module: string, targetModule: string) => {
 };
 
 const normEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
+
+const isAlternateInstructorException = (record: AttRec) => {
+  const note = String(record.note || "").toLowerCase();
+  return note.includes("attended with another instructor");
+};
+
+const isTrackableAttendanceRecord = (record: AttRec, absenceWindow: AbsenceWindow) => {
+  const module = String(record.module || "").trim();
+  if (!module || !record.date) return false;
+  if (module.toLowerCase().includes("recorded sessions")) return false;
+  if (isAlternateInstructorException(record)) return false;
+
+  const date = parseAttendanceDate(record.date);
+  return date !== null && isDateInExactWeekBucket(date, absenceWindow);
+};
 
 function buildAttendanceMetrics(records: AttRec[], absenceWindow: AbsenceWindow = 0) {
   const empty = {
@@ -441,9 +456,18 @@ export default function TrackAttendancePage() {
   const programmes = useMemo(
     () =>
       Array.from(
-        new Set(allLearners.map((learner) => learner.programme).filter(Boolean))
+        new Set(
+          allLearners
+            .filter((learner) =>
+              learner.allRecords.some((record) =>
+                isTrackableAttendanceRecord(record, absenceWindow)
+              )
+            )
+            .map((learner) => learner.programme)
+            .filter(Boolean)
+        )
       ).sort(),
-    [allLearners]
+    [absenceWindow, allLearners]
   );
   const coachOptions = useMemo(
     () =>
@@ -465,16 +489,32 @@ export default function TrackAttendancePage() {
   );
 
   const moduleOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          attendanceData.flatMap((row) =>
-            (row.records || []).map((r) => r.module).filter(Boolean)
-          )
-        )
-      ).sort(),
-    [attendanceData]
+    () => {
+      const modulesInWindow = new Set<string>();
+
+      attendanceData.forEach((row) => {
+        (row.records || []).forEach((record) => {
+          const module = String(record.module || "").trim();
+          if (isTrackableAttendanceRecord(record, absenceWindow)) {
+            modulesInWindow.add(module);
+          }
+        });
+      });
+
+      return Array.from(modulesInWindow).sort();
+    },
+    [absenceWindow, attendanceData]
   );
+
+  useEffect(() => {
+    if (moduleFilter === "all" || moduleOptions.includes(moduleFilter)) return;
+    setModuleFilter("all");
+  }, [moduleFilter, moduleOptions]);
+
+  useEffect(() => {
+    if (programmeFilter === "all" || programmes.includes(programmeFilter)) return;
+    setProgrammeFilter("all");
+  }, [programmeFilter, programmes]);
 
   // Total missed / total sessions for each learner — in the filtered module (or their current module if no filter)
   const missedByModule = useMemo(() => {

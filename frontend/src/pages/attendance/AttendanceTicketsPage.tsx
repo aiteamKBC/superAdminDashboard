@@ -197,6 +197,16 @@ const daysSince = (iso: string) => {
   catch { return 0; }
 };
 
+const ticketDateTime = (iso: string | null) => {
+  if (!iso) return 0;
+  const parts = iso.split("-").map(Number);
+  if (parts.length >= 3 && parts.every(Number.isFinite)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+  }
+  const fallback = new Date(iso).getTime();
+  return Number.isNaN(fallback) ? 0 : fallback;
+};
+
 const isClosedTicketStatus = (status: TicketStatus) => status === "resolved" || status === "covered";
 
 const isImage = (mime: string, name: string) => {
@@ -1581,16 +1591,22 @@ export default function AttendanceTicketsPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return weekScopedTickets.filter((t) => {
-      if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
-      if (ragFilter !== "all" && t.risk !== ragFilter) return false;
-      if (notesFilter === "has" && !t.notes.trim()) return false;
-      if (notesFilter === "missing" && t.notes.trim()) return false;
-      if (cardFilter === "open" && isClosedTicketStatus(t.status)) return false;
-      if (cardFilter === "resolved" && !isClosedTicketStatus(t.status)) return false;
-      if (moduleFilter !== "all" && t.attendanceModule !== moduleFilter) return false;
-      return true;
-    });
+    return weekScopedTickets
+      .filter((t) => {
+        if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
+        if (ragFilter !== "all" && t.risk !== ragFilter) return false;
+        if (notesFilter === "has" && !t.notes.trim()) return false;
+        if (notesFilter === "missing" && t.notes.trim()) return false;
+        if (cardFilter === "open" && isClosedTicketStatus(t.status)) return false;
+        if (cardFilter === "resolved" && !isClosedTicketStatus(t.status)) return false;
+        if (moduleFilter !== "all" && t.attendanceModule !== moduleFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const absenceDiff = ticketDateTime(b.attendanceDate) - ticketDateTime(a.attendanceDate);
+        if (absenceDiff !== 0) return absenceDiff;
+        return b.id - a.id;
+      });
   }, [weekScopedTickets, search, ragFilter, notesFilter, cardFilter, moduleFilter]);
 
   const allCount = weekScopedTickets.length;
@@ -1696,6 +1712,20 @@ export default function AttendanceTicketsPage() {
         </div>
 
         <div className="p-4 sm:p-6">
+          <div className="mb-4 flex animate-pulse items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white shadow-sm shadow-amber-200">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-extrabold leading-tight tracking-normal">
+                Remember to update the learner attendance on APTEM
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-amber-800">
+                After handling this ticket, make sure the matching absence/session is corrected in Aptem as well.
+              </p>
+            </div>
+          </div>
+
           {/* Controls */}
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>

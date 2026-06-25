@@ -1104,7 +1104,8 @@ def kbc_attendance_summary(request):
                 "date",
                 "Attendance",
                 "module",
-                "key"
+                "key",
+                "note"
             FROM public.kbc_attendance
             ORDER BY "Email", "date" ASC
         """)
@@ -1150,6 +1151,7 @@ def kbc_attendance_summary(request):
             "module": row.get("module") or "",
             "key": row.get("key") or "",
             "email": email,
+            "note": row.get("note") or "",
         })
 
     results = []
@@ -1436,6 +1438,108 @@ def _normalize_attendance_value(value):
     return None
 
 
+def _attendance_ticket_risk(missed_count):
+    try:
+        count = int(missed_count or 0)
+    except Exception:
+        count = 0
+    return "red" if count >= 3 else "amber"
+
+
+def _attendance_missed_dates(email_module_pairs):
+    pairs = {
+        (str(email or "").strip().lower(), str(module or "").strip())
+        for email, module in email_module_pairs
+        if str(email or "").strip()
+    }
+    if not pairs:
+        return {}
+
+    emails = list({email for email, _module in pairs})
+    placeholders = ",".join(["%s"] * len(emails))
+    with connection.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT "Email", "module", "date", "Attendance"
+            FROM public.kbc_attendance
+            WHERE lower("Email") IN ({placeholders})
+            """,
+            emails,
+        )
+
+        seen = {}
+        for email, module, attendance_date, attendance_value in cur.fetchall():
+            clean_email = str(email or "").strip().lower()
+            clean_module = str(module or "").strip()
+            key = (clean_email, clean_module, str(attendance_date))
+            is_missed = _normalize_attendance_value(attendance_value) == 0
+            seen[key] = seen.get(key, False) or is_missed
+
+    missed_dates = {}
+    for (email, module, _attendance_date), is_missed in seen.items():
+        pair = (email, module)
+        if is_missed and pair in pairs:
+            missed_dates.setdefault(pair, set()).add(_attendance_date)
+    return {
+        pair: sorted(dates)
+        for pair, dates in missed_dates.items()
+    }
+
+
+def _attendance_missed_counts(email_module_pairs):
+    return {
+        pair: len(dates)
+        for pair, dates in _attendance_missed_dates(email_module_pairs).items()
+    }
+
+
+def _attendance_missed_count_until(email, module, attendance_date):
+    email = str(email or "").strip().lower()
+    module = str(module or "").strip()
+    if not email or not module or not attendance_date:
+        return _attendance_missed_count(email, module)
+
+    date_key = attendance_date.isoformat() if hasattr(attendance_date, "isoformat") else str(attendance_date)
+    dates = _attendance_missed_dates({(email, module)}).get((email, module), [])
+    return sum(1 for missed_date in dates if missed_date <= date_key)
+
+
+def _attendance_missed_count(email, module):
+    email = str(email or "").strip().lower()
+    module = str(module or "").strip()
+    return _attendance_missed_counts({(email, module)}).get((email, module), 0)
+
+
+def _sync_attendance_ticket_risks(tickets):
+    tickets = list(tickets)
+    missed_dates = _attendance_missed_dates(
+        {(ticket.learner_email, ticket.attendance_module) for ticket in tickets}
+    )
+
+    to_update = []
+    for ticket in tickets:
+        key = (
+            str(ticket.learner_email or "").strip().lower(),
+            str(ticket.attendance_module or "").strip(),
+        )
+        attendance_date = ticket.attendance_date.isoformat() if ticket.attendance_date else ""
+        dates = missed_dates.get(key, [])
+        missed_count = (
+            sum(1 for missed_date in dates if missed_date <= attendance_date)
+            if attendance_date
+            else len(dates)
+        )
+        new_risk = _attendance_ticket_risk(missed_count)
+        if ticket.risk != new_risk:
+            ticket.risk = new_risk
+            to_update.append(ticket)
+
+    if to_update:
+        from .models import AttendanceTicket
+        AttendanceTicket.objects.bulk_update(to_update, ["risk"])
+    return len(to_update)
+
+
 def _attendance_missing_learners_for_week(week_start, week_end):
     """Build the same missed-learner payload the Track Attendance page used to send."""
     learner_extras = {}
@@ -1526,14 +1630,20 @@ def _attendance_missing_learners_for_week(week_start, week_end):
                 is_missed = _normalize_attendance_value(att) == 0
                 seen[key] = seen.get(key, False) or is_missed
 
-        missed_counts = {}
+        missed_dates = {}
         for (em, mod, _dt), is_missed in seen.items():
             if is_missed:
-                missed_counts[(em, mod)] = missed_counts.get((em, mod), 0) + 1
+                missed_dates.setdefault((em, mod), set()).add(_dt)
 
         for learner in learners:
             key = (learner["email"], learner["attendance_module"])
-            learner["missed_count"] = missed_counts.get(key, 1)
+            attendance_date = str(learner.get("attendance_date") or "")
+            learner_dates = sorted(missed_dates.get(key, set()))
+            learner["missed_count"] = (
+                sum(1 for missed_date in learner_dates if missed_date <= attendance_date)
+                if attendance_date
+                else len(learner_dates)
+            ) or 1
 
     return learners
 
@@ -1579,6 +1689,11 @@ def auto_create_attendance_tickets(request):
         ).first()
 
         if existing:
+            missed_count = int(learner.get("missed_count") or 1)
+            risk = _attendance_ticket_risk(missed_count)
+            if existing.risk != risk:
+                existing.risk = risk
+                existing.save(update_fields=["risk"])
             existing_list.append({
                 "email": email,
                 "id": existing.pk,
@@ -1588,7 +1703,7 @@ def auto_create_attendance_tickets(request):
             })
         else:
             missed_count = int(learner.get("missed_count") or 1)
-            risk = "red" if missed_count >= 3 else "amber"
+            risk = _attendance_ticket_risk(missed_count)
             ticket = AttendanceTicket.objects.create(
                 ticket_ref="ATT-TMP",
                 learner_email=email,
@@ -1630,6 +1745,11 @@ def attendance_tickets(request):
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
         tickets = AttendanceTicket.objects.filter(is_archived=show_archived)
+        if not show_archived:
+            _sync_attendance_ticket_risks(
+                tickets.exclude(status__in=["resolved", "covered"])
+            )
+            tickets = AttendanceTicket.objects.filter(is_archived=False)
         return JsonResponse([_ticket_to_dict(t) for t in tickets], safe=False)
 
     if request.method == "POST":
@@ -1645,6 +1765,15 @@ def attendance_tickets(request):
             except Exception:
                 pass
 
+        attendance_module = str(body.get("attendance_module", "")).strip()
+        risk = _attendance_ticket_risk(
+            _attendance_missed_count_until(
+                str(body.get("learner_email", "")).strip().lower(),
+                attendance_module,
+                att_date,
+            )
+        )
+
         ticket = AttendanceTicket.objects.create(
             ticket_ref="ATT-TMP",
             learner_email=str(body.get("learner_email", "")).strip().lower(),
@@ -1653,8 +1782,8 @@ def attendance_tickets(request):
             organisation=str(body.get("organisation", "")).strip(),
             programme=str(body.get("programme", "")).strip(),
             attendance_date=att_date,
-            attendance_module=str(body.get("attendance_module", "")).strip(),
-            risk=str(body.get("risk", "green")).strip(),
+            attendance_module=attendance_module,
+            risk=risk,
             status=str(body.get("status", "new")).strip(),
             assigned_owner=str(body.get("assigned_owner", "")).strip(),
             action=str(body.get("action", "")).strip(),
@@ -1700,6 +1829,14 @@ def attendance_ticket_detail(request, pk):
                     pass
             else:
                 ticket.attendance_date = None
+        if ticket.status not in {"resolved", "covered"}:
+            ticket.risk = _attendance_ticket_risk(
+                _attendance_missed_count_until(
+                    ticket.learner_email,
+                    ticket.attendance_module,
+                    ticket.attendance_date,
+                )
+            )
         ticket.save()
         return JsonResponse(_ticket_to_dict(ticket))
 
