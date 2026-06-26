@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, BriefcaseBusiness, Clock, Download,
+  AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock, Download,
   ExternalLink, Loader2, RefreshCw, Search, Ticket,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useActiveLearnersCount } from "@/hooks/useActiveLearnersCount";
 
-// ─── Types ────────────────────────────────────────────────────────────
+// Types
 
 interface OTJLearner {
   id: string;
@@ -45,7 +46,7 @@ interface OTJLearner {
   elapsedDays: number | null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────
+// Helpers
 
 const fmtHoursMin = (h: number) => {
   if (!h || h <= 0) return "—";
@@ -88,30 +89,42 @@ const reqToSubmit = (progressHours: string): number => {
   return n < 0 ? Math.abs(n) : 0;
 };
 
-const statusBadge = (status: string) => {
-  const s = (status || "").toLowerCase().trim();
-  if (s === "at risk") return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700"><AlertTriangle className="h-3 w-3" />At Risk</span>;
-  if (s === "need attention") return <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">Need Attention</span>;
-  if (s === "on track") return <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">On Track</span>;
-  return <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">{status || "—"}</span>;
+const statusKey = (status: string) => (status || "").toLowerCase().trim();
+const emailKey = (email: string) => (email || "").toLowerCase().trim();
+
+const percentOf = (value: number, total: number) => {
+  if (!total) return 0;
+  return Math.round((value / total) * 100);
 };
 
-// ─── Main Page ─────────────────────────────────────────────────────────
+const statusBadge = (status: string) => {
+  const s = statusKey(status);
+  if (s === "at risk") return <span className="inline-flex whitespace-nowrap items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold leading-none text-red-700"><AlertTriangle className="h-3 w-3 shrink-0" />At Risk</span>;
+  if (s === "need attention") return <span className="inline-flex whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold leading-none text-amber-700">Need Attention</span>;
+  if (s === "on track") return <span className="inline-flex whitespace-nowrap rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold leading-none text-green-700">On Track</span>;
+  return <span className="inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold leading-none text-gray-600">{status || "—"}</span>;
+};
+
+// Main Page
 
 export default function TrackOTJPage() {
   const navigate = useNavigate();
+  const { count: activeLearnersCount, loading: activeLearnersLoading } = useActiveLearnersCount();
   const [all, setAll] = useState<OTJLearner[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [coachFilter, setCoachFilter] = useState("all");
   const [otjStatusFilter, setOtjStatusFilter] = useState("at risk");
-  // email → ticket id map
+  // email to ticket id map
   const [ticketMap, setTicketMap] = useState<Record<string, number>>({});
   const [bulkCreating, setBulkCreating] = useState(false);
 
   const buildTicketMap = (data: Array<{ id: number; learnerEmail: string }>) => {
     const map: Record<string, number> = {};
-    data.forEach((t) => { if (t.learnerEmail) map[t.learnerEmail] = t.id; });
+    data.forEach((t) => {
+      const key = emailKey(t.learnerEmail);
+      if (key) map[key] = t.id;
+    });
     return map;
   };
 
@@ -134,9 +147,7 @@ export default function TrackOTJPage() {
       setTicketMap(map);
 
       // Auto-create tickets for at-risk learners that don't have one yet
-      const toCreate = learners.filter(
-        (l) => (l.otjHoursStatus || "").toLowerCase().trim() === "at risk" && !map[l.email]
-      );
+      const toCreate = learners.filter((l) => statusKey(l.otjHoursStatus) === "at risk" && !map[emailKey(l.email)]);
 
       if (toCreate.length > 0) {
         setBulkCreating(true);
@@ -163,7 +174,8 @@ export default function TrackOTJPage() {
           });
           if (res.ok) {
             const ticket: { id: number; learnerEmail: string } = await res.json();
-            if (ticket.id && l.email) newMap[l.email] = ticket.id;
+            const key = emailKey(ticket.learnerEmail || l.email);
+            if (ticket.id && key) newMap[key] = ticket.id;
           }
         }
         setTicketMap(newMap);
@@ -186,7 +198,7 @@ export default function TrackOTJPage() {
     return all.filter((l) => {
       if (q && !l.fullName.toLowerCase().includes(q) && !l.email.toLowerCase().includes(q) && !l.organizationName.toLowerCase().includes(q)) return false;
       if (coachFilter !== "all" && l.ownerName !== coachFilter) return false;
-      if (otjStatusFilter !== "all" && (l.otjHoursStatus || "").toLowerCase().trim() !== otjStatusFilter) return false;
+      if (otjStatusFilter !== "all" && statusKey(l.otjHoursStatus) !== otjStatusFilter) return false;
       return true;
     });
   }, [all, search, coachFilter, otjStatusFilter]);
@@ -227,14 +239,33 @@ export default function TrackOTJPage() {
     navigate(`/otj-hours/tickets?${params.toString()}`);
   };
 
-  const atRiskCount = useMemo(() => all.filter((l) => (l.otjHoursStatus || "").toLowerCase().trim() === "at risk").length, [all]);
-  const activeLearnersCount = useMemo(() => {
-    const activeKeys = new Set<string>();
-    all.forEach((learner) => {
-      if ((learner.programStatus || "").toLowerCase().trim() !== "active") return;
-      activeKeys.add((learner.email || learner.id || learner.fullName).toLowerCase().trim());
-    });
-    return activeKeys.size;
+  const atRiskCount = useMemo(() => all.filter((l) => statusKey(l.otjHoursStatus) === "at risk").length, [all]);
+  const needAttentionCount = useMemo(() => all.filter((l) => statusKey(l.otjHoursStatus) === "need attention").length, [all]);
+  const onTrackCount = useMemo(() => all.filter((l) => statusKey(l.otjHoursStatus) === "on track").length, [all]);
+  const atRiskPct = percentOf(atRiskCount, activeLearnersCount);
+  const needAttentionPct = percentOf(needAttentionCount, activeLearnersCount);
+  const onTrackPct = percentOf(onTrackCount, activeLearnersCount);
+  const selectedCardClass = (status: string, tone: "green" | "amber" | "red") => {
+    if (otjStatusFilter !== status) return "";
+    const tones = {
+      green: "border-green-600 bg-green-600 text-white shadow-md",
+      amber: "border-amber-500 bg-amber-500 text-white shadow-md",
+      red: "border-red-600 bg-red-600 text-white shadow-md",
+    };
+    return tones[tone];
+  };
+  const selectedTextClass = (status: string, defaultClass: string) =>
+    otjStatusFilter === status ? "text-white" : defaultClass;
+  const selectedSubTextClass = (status: string, defaultClass: string) =>
+    otjStatusFilter === status ? "text-white/80" : defaultClass;
+  const coachesAffected = useMemo(() => {
+    const set = new Set(
+      all
+        .filter((l) => statusKey(l.otjHoursStatus) === "at risk")
+        .map((l) => l.ownerName)
+        .filter(Boolean),
+    );
+    return set.size;
   }, [all]);
 
   return (
@@ -252,8 +283,8 @@ export default function TrackOTJPage() {
                 <h1 className="text-xl font-bold text-[#14264A]">Track OTJH</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <p className="text-sm text-[#5F7288]">Learners behind on off-the-job hours</p>
-                  <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
-                    Active learners: {loading ? "..." : activeLearnersCount}
+                  <span className="inline-flex items-center rounded-full bg-[#14264A] px-3 py-1 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
+                    Active learners: {activeLearnersLoading ? "..." : activeLearnersCount}
                   </span>
                 </div>
               </div>
@@ -261,7 +292,7 @@ export default function TrackOTJPage() {
             <div className="flex gap-2">
               {bulkCreating && (
                 <span className="flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Creating tickets…
+                  <Loader2 className="h-4 w-4 animate-spin" /> Creating tickets...
                 </span>
               )}
               <Button onClick={() => navigate("/otj-hours/tickets")} className="h-9 gap-1.5 rounded-lg bg-[#24557F] text-white hover:bg-[#1B466B]">
@@ -273,29 +304,55 @@ export default function TrackOTJPage() {
 
         <div className="p-4 sm:p-6">
           {/* Summary cards */}
-          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <button
+              type="button"
+              onClick={() => setOtjStatusFilter("on track")}
+              className={`rounded-xl border border-green-200 bg-green-50 p-4 text-left transition hover:border-green-400 hover:shadow-sm ${selectedCardClass("on track", "green")}`}
+            >
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <span className="text-xs font-semibold text-red-800">At Risk</span>
+                <CheckCircle2 className={`h-4 w-4 ${selectedTextClass("on track", "text-green-600")}`} />
+                <span className={`text-xs font-semibold ${selectedTextClass("on track", "text-green-800")}`}>On Track</span>
               </div>
-              <p className="mt-1 text-2xl font-bold text-red-900">{loading ? "…" : atRiskCount}</p>
-              <p className="text-xs text-red-700">learners at risk on hours</p>
-            </div>
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-4">
+              <p className={`mt-1 text-2xl font-bold ${selectedTextClass("on track", "text-green-900")}`}>{loading ? "..." : onTrackCount}</p>
+              <p className={`text-xs ${selectedSubTextClass("on track", "text-green-700")}`}>
+                {loading || activeLearnersLoading ? "..." : `${onTrackPct}% of ${activeLearnersCount} active learners`}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOtjStatusFilter("need attention")}
+              className={`rounded-xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:border-amber-400 hover:shadow-sm ${selectedCardClass("need attention", "amber")}`}
+            >
               <div className="flex items-center gap-2">
-                <BriefcaseBusiness className="h-4 w-4 text-[#5F7288]" />
-                <span className="text-xs font-semibold text-[#5F7288]">Showing</span>
+                <AlertTriangle className={`h-4 w-4 ${selectedTextClass("need attention", "text-amber-600")}`} />
+                <span className={`text-xs font-semibold ${selectedTextClass("need attention", "text-amber-800")}`}>Need Attention</span>
               </div>
-              <p className="mt-1 text-2xl font-bold text-[#14264A]">{loading ? "…" : filtered.length}</p>
-              <p className="text-xs text-[#71849A]">currently filtered</p>
-            </div>
+              <p className={`mt-1 text-2xl font-bold ${selectedTextClass("need attention", "text-amber-900")}`}>{loading ? "..." : needAttentionCount}</p>
+              <p className={`text-xs ${selectedSubTextClass("need attention", "text-amber-700")}`}>
+                {loading || activeLearnersLoading ? "..." : `${needAttentionPct}% of ${activeLearnersCount} active learners`}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOtjStatusFilter("at risk")}
+              className={`rounded-xl border border-red-200 bg-red-50 p-4 text-left transition hover:border-red-400 hover:shadow-sm ${selectedCardClass("at risk", "red")}`}
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className={`h-4 w-4 ${selectedTextClass("at risk", "text-red-600")}`} />
+                <span className={`text-xs font-semibold ${selectedTextClass("at risk", "text-red-800")}`}>At Risk</span>
+              </div>
+              <p className={`mt-1 text-2xl font-bold ${selectedTextClass("at risk", "text-red-900")}`}>{loading ? "..." : atRiskCount}</p>
+              <p className={`text-xs ${selectedSubTextClass("at risk", "text-red-700")}`}>
+                {loading || activeLearnersLoading ? "..." : `${atRiskPct}% of ${activeLearnersCount} active learners`}
+              </p>
+            </button>
             <div className="rounded-xl border border-[#DDE7F0] bg-white p-4">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-[#5F7288]" />
                 <span className="text-xs font-semibold text-[#5F7288]">Coaches Affected</span>
               </div>
-              <p className="mt-1 text-2xl font-bold text-[#14264A]">{loading ? "…" : coaches.length}</p>
+              <p className="mt-1 text-2xl font-bold text-[#14264A]">{loading ? "..." : coachesAffected}</p>
               <p className="text-xs text-[#71849A]">with at-risk learners</p>
             </div>
           </div>
@@ -304,20 +361,8 @@ export default function TrackOTJPage() {
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation..." className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
             </div>
-            <Select value={otjStatusFilter} onValueChange={setOtjStatusFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
-                <SelectItem value="all">All OTJH Status</SelectItem>
-                <SelectItem value="at risk">At Risk</SelectItem>
-                <SelectItem value="on track">On Track</SelectItem>
-                <SelectItem value="need attention">Need Attention</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={coachFilter} onValueChange={setCoachFilter}>
               <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
                 <SelectValue />
@@ -338,7 +383,7 @@ export default function TrackOTJPage() {
           {/* Table */}
           <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading learners…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading learners...</div>
             ) : filtered.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
                 <BriefcaseBusiness className="h-8 w-8 text-[#C5D5E3]" />
@@ -368,6 +413,7 @@ export default function TrackOTJPage() {
                           : barPct >= 25
                             ? "bg-orange-500"
                             : "bg-red-500";
+                      const ticketId = ticketMap[emailKey(l.email)];
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
                           <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
@@ -396,14 +442,14 @@ export default function TrackOTJPage() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-3">{statusBadge(l.otjHoursStatus)}</td>
-                          <td className="px-3 py-3">
-                            {ticketMap[l.email] ? (
+                          <td className="whitespace-nowrap px-3 py-3">{statusBadge(l.otjHoursStatus)}</td>
+                          <td className="whitespace-nowrap px-3 py-3">
+                            {ticketId ? (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => navigate(`/otj-hours/tickets?ticket=${ticketMap[l.email]}`)}
-                                className="h-7 gap-1 rounded-lg border-green-200 bg-green-50 px-2 text-xs font-semibold text-green-700 hover:bg-green-100"
+                                onClick={() => navigate(`/otj-hours/tickets?ticket=${ticketId}`)}
+                                className="h-7 whitespace-nowrap gap-1 rounded-lg border-blue-200 bg-blue-50 px-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                               >
                                 <ExternalLink className="h-3 w-3" /> View Ticket
                               </Button>
@@ -412,7 +458,7 @@ export default function TrackOTJPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => openTicket(l)}
-                                className="h-7 gap-1 rounded-lg border-[#D7E5F3] px-2 text-xs font-semibold text-[#24557F] hover:bg-[#EEF7FF]"
+                                className="h-7 whitespace-nowrap gap-1 rounded-lg border-[#D7E5F3] px-2 text-xs font-semibold text-[#24557F] hover:bg-[#EEF7FF]"
                               >
                                 <Ticket className="h-3 w-3" /> Open Ticket
                               </Button>

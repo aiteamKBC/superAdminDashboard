@@ -6,6 +6,7 @@ import BackButton from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
 import FilterSelect from "@/components/FilterSelect";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useActiveLearnersCount } from "@/hooks/useActiveLearnersCount";
 
 interface MCMRow {
   id: string;
@@ -196,6 +197,24 @@ function matchesPeriod(row: MCMRow, offset: number): boolean {
   });
 }
 
+const getGlobalOverdueMcmItems = (row: MCMRow) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return row.mcmDates
+    .filter((d) => {
+      if (d.completed) return false;
+      const dt = getMcmScopeDate(d);
+      if (!dt || dt >= today) return false;
+      return !String(d.status || "").toLowerCase().includes("completed");
+    })
+    .sort((a, b) => {
+      const aTime = getMcmScopeDate(a)?.getTime() ?? 0;
+      const bTime = getMcmScopeDate(b)?.getTime() ?? 0;
+      return aTime - bTime;
+    });
+};
+
 type MCMCategory = "not_scheduled" | "scheduled" | "in_progress" | "completed";
 
 function getMcmCategory(row: MCMRow, offset: number): MCMCategory {
@@ -269,6 +288,7 @@ type OpenTicket = { id: number; ticketRef: string; learnerEmail: string; status:
 
 export default function RequiredMCMPage() {
   const navigate = useNavigate();
+  const { count: activeLearnersCount, loading: activeLearnersLoading } = useActiveLearnersCount();
   const [all, setAll] = useState<MCMRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [ticketMap, setTicketMap] = useState<Record<string, OpenTicket>>({});
@@ -303,18 +323,23 @@ export default function RequiredMCMPage() {
       .catch(() => {});
   }, []);
 
-  // Count of period-filtered learners who have at least 1 overdue MCM
-  const totalOverdue = useMemo(() => {
+  const entityFiltered = useMemo(() => {
     const q = search.toLowerCase();
     return all.filter((r) => {
-      if (!matchesPeriod(r, periodOffset)) return false;
       if (q && !r.fullName.toLowerCase().includes(q) && !r.email.toLowerCase().includes(q)) return false;
       if (coachFilter !== "all" && r.caseOwner !== coachFilter) return false;
       if (programmeFilter !== "all" && r.programme !== programmeFilter) return false;
       if (orgFilter !== "all" && r.organisationName !== orgFilter) return false;
-      return r.overdueMcmCount >= 1;
-    }).length;
-  }, [all, search, coachFilter, programmeFilter, orgFilter, periodOffset]);
+      return true;
+    });
+  }, [all, search, coachFilter, programmeFilter, orgFilter]);
+
+  const globalOverdueRows = useMemo(
+    () => entityFiltered.filter((r) => getGlobalOverdueMcmItems(r).length > 0),
+    [entityFiltered],
+  );
+
+  const totalOverdue = globalOverdueRows.length;
 
   const coaches = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.caseOwner).filter(Boolean))).filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase())).sort()], [all]);
   const programmes = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.programme).filter(Boolean))).sort()], [all]);
@@ -322,17 +347,11 @@ export default function RequiredMCMPage() {
 
   // Period + dropdown filters (without categoryFilter) — used for card counts
   const periodFiltered = useMemo(() => {
-    const q = search.toLowerCase();
-    return all.filter((r) => {
+    return entityFiltered.filter((r) => {
       if (!matchesPeriod(r, periodOffset)) return false;
-      if (overdueOnly && r.overdueMcmCount < 1) return false;
-      if (q && !r.fullName.toLowerCase().includes(q) && !r.email.toLowerCase().includes(q)) return false;
-      if (coachFilter !== "all" && r.caseOwner !== coachFilter) return false;
-      if (programmeFilter !== "all" && r.programme !== programmeFilter) return false;
-      if (orgFilter !== "all" && r.organisationName !== orgFilter) return false;
       return true;
     });
-  }, [all, search, coachFilter, programmeFilter, orgFilter, periodOffset, overdueOnly]);
+  }, [entityFiltered, periodOffset]);
 
   // Category breakdown — counts per MCM status within the period
   const categoryCounts = useMemo(() => {
@@ -342,9 +361,10 @@ export default function RequiredMCMPage() {
   }, [periodFiltered, periodOffset]);
 
   // Final rows = period filtered + optional category filter
-  const filtered = useMemo(() =>
-    categoryFilter ? periodFiltered.filter((r) => getMcmCategory(r, periodOffset) === categoryFilter) : periodFiltered,
-  [periodFiltered, categoryFilter, periodOffset]);
+  const filtered = useMemo(() => {
+    if (overdueOnly) return globalOverdueRows;
+    return categoryFilter ? periodFiltered.filter((r) => getMcmCategory(r, periodOffset) === categoryFilter) : periodFiltered;
+  }, [categoryFilter, globalOverdueRows, overdueOnly, periodFiltered, periodOffset]);
 
   const exportCsv = () => {
     const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "Next Due Date", "Last MCM", "Last Completed MCM"];
@@ -370,8 +390,8 @@ export default function RequiredMCMPage() {
                     Learners requiring monthly coaching action in the{" "}
                     <strong className="font-bold text-[#315D93]">Last 30 days</strong>
                   </span>
-                  <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
-                    {loading ? "..." : all.length} active learners
+                  <span className="inline-flex items-center rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
+                    {activeLearnersLoading ? "..." : activeLearnersCount} active learners
                   </span>
                 </p>
               </div>
@@ -437,13 +457,20 @@ export default function RequiredMCMPage() {
                     <span className="text-xs font-semibold">Overdue</span>
                   </div>
                   <p className="mt-1 text-2xl font-bold">{count}</p>
-                  <p className="mt-0.5 text-[11px] opacity-60">Past date, not completed</p>
+                  <p className="mt-0.5 text-[11px] opacity-60">Any past, incomplete MCM</p>
                 </button>
               );
             })()}
           </div>
 
           {/* Filters — row 1 */}
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <p>
+              <strong className="font-bold">Overdue MCM:</strong> this card counts learners with any past, incomplete monthly coaching meeting anywhere in their MCM history. It ignores the MCM Period date filter, but still follows Programme, Coach, Organization, and Search filters.
+            </p>
+          </div>
+
           <div className="mb-2 flex flex-wrap gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />

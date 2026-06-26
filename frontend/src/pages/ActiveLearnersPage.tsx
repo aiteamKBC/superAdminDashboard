@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle, Download, GraduationCap,
   RefreshCw, Search, Shield, TrendingUp, Users, X,
@@ -187,6 +188,7 @@ function CompTooltip({ l }: { l: Learner }) {
 }
 
 export default function ActiveLearnersPage() {
+  const [searchParams] = useSearchParams();
   const [all, setAll] = useState<Learner[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -195,6 +197,11 @@ export default function ActiveLearnersPage() {
   const [otjFilter, setOtjFilter] = useState("all");
   const [levyFilter, setLevyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
+
+  useEffect(() => {
+    const learnerQuery = searchParams.get("learner") || searchParams.get("search") || "";
+    if (learnerQuery) setSearch(learnerQuery);
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     setLoading(true);

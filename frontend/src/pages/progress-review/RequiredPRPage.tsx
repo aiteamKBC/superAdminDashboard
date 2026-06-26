@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, CalendarRange, CheckCircle2, ChevronDown,
-  ExternalLink, Plus, RefreshCw, Search,
+  Download, ExternalLink, Plus, RefreshCw, Search,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
 import AppFilterSelect from "@/components/FilterSelect";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useActiveLearnersCount } from "@/hooks/useActiveLearnersCount";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -212,6 +213,7 @@ function SimpleSelect({ value, onChange, options, placeholder }: {
 
 export default function RequiredPRPage() {
   const navigate = useNavigate();
+  const { count: activeLearnersCount, loading: activeLearnersLoading } = useActiveLearnersCount();
   const [learners, setLearners] = useState<PRLearner[]>([]);
   const [tickets, setTickets] = useState<PRTicketInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +222,7 @@ export default function RequiredPRPage() {
   const [programmeFilter, setProgrammeFilter] = useState("");
   const [coachFilter, setCoachFilter] = useState("");
   const [cardFilter, setCardFilter] = useState<"all" | "scheduled" | "notScheduled" | "inProgress" | "completed" | "overdue">("all");
-  const autoCreateLast12WeeksKeyRef = useRef("");
+  const autoCreateOverdueKeyRef = useRef("");
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -252,17 +254,13 @@ export default function RequiredPRPage() {
   // ── Derived filter options ────────────────────────────────────────────
   const programmeOptions = useMemo(() =>
     Array.from(new Set(learners.map((l) => l.group).filter(Boolean))).sort(),
-  [learners]);
+    [learners]);
 
   const coachOptions = useMemo(() =>
     Array.from(new Set(learners.map((l) => l.caseOwner).filter(Boolean)))
       .filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase()))
       .sort(),
-  [learners]);
-
-  const totalActive = useMemo(() =>
-    learners.filter((l) => !!l.caseOwner).length,
-  [learners]);
+    [learners]);
 
   // ── All learners in range (completed + non-completed) — single population ──
   // ── Helper: categorise a learner's dates within the selected range ────
@@ -362,17 +360,68 @@ export default function RequiredPRPage() {
     };
   }, []);
 
-  const allInRange = useMemo(() => {
-    const { start, end } = getPrDateRange(prOffset);
+  const getGlobalOverdueStatus = useCallback((l: PRLearner) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const overdueItems = l.plannedDates
+      .filter((d) => {
+        if (d.completed || statusIncludes(d.status, "completed")) return false;
+        const dt = parseBookedDate(d.date);
+        return dt !== null && dt < today;
+      })
+      .sort((a, b) => {
+        const aTime = parseBookedDate(a.date)?.getTime() ?? 0;
+        const bTime = parseBookedDate(b.date)?.getTime() ?? 0;
+        return aTime - bTime;
+      })
+      .map((d) => ({
+        date: d.date,
+        status: d.status || "Not Scheduled",
+      }));
+
+    if (overdueItems.length === 0) {
+      const nextDate = parseBookedDate(l.nextPrDate);
+      const nextState = String(l.nextPrState || "").trim();
+      if (nextDate && nextDate < today && !statusIncludes(nextState, "completed")) {
+        overdueItems.push({
+          date: l.nextPrDate,
+          status: nextState || "Not Scheduled",
+        });
+      }
+    }
+
+    return {
+      overdue: overdueItems.length > 0,
+      overdueDate: overdueItems[0]?.date || "",
+      overdueItems,
+      overdueCount: overdueItems.length,
+    };
+  }, []);
+
+  const entityFilteredLearners = useMemo(() => {
     const baseQ = search.toLowerCase();
 
     return learners.filter((l) => {
       if (programmeFilter && l.group !== programmeFilter) return false;
       if (coachFilter && l.caseOwner !== coachFilter) return false;
       if (baseQ && !l.fullName.toLowerCase().includes(baseQ) && !l.email.toLowerCase().includes(baseQ) && !l.caseOwner.toLowerCase().includes(baseQ)) return false;
+      return true;
+    });
+  }, [coachFilter, learners, programmeFilter, search]);
+
+  const allInRange = useMemo(() => {
+    const { start, end } = getPrDateRange(prOffset);
+
+    return entityFilteredLearners.filter((l) => {
       return getRangeStatus(l, start, end).inScope;
     });
-  }, [learners, prOffset, search, programmeFilter, coachFilter, getRangeStatus]);
+  }, [entityFilteredLearners, prOffset, getRangeStatus]);
+
+  const globalOverdueRows = useMemo(
+    () => entityFilteredLearners.filter((l) => getGlobalOverdueStatus(l).overdue),
+    [entityFilteredLearners, getGlobalOverdueStatus],
+  );
 
   // ── Summary counts — all based on dates within the selected range ──────
   const summary = useMemo(() => {
@@ -388,45 +437,49 @@ export default function RequiredPRPage() {
     });
 
     return {
-      total:        allInRange.length,
-      scheduled:    scheduledLearners.size,
+      total: allInRange.length,
+      scheduled: scheduledLearners.size,
       notScheduled: notScheduledLearners.size,
-      inProgress:   inProgressLearners.size,
-      completed:    allInRange.filter((l) => getRangeStatus(l, start, end).completed).length,
-      overdue:      allInRange.filter((l) => getRangeStatus(l, start, end).overdue).length,
+      inProgress: inProgressLearners.size,
+      completed: allInRange.filter((l) => getRangeStatus(l, start, end).completed).length,
+      overdue: globalOverdueRows.length,
     };
-  }, [allInRange, prOffset, getRangeStatus]);
+  }, [allInRange, globalOverdueRows, prOffset, getRangeStatus]);
 
   // ── Rows shown in table based on card selection ───────────────────────
   const displayedRows = useMemo(() => {
+    if (cardFilter === "overdue") return globalOverdueRows;
     if (cardFilter === "all") return allInRange;
     const { start, end } = getPrDateRange(prOffset);
     return allInRange.filter((l) => {
       const s = getRangeStatus(l, start, end);
-      if (cardFilter === "scheduled")    return s.scheduled;
+      if (cardFilter === "scheduled") return s.scheduled;
       if (cardFilter === "notScheduled") return s.notScheduled;
-      if (cardFilter === "inProgress")   return s.inProgress;
-      if (cardFilter === "completed")    return s.completed;
-      if (cardFilter === "overdue")      return s.overdue;
+      if (cardFilter === "inProgress") return s.inProgress;
+      if (cardFilter === "completed") return s.completed;
       return true;
     });
-  }, [cardFilter, allInRange, prOffset, getRangeStatus]);
+  }, [cardFilter, allInRange, globalOverdueRows, prOffset, getRangeStatus]);
 
   const getScopedTicketDate = useCallback((l: PRLearner) => {
+    if (cardFilter === "overdue") {
+      const globalStatus = getGlobalOverdueStatus(l);
+      if (globalStatus.overdueDate) return globalStatus.overdueDate;
+    }
     const { start, end } = getPrDateRange(prOffset);
     const status = getRangeStatus(l, start, end);
     return status.overdueDate || status.matchDate || l.nextPrDate || "";
-  }, [getRangeStatus, prOffset]);
+  }, [cardFilter, getGlobalOverdueStatus, getRangeStatus, prOffset]);
 
   useEffect(() => {
-    if (loading || prOffset !== "last12weeks" || learners.length === 0) return;
+    if (loading || globalOverdueRows.length === 0) return;
 
-    const { start, end } = getPrDateRange("last12weeks");
-    const candidates = learners
-      .map((learner) => ({ learner, status: getRangeStatus(learner, start, end) }))
+    const candidates = globalOverdueRows
+      .map((learner) => ({ learner, status: getGlobalOverdueStatus(learner) }))
       .filter(({ learner, status }) => {
-        if (!status.overdue || !status.overdueDate) return false;
-        return !ticketMap.has(getPrTicketKey(learner.email, status.overdueDate));
+        if (!status.overdueDate) return false;
+        const existingTicket = ticketMap.get(learner.email.toLowerCase());
+        return !existingTicket || existingTicket.status === "resolved";
       });
 
     if (candidates.length === 0) return;
@@ -435,8 +488,8 @@ export default function RequiredPRPage() {
       .map(({ learner, status }) => getPrTicketKey(learner.email, status.overdueDate))
       .sort()
       .join("|");
-    if (!runKey || autoCreateLast12WeeksKeyRef.current === runKey) return;
-    autoCreateLast12WeeksKeyRef.current = runKey;
+    if (!runKey || autoCreateOverdueKeyRef.current === runKey) return;
+    autoCreateOverdueKeyRef.current = runKey;
 
     fetch("/api/pr-tickets/auto-create/", {
       method: "POST",
@@ -453,7 +506,7 @@ export default function RequiredPRPage() {
           last_actually_completed_pr: learner.lastActuallyCompletedPr || "",
           last_pr_date: "",
           next_pr_date: status.overdueDate,
-          overdue_count: status.scopedOverdueCount || 1,
+          overdue_count: status.overdueCount || 1,
           risk: "amber",
           status: "new",
           notes: "",
@@ -463,9 +516,9 @@ export default function RequiredPRPage() {
     }).then((res) => {
       if (res.ok) void loadAll();
     }).catch(() => {
-      autoCreateLast12WeeksKeyRef.current = "";
+      autoCreateOverdueKeyRef.current = "";
     });
-  }, [getRangeStatus, learners, loadAll, loading, prOffset, ticketMap]);
+  }, [getGlobalOverdueStatus, globalOverdueRows, loadAll, loading, ticketMap]);
 
   const onFollowUp = (l: PRLearner) => {
     const scopedPrDate = getScopedTicketDate(l);
@@ -496,6 +549,54 @@ export default function RequiredPRPage() {
     setSearch(""); setProgrammeFilter(""); setCoachFilter(""); setCardFilter("all");
   };
 
+  const exportCsv = () => {
+    const { start, end } = getPrDateRange(prOffset);
+    const cols = [
+      "Learner",
+      "Email",
+      "Coach",
+      "Programme",
+      "Last actual completed",
+      "Last PR",
+      "Next Progress Review Date",
+      "Next Progress Review State",
+      "Overdue Count",
+      "Overdue Items",
+      "Follow-up Ticket",
+      "Ticket Status",
+    ];
+    const rows = displayedRows.map((l) => {
+      const rangeStatus = getRangeStatus(l, start, end);
+      const globalOverdueStatus = getGlobalOverdueStatus(l);
+      const overdueCount = cardFilter === "overdue" ? globalOverdueStatus.overdueCount : rangeStatus.scopedOverdueCount;
+      const overdueItems = cardFilter === "overdue" ? globalOverdueStatus.overdueItems : rangeStatus.overdueItems;
+      const ticket = ticketMap.get(l.email.toLowerCase());
+      return [
+        l.fullName,
+        l.email,
+        l.caseOwner || "",
+        l.group || "",
+        fmtProgressReviewText(l.lastActuallyCompletedPr),
+        fmtProgressReviewText(l.lastProgressReview),
+        fmtDate(l.nextPrDate),
+        l.nextPrState || "Not Scheduled",
+        overdueCount,
+        overdueItems.map((item) => `${fmtDate(item.date)} ${item.status}`.trim()).join("; "),
+        ticket?.ticketRef || "",
+        ticket?.status || "",
+      ];
+    });
+    const csv = [cols, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `required-pr-${cardFilter}-${prOffset}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const highlightedColumns = useMemo(() => {
     const columns: Record<typeof cardFilter, string[]> = {
       all: [],
@@ -510,11 +611,11 @@ export default function RequiredPRPage() {
 
   const highlightTone =
     cardFilter === "scheduled" ? "teal" :
-    cardFilter === "notScheduled" ? "red" :
-    cardFilter === "inProgress" ? "blue" :
-    cardFilter === "completed" ? "green" :
-    cardFilter === "overdue" ? "amber" :
-    "";
+      cardFilter === "notScheduled" ? "red" :
+        cardFilter === "inProgress" ? "blue" :
+          cardFilter === "completed" ? "green" :
+            cardFilter === "overdue" ? "amber" :
+              "";
 
   const highlightClass = (column: string, target: "header" | "cell" = "cell") => {
     if (!highlightedColumns.has(column)) return "";
@@ -542,14 +643,23 @@ export default function RequiredPRPage() {
                 <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
                   Last 12 Weeks
                 </span>
-                <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
-                  {loading ? "..." : totalActive} active learners
+                <span className="inline-flex items-center rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
+                  {activeLearnersLoading ? "..." : activeLearnersCount} active learners
                 </span>
               </p>
             </div>
-            <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8]">
-              <RefreshCw className="h-3.5 w-3.5" /> Refresh
-            </button>
+            <div className="flex gap-2">
+              <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8]">
+                <RefreshCw className="h-3.5 w-3.5" /> Refresh
+              </button>
+              <button
+                onClick={exportCsv}
+                disabled={loading || displayedRows.length === 0}
+                className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#24486D] hover:bg-[#F0F4F8] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" /> Export CSV
+              </button>
+            </div>
           </div>
         </div>
 
@@ -599,12 +709,12 @@ export default function RequiredPRPage() {
           {/* Summary cards — clickable filters */}
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {([
-              { key: "all",           label: "Total Shown",   count: summary.total,        icon: <CalendarRange className="h-4 w-4" />, base: "border-[#DDE7F0] bg-white text-[#14264A]",           active: "border-[#14264A] bg-[#14264A] text-white shadow-md",          sub: `Period: ${getPrMonthLabel(prOffset)}` },
-              { key: "scheduled",     label: "Scheduled",     count: summary.scheduled,    icon: <CheckCircle2 className="h-4 w-4" />,  base: "border-teal-200 bg-teal-50 text-teal-800",            active: "border-teal-600 bg-teal-600 text-white shadow-md",             sub: "Date booked" },
-              { key: "notScheduled",  label: "Not Scheduled", count: summary.notScheduled, icon: <AlertTriangle className="h-4 w-4" />, base: "border-red-200 bg-red-50 text-red-800",               active: "border-red-600 bg-red-600 text-white shadow-md",               sub: "No date booked" },
-              { key: "inProgress",    label: "In Progress",   count: summary.inProgress,   icon: <CheckCircle2 className="h-4 w-4" />,  base: "border-blue-200 bg-blue-50 text-blue-800",            active: "border-blue-600 bg-blue-600 text-white shadow-md",             sub: "In Progress / Awaiting Sig." },
-              { key: "completed",     label: "Completed",     count: summary.completed,    icon: <CheckCircle2 className="h-4 w-4" />,  base: "border-green-200 bg-green-50 text-green-800",          active: "border-green-600 bg-green-600 text-white shadow-md",           sub: "PR done this period" },
-              { key: "overdue",       label: "Overdue PR",    count: summary.overdue,      icon: <AlertTriangle className="h-4 w-4" />, base: "border-amber-200 bg-amber-50 text-amber-800",          active: "border-amber-500 bg-amber-500 text-white shadow-md",           sub: "Past date, not completed" },
+              { key: "all", label: "Total Shown", count: summary.total, icon: <CalendarRange className="h-4 w-4" />, base: "border-[#DDE7F0] bg-white text-[#14264A]", active: "border-[#14264A] bg-[#14264A] text-white shadow-md", sub: `Period: ${getPrMonthLabel(prOffset)}` },
+              { key: "scheduled", label: "Scheduled", count: summary.scheduled, icon: <CheckCircle2 className="h-4 w-4" />, base: "border-teal-200 bg-teal-50 text-teal-800", active: "border-teal-600 bg-teal-600 text-white shadow-md", sub: "Date booked" },
+              { key: "notScheduled", label: "Not Scheduled", count: summary.notScheduled, icon: <AlertTriangle className="h-4 w-4" />, base: "border-red-200 bg-red-50 text-red-800", active: "border-red-600 bg-red-600 text-white shadow-md", sub: "No date booked" },
+              { key: "inProgress", label: "In Progress", count: summary.inProgress, icon: <CheckCircle2 className="h-4 w-4" />, base: "border-blue-200 bg-blue-50 text-blue-800", active: "border-blue-600 bg-blue-600 text-white shadow-md", sub: "In Progress / Awaiting Sig." },
+              { key: "completed", label: "Completed", count: summary.completed, icon: <CheckCircle2 className="h-4 w-4" />, base: "border-green-200 bg-green-50 text-green-800", active: "border-green-600 bg-green-600 text-white shadow-md", sub: "PR done this period" },
+              { key: "overdue", label: "Overdue PR", count: summary.overdue, icon: <AlertTriangle className="h-4 w-4" />, base: "border-amber-200 bg-amber-50 text-amber-800", active: "border-amber-500 bg-amber-500 text-white shadow-md", sub: "Any past, incomplete PR" },
             ] as const).map(({ key, label, count, icon, base, active, sub }) => {
               const isActive = cardFilter === key;
               const showPercentage = key !== "all" && key !== "overdue";
@@ -627,6 +737,13 @@ export default function RequiredPRPage() {
                 </button>
               );
             })}
+          </div>
+
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <p>
+              <strong className="font-bold">Overdue PR :</strong> this card counts learners with any past, incomplete progress review anywhere in their PR history. It ignores the PR Quarter date filter, but still follows Programme, Coach, and Search filters.
+            </p>
           </div>
 
           {/* Table */}
@@ -673,20 +790,25 @@ export default function RequiredPRPage() {
                       const ticket = ticketMap.get(l.email.toLowerCase());
                       const { start, end } = getPrDateRange(prOffset);
                       const rangeStatus = getRangeStatus(l, start, end);
+                      const globalOverdueStatus = getGlobalOverdueStatus(l);
+                      const overdueCount =
+                        cardFilter === "overdue" ? globalOverdueStatus.overdueCount : rangeStatus.scopedOverdueCount;
+                      const overdueItems =
+                        cardFilter === "overdue" ? globalOverdueStatus.overdueItems : rangeStatus.overdueItems;
                       const state = String(l.nextPrState || "").trim();
                       const stateL = state.toLowerCase();
                       const stateCls =
                         stateL.includes("not scheduled") || stateL === ""
                           ? "bg-red-50 text-red-700 border-red-200"
                           : stateL.includes("completed")
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : stateL.includes("awaiting signature")
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : stateL.includes("in progress")
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : stateL.includes("scheduled")
-                          ? "bg-teal-50 text-teal-700 border-teal-200"
-                          : "bg-slate-50 text-slate-700 border-slate-200";
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : stateL.includes("awaiting signature")
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : stateL.includes("in progress")
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : stateL.includes("scheduled")
+                                  ? "bg-teal-50 text-teal-700 border-teal-200"
+                                  : "bg-slate-50 text-slate-700 border-slate-200";
 
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
@@ -704,20 +826,22 @@ export default function RequiredPRPage() {
                             }
                           </td>
                           <td className={`px-3 py-3 ${highlightClass("overdue")}`}>
-                            {rangeStatus.scopedOverdueCount > 0
+                            {overdueCount > 0
                               ? (
                                 <TooltipProvider delayDuration={120}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="inline-flex cursor-help items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
                                         <AlertTriangle className="h-3 w-3" />
-                                        {rangeStatus.scopedOverdueCount}
+                                        {overdueCount}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
-                                      <p className="mb-2 text-xs font-bold text-red-700">Overdue meetings</p>
+                                      <p className="mb-2 text-xs font-bold text-red-700">
+                                        {cardFilter === "overdue" ? "All overdue meetings" : "Overdue meetings"}
+                                      </p>
                                       <div className="space-y-1.5">
-                                        {rangeStatus.overdueItems.map((item) => (
+                                        {overdueItems.map((item) => (
                                           <div key={`${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
                                             <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
                                             <span className="text-[#5F7288]">{item.status}</span>

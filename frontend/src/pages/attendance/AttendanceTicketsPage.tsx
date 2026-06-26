@@ -209,6 +209,35 @@ const ticketDateTime = (iso: string | null) => {
 
 const isClosedTicketStatus = (status: TicketStatus) => status === "resolved" || status === "covered";
 
+const parseModuleParts = (module: string) => {
+  const parts = String(module || "")
+    .trim()
+    .split(" - ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    coach: parts.length >= 2 ? parts[0] : "",
+    programme:
+      parts.length >= 3
+        ? parts.slice(1, -1).join(" - ")
+        : parts.length === 2
+          ? parts[1]
+          : parts[0] || "",
+  };
+};
+
+const normalizeModuleIdentity = (module: string) => {
+  const programme = parseModuleParts(module).programme || module;
+  return programme.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+};
+
+const isSameModuleProgramme = (module: string, targetModule: string) => {
+  const moduleIdentity = normalizeModuleIdentity(module);
+  const targetIdentity = normalizeModuleIdentity(targetModule);
+  return Boolean(moduleIdentity && targetIdentity && moduleIdentity === targetIdentity);
+};
+
 const isImage = (mime: string, name: string) => {
   if (mime.startsWith("image/")) return true;
   return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(name);
@@ -1585,9 +1614,17 @@ export default function AttendanceTicketsPage() {
 
   const moduleOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const t of tickets) { if (t.attendanceModule) set.add(t.attendanceModule); }
+    for (const t of weekScopedTickets) {
+      const module = String(t.attendanceModule || "").trim();
+      if (module) set.add(module);
+    }
     return Array.from(set).sort();
-  }, [tickets]);
+  }, [weekScopedTickets]);
+
+  useEffect(() => {
+    if (moduleFilter === "all" || moduleOptions.some((module) => isSameModuleProgramme(module, moduleFilter))) return;
+    setModuleFilter("all");
+  }, [moduleFilter, moduleOptions]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -1599,7 +1636,7 @@ export default function AttendanceTicketsPage() {
         if (notesFilter === "missing" && t.notes.trim()) return false;
         if (cardFilter === "open" && isClosedTicketStatus(t.status)) return false;
         if (cardFilter === "resolved" && !isClosedTicketStatus(t.status)) return false;
-        if (moduleFilter !== "all" && t.attendanceModule !== moduleFilter) return false;
+        if (moduleFilter !== "all" && !isSameModuleProgramme(t.attendanceModule, moduleFilter)) return false;
         return true;
       })
       .sort((a, b) => {

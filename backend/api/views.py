@@ -829,7 +829,8 @@ def _epa_rows():
                 "OrganizationName",
                 "ManagerName",
                 "ManagerEmail",
-                "Learner Phone"
+                "Learner Phone",
+                "OTJHoursStatus"
             FROM public.aptem_auto_extracting
         """)
         columns = [col[0] for col in cursor.description]
@@ -856,6 +857,7 @@ def _epa_learner_dict(row, today=None):
         "daysOverdue": max(0, days_late - 7),
         "programStatus": row.get("Program-Status") or "",
         "subscriptionStatus": row.get("Subscription Status") or "",
+        "otjHoursStatus": row.get("OTJHoursStatus") or "",
     }
 
 
@@ -1956,6 +1958,17 @@ def _pr_ticket_to_dict(ticket):
     }
 
 
+def _next_pr_ticket_ref():
+    from .models import ProgressReviewTicket
+
+    max_ref = 0
+    for ref in ProgressReviewTicket.objects.values_list("ticket_ref", flat=True):
+        match = re.fullmatch(r"PR-(\d+)", str(ref or "").strip())
+        if match:
+            max_ref = max(max_ref, int(match.group(1)))
+    return f"PR-{max_ref + 1:03d}"
+
+
 @csrf_exempt
 def auto_create_pr_tickets(request):
     """Auto-create PR tickets for scoped overdue progress reviews."""
@@ -1997,9 +2010,8 @@ def auto_create_pr_tickets(request):
 
         existing = ProgressReviewTicket.objects.filter(
             learner_email=email,
-            next_pr_date=next_pr_date,
             is_archived=False,
-        ).first()
+        ).exclude(status="resolved").first()
 
         if existing:
             existing_list.append({
@@ -2012,7 +2024,7 @@ def auto_create_pr_tickets(request):
             continue
 
         ticket = ProgressReviewTicket.objects.create(
-            ticket_ref="PR-TMP",
+            ticket_ref=_next_pr_ticket_ref(),
             learner_email=email,
             learner_name=name,
             learner_phone=str(learner.get("phone") or "").strip(),
@@ -2031,8 +2043,6 @@ def auto_create_pr_tickets(request):
             escalated=bool(learner.get("escalated", False)),
             created_by=str(learner.get("created_by") or "System").strip(),
         )
-        ticket.ticket_ref = f"PR-{ticket.pk:03d}"
-        ticket.save(update_fields=["ticket_ref"])
         created_list.append(_pr_ticket_to_dict(ticket))
 
     return JsonResponse({
@@ -2066,7 +2076,7 @@ def pr_tickets(request):
                 return None
 
         ticket = ProgressReviewTicket.objects.create(
-            ticket_ref="PR-TMP",
+            ticket_ref=_next_pr_ticket_ref(),
             learner_email=str(body.get("learner_email", "")).strip().lower(),
             learner_name=str(body.get("learner_name", "")).strip(),
             learner_phone=str(body.get("learner_phone", "")).strip(),
@@ -2085,8 +2095,6 @@ def pr_tickets(request):
             escalated=bool(body.get("escalated", False)),
             created_by=str(body.get("created_by", "System")).strip(),
         )
-        ticket.ticket_ref = f"PR-{ticket.pk:03d}"
-        ticket.save(update_fields=["ticket_ref"])
         return JsonResponse(_pr_ticket_to_dict(ticket), status=201)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -2258,6 +2266,17 @@ def _mcm_ticket_to_dict(ticket):
         "updatedAt": ticket.updated_at.isoformat(),
         "evidenceCount": ticket.evidence_files.count(),
     }
+
+
+def _next_mcm_ticket_ref():
+    from .models import MCMTicket
+
+    max_ref = 0
+    for ref in MCMTicket.objects.values_list("ticket_ref", flat=True):
+        match = re.fullmatch(r"MCM-(\d+)", str(ref or "").strip())
+        if match:
+            max_ref = max(max_ref, int(match.group(1)))
+    return f"MCM-{max_ref + 1:03d}"
 
 
 def _mcm_evidence_file_to_dict(f, request):
@@ -2433,7 +2452,7 @@ def auto_create_mcm_tickets(request):
             continue
 
         ticket = MCMTicket.objects.create(
-            ticket_ref="MCM-TMP",
+            ticket_ref=_next_mcm_ticket_ref(),
             learner_email=payload["learner_email"],
             learner_name=payload["learner_name"],
             learner_phone=payload["learner_phone"],
@@ -2451,8 +2470,6 @@ def auto_create_mcm_tickets(request):
             notes="",
             created_by="System",
         )
-        ticket.ticket_ref = f"MCM-{ticket.pk:03d}"
-        ticket.save(update_fields=["ticket_ref"])
         active_by_email[payload["learner_email"]] = ticket
         created.append(_mcm_ticket_to_dict(ticket))
 
@@ -2484,8 +2501,14 @@ def mcm_tickets(request):
         learner_name = str(val(body, "learner_name", "learnerName", "")).strip()
         if not learner_email or not learner_name:
             return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
+        existing = MCMTicket.objects.filter(
+            learner_email=learner_email,
+            is_archived=False,
+        ).exclude(status="resolved").first()
+        if existing:
+            return JsonResponse(_mcm_ticket_to_dict(existing), status=200)
         ticket = MCMTicket.objects.create(
-            ticket_ref="MCM-TMP",
+            ticket_ref=_next_mcm_ticket_ref(),
             learner_email=learner_email,
             learner_name=learner_name,
             learner_phone=str(val(body, "learner_phone", "learnerPhone", "")).strip(),
@@ -2505,8 +2528,6 @@ def mcm_tickets(request):
             escalated=bool(body.get("escalated", False)),
             created_by=str(body.get("created_by", "System")).strip(),
         )
-        ticket.ticket_ref = f"MCM-{ticket.pk:03d}"
-        ticket.save(update_fields=["ticket_ref"])
         return JsonResponse(_mcm_ticket_to_dict(ticket), status=201)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
@@ -2893,6 +2914,17 @@ def _otj_ticket_to_dict(ticket):
     }
 
 
+def _next_otj_ticket_ref():
+    from .models import OTJTicket
+
+    max_ref = 0
+    for ref in OTJTicket.objects.values_list("ticket_ref", flat=True):
+        match = re.fullmatch(r"OTJ-(\d+)", str(ref or "").strip())
+        if match:
+            max_ref = max(max_ref, int(match.group(1)))
+    return f"OTJ-{max_ref + 1:03d}"
+
+
 @csrf_exempt
 def otj_tickets(request):
     from .models import OTJTicket
@@ -2904,13 +2936,22 @@ def otj_tickets(request):
 
     if request.method == "POST":
         body = _json_body(request)
-        if not body.get("learner_email") or not body.get("learner_name"):
+        learner_email = str(body.get("learner_email", "")).strip().lower()
+        learner_name = str(body.get("learner_name", "")).strip()
+        if not learner_email or not learner_name:
             return JsonResponse({"error": "learner_email and learner_name are required"}, status=400)
 
+        existing = OTJTicket.objects.filter(
+            learner_email=learner_email,
+            is_archived=False,
+        ).exclude(status="resolved").first()
+        if existing:
+            return JsonResponse(_otj_ticket_to_dict(existing), status=200)
+
         ticket = OTJTicket.objects.create(
-            ticket_ref="OTJ-TMP",
-            learner_email=str(body.get("learner_email", "")).strip().lower(),
-            learner_name=str(body.get("learner_name", "")).strip(),
+            ticket_ref=_next_otj_ticket_ref(),
+            learner_email=learner_email,
+            learner_name=learner_name,
             learner_phone=str(body.get("learner_phone", "")).strip(),
             organisation=str(body.get("organisation", "")).strip(),
             programme=str(body.get("programme", "")).strip(),
@@ -2926,8 +2967,6 @@ def otj_tickets(request):
             escalated=bool(body.get("escalated", False)),
             created_by=str(body.get("created_by", "System")).strip(),
         )
-        ticket.ticket_ref = f"OTJ-{ticket.pk:03d}"
-        ticket.save(update_fields=["ticket_ref"])
         return JsonResponse(_otj_ticket_to_dict(ticket), status=201)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)

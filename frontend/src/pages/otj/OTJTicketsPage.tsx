@@ -102,6 +102,10 @@ const fmtHoursMin = (h: number | null) => {
   return `${hrs}h ${mins}m`;
 };
 const reqToSubmitHours = (expected: number, completed: number) => Math.max(0, expected - completed);
+const ticketRefNumber = (ref: string) => {
+  const match = String(ref || "").match(/(\d+)$/);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+};
 const isImage = (mime: string, name: string) => mime.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
 const isPdf = (mime: string, name: string) => mime === "application/pdf" || /\.pdf$/i.test(name);
 const isHtml = (mime: string, name: string) => mime === "text/html" || /\.html?$/i.test(name);
@@ -628,13 +632,15 @@ export default function OTJTicketsPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return tickets.filter((t) => {
-      if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
-      if (ragFilter !== "all" && t.risk !== ragFilter) return false;
-      if (cardFilter === "open" && t.status === "resolved") return false;
-      if (cardFilter === "resolved" && t.status !== "resolved") return false;
-      return true;
-    });
+    return tickets
+      .filter((t) => {
+        if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
+        if (ragFilter !== "all" && t.risk !== ragFilter) return false;
+        if (cardFilter === "open" && t.status === "resolved") return false;
+        if (cardFilter === "resolved" && t.status !== "resolved") return false;
+        return true;
+      })
+      .sort((a, b) => ticketRefNumber(b.ticketRef) - ticketRefNumber(a.ticketRef));
   }, [tickets, search, ragFilter, cardFilter]);
 
   const allCount = tickets.length;

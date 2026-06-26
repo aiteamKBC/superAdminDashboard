@@ -120,6 +120,10 @@ const isImage = (mime: string, name: string) => mime.startsWith("image/") || /\.
 const isPdf = (mime: string, name: string) => mime === "application/pdf" || /\.pdf$/i.test(name);
 const isText = (mime: string, name: string) => mime.startsWith("text/") || /\.(csv|txt|log)$/i.test(name);
 const isCsv = (mime: string, name: string) => mime === "text/csv" || /\.csv$/i.test(name);
+const ticketRefNumber = (ref: string) => {
+  const match = String(ref || "").match(/(\d+)$/);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+};
 
 // ─── File Preview Modal ────────────────────────────────────────────────
 
@@ -648,13 +652,15 @@ export default function PRTicketsPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return tickets.filter((t) => {
-      if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
-      if (ragFilter !== "all" && t.risk !== ragFilter) return false;
-      if (cardFilter === "open" && t.status === "resolved") return false;
-      if (cardFilter === "resolved" && t.status !== "resolved") return false;
-      return true;
-    });
+    return tickets
+      .filter((t) => {
+        if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
+        if (ragFilter !== "all" && t.risk !== ragFilter) return false;
+        if (cardFilter === "open" && t.status === "resolved") return false;
+        if (cardFilter === "resolved" && t.status !== "resolved") return false;
+        return true;
+      })
+      .sort((a, b) => ticketRefNumber(b.ticketRef) - ticketRefNumber(a.ticketRef));
   }, [tickets, search, ragFilter, cardFilter]);
 
   const allCount = tickets.length;
@@ -796,26 +802,31 @@ export default function PRTicketsPage() {
                             const overdueCount = overdueItems.length || t.overdueCount;
                             if (overdueCount <= 0) return <span className="text-xs text-[#A0B0C0]">0</span>;
                             const badge = (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                              <span className="inline-flex cursor-help items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
                                 <AlertTriangle className="h-3 w-3" />
                                 {overdueCount}
                               </span>
                             );
-                            if (overdueItems.length === 0) return badge;
                             return (
                               <TooltipProvider delayDuration={120}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>{badge}</TooltipTrigger>
                                   <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
                                     <p className="mb-2 text-xs font-bold text-red-700">Overdue meetings</p>
-                                    <div className="space-y-1.5">
-                                      {overdueItems.map((item) => (
-                                        <div key={`${t.id}-${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
-                                          <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
-                                          <span className="text-[#5F7288]">{item.status || "Not completed"}</span>
-                                        </div>
-                                      ))}
-                                    </div>
+                                    {overdueItems.length > 0 ? (
+                                      <div className="space-y-1.5">
+                                        {overdueItems.map((item) => (
+                                          <div key={`${t.id}-${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
+                                            <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
+                                            <span className="text-[#5F7288]">{item.status || "Not completed"}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs leading-relaxed text-[#5F7288]">
+                                        This ticket was archived with {overdueCount} overdue PR{overdueCount === 1 ? "" : "s"}. Live date details are no longer available in the current PR summary.
+                                      </p>
+                                    )}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

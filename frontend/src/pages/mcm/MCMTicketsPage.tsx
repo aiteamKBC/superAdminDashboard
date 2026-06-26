@@ -140,6 +140,11 @@ const daysOpen = (createdAt: string) => {
   return Math.max(0, Math.floor(diff / 86_400_000));
 };
 
+const ticketRefNumber = (ref: string) => {
+  const match = String(ref || "").match(/(\d+)$/);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+};
+
 const DaysCreatedHeader = ({ label = "Days Open" }: { label?: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
@@ -1300,12 +1305,14 @@ export default function MCMTicketsPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return tickets.filter((t) => {
-      if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
-      if (ragFilter !== "all" && t.risk !== ragFilter) return false;
-      if (statusFilter !== "all" && t.status !== statusFilter) return false;
-      return true;
-    });
+    return tickets
+      .filter((t) => {
+        if (q && !t.learnerName.toLowerCase().includes(q) && !t.learnerEmail.toLowerCase().includes(q) && !t.ticketRef.toLowerCase().includes(q)) return false;
+        if (ragFilter !== "all" && t.risk !== ragFilter) return false;
+        if (statusFilter !== "all" && t.status !== statusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => ticketRefNumber(b.ticketRef) - ticketRefNumber(a.ticketRef));
   }, [tickets, search, ragFilter, statusFilter]);
 
   const totals = useMemo(() => ({
