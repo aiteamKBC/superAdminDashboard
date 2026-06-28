@@ -193,15 +193,21 @@ export default function TrackOTJPage() {
     return Array.from(set).filter((c) => !["default owner", "enrolment team"].includes(c.toLowerCase())).sort();
   }, [all]);
 
-  const filtered = useMemo(() => {
+  const scopedRows = useMemo(() => {
     const q = search.toLowerCase();
     return all.filter((l) => {
       if (q && !l.fullName.toLowerCase().includes(q) && !l.email.toLowerCase().includes(q) && !l.organizationName.toLowerCase().includes(q)) return false;
       if (coachFilter !== "all" && l.ownerName !== coachFilter) return false;
+      return true;
+    });
+  }, [all, search, coachFilter]);
+
+  const filtered = useMemo(() => {
+    return scopedRows.filter((l) => {
       if (otjStatusFilter !== "all" && statusKey(l.otjHoursStatus) !== otjStatusFilter) return false;
       return true;
     });
-  }, [all, search, coachFilter, otjStatusFilter]);
+  }, [scopedRows, otjStatusFilter]);
 
   const exportCsv = () => {
     const cols = ["Name", "Email", "Organisation", "Programme", "Coach", "Planned Hours", "Completed", "Target Now", "Gap", "Status"];
@@ -239,12 +245,14 @@ export default function TrackOTJPage() {
     navigate(`/otj-hours/tickets?${params.toString()}`);
   };
 
-  const atRiskCount = useMemo(() => all.filter((l) => statusKey(l.otjHoursStatus) === "at risk").length, [all]);
-  const needAttentionCount = useMemo(() => all.filter((l) => statusKey(l.otjHoursStatus) === "need attention").length, [all]);
-  const onTrackCount = useMemo(() => all.filter((l) => statusKey(l.otjHoursStatus) === "on track").length, [all]);
-  const atRiskPct = percentOf(atRiskCount, activeLearnersCount);
-  const needAttentionPct = percentOf(needAttentionCount, activeLearnersCount);
-  const onTrackPct = percentOf(onTrackCount, activeLearnersCount);
+  const cardTotal = scopedRows.length;
+  const scopedLabel = coachFilter !== "all" || search.trim() ? "selected learners" : "active learners";
+  const atRiskCount = useMemo(() => scopedRows.filter((l) => statusKey(l.otjHoursStatus) === "at risk").length, [scopedRows]);
+  const needAttentionCount = useMemo(() => scopedRows.filter((l) => statusKey(l.otjHoursStatus) === "need attention").length, [scopedRows]);
+  const onTrackCount = useMemo(() => scopedRows.filter((l) => statusKey(l.otjHoursStatus) === "on track").length, [scopedRows]);
+  const atRiskPct = percentOf(atRiskCount, cardTotal);
+  const needAttentionPct = percentOf(needAttentionCount, cardTotal);
+  const onTrackPct = percentOf(onTrackCount, cardTotal);
   const selectedCardClass = (status: string, tone: "green" | "amber" | "red") => {
     if (otjStatusFilter !== status) return "";
     const tones = {
@@ -260,13 +268,13 @@ export default function TrackOTJPage() {
     otjStatusFilter === status ? "text-white/80" : defaultClass;
   const coachesAffected = useMemo(() => {
     const set = new Set(
-      all
+      scopedRows
         .filter((l) => statusKey(l.otjHoursStatus) === "at risk")
         .map((l) => l.ownerName)
         .filter(Boolean),
     );
     return set.size;
-  }, [all]);
+  }, [scopedRows]);
 
   return (
     <AppLayout>
@@ -316,7 +324,7 @@ export default function TrackOTJPage() {
               </div>
               <p className={`mt-1 text-2xl font-bold ${selectedTextClass("on track", "text-green-900")}`}>{loading ? "..." : onTrackCount}</p>
               <p className={`text-xs ${selectedSubTextClass("on track", "text-green-700")}`}>
-                {loading || activeLearnersLoading ? "..." : `${onTrackPct}% of ${activeLearnersCount} active learners`}
+                {loading ? "..." : `${onTrackPct}% of ${cardTotal} ${scopedLabel}`}
               </p>
             </button>
             <button
@@ -330,7 +338,7 @@ export default function TrackOTJPage() {
               </div>
               <p className={`mt-1 text-2xl font-bold ${selectedTextClass("need attention", "text-amber-900")}`}>{loading ? "..." : needAttentionCount}</p>
               <p className={`text-xs ${selectedSubTextClass("need attention", "text-amber-700")}`}>
-                {loading || activeLearnersLoading ? "..." : `${needAttentionPct}% of ${activeLearnersCount} active learners`}
+                {loading ? "..." : `${needAttentionPct}% of ${cardTotal} ${scopedLabel}`}
               </p>
             </button>
             <button
@@ -344,7 +352,7 @@ export default function TrackOTJPage() {
               </div>
               <p className={`mt-1 text-2xl font-bold ${selectedTextClass("at risk", "text-red-900")}`}>{loading ? "..." : atRiskCount}</p>
               <p className={`text-xs ${selectedSubTextClass("at risk", "text-red-700")}`}>
-                {loading || activeLearnersLoading ? "..." : `${atRiskPct}% of ${activeLearnersCount} active learners`}
+                {loading ? "..." : `${atRiskPct}% of ${cardTotal} ${scopedLabel}`}
               </p>
             </button>
             <div className="rounded-xl border border-[#DDE7F0] bg-white p-4">

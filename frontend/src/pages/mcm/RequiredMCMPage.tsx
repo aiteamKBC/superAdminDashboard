@@ -25,9 +25,9 @@ interface MCMRow {
 }
 
 const fmtDate = (s: string | null | undefined) => {
-  if (!s) return "—";
+  if (!s) return "â€”";
   const d = new Date(s);
-  if (isNaN(d.getTime())) return "—";
+  if (isNaN(d.getTime())) return "â€”";
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
@@ -116,7 +116,7 @@ function OverdueBadge({ row }: { row: MCMRow }) {
 function getMcrRange(offset: number): { start: Date; end: Date } {
   const now = new Date();
   if (offset === -1) {
-    // "Last 30 days" — rolling 30-day window ending now
+    // "Last 30 days" â€” rolling 30-day window ending now
     const end = new Date(now); end.setHours(23, 59, 59, 999);
     const start = new Date(end); start.setDate(end.getDate() - 30); start.setHours(0, 0, 0, 0);
     return { start, end };
@@ -150,7 +150,9 @@ const fmtRangeDate = (d: Date) =>
 
 const getMcrRangeLabel = (offset: number): string => {
   const { start, end } = getMcrRange(offset);
-  return `${fmtRangeDate(start)} – ${fmtRangeDate(end)}`;
+  const displayStart = new Date(start);
+  if (offset === -1) displayStart.setDate(displayStart.getDate() + 1);
+  return `${fmtRangeDate(displayStart)} - ${fmtRangeDate(end)}`;
 };
 
 const parseMcmStatusDate = (status: string | null | undefined): Date | null => {
@@ -183,7 +185,6 @@ function matchesPeriod(row: MCMRow, offset: number): boolean {
   return row.mcmDates.some((d) => {
     const dt = getMcmScopeDate(d);
     if (!dt) return false;
-    // mirror isDateWithinRange(dt, start, end, excludeStart)
     if (dt > end) return false;
     if (excludeStart ? dt <= start : dt < start) return false;
     // Past period (Last 30 days): include ALL statuses
@@ -345,7 +346,7 @@ export default function RequiredMCMPage() {
   const programmes = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.programme).filter(Boolean))).sort()], [all]);
   const orgs = useMemo(() => ["all", ...Array.from(new Set(all.map((r) => r.organisationName).filter(Boolean))).sort()], [all]);
 
-  // Period + dropdown filters (without categoryFilter) — used for card counts
+  // Period + dropdown filters (without categoryFilter) â€” used for card counts
   const periodFiltered = useMemo(() => {
     return entityFiltered.filter((r) => {
       if (!matchesPeriod(r, periodOffset)) return false;
@@ -353,7 +354,7 @@ export default function RequiredMCMPage() {
     });
   }, [entityFiltered, periodOffset]);
 
-  // Category breakdown — counts per MCM status within the period
+  // Category breakdown â€” counts per MCM status within the period
   const categoryCounts = useMemo(() => {
     const counts: Record<MCMCategory, number> = { not_scheduled: 0, scheduled: 0, in_progress: 0, completed: 0 };
     for (const r of periodFiltered) counts[getMcmCategory(r, periodOffset)]++;
@@ -368,7 +369,7 @@ export default function RequiredMCMPage() {
 
   const exportCsv = () => {
     const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "Next Due Date", "Last MCM", "Last Completed MCM"];
-    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, r.overdueMcmCount, fmtDate(r.nextDueDate), r.lastMcm || "—", r.lastActuallyCompletedMcm || "—"]);
+    const rows = filtered.map((r) => [r.fullName, r.email, r.programme, r.organisationName, r.caseOwner, r.overdueMcmCount, fmtDate(r.nextDueDate), r.lastMcm || "â€”", r.lastActuallyCompletedMcm || "â€”"]);
     const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "required-mcm.csv"; a.click();
   };
@@ -400,7 +401,7 @@ export default function RequiredMCMPage() {
         </div>
 
         <div className="p-4 sm:p-6">
-          {/* Summary cards — same pattern as PR page */}
+          {/* Summary cards â€” same pattern as PR page */}
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {(() => {
               const count = periodFiltered.length;
@@ -463,7 +464,7 @@ export default function RequiredMCMPage() {
             })()}
           </div>
 
-          {/* Filters — row 1 */}
+          {/* Filters â€” row 1 */}
           <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <p>
@@ -474,7 +475,7 @@ export default function RequiredMCMPage() {
           <div className="mb-2 flex flex-wrap gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
             </div>
             <FilterSelect
               value={programmeFilter}
@@ -496,7 +497,7 @@ export default function RequiredMCMPage() {
             />
           </div>
 
-          {/* Filters — row 2: MCM Period + Overdue toggle */}
+          {/* Filters â€” row 2: MCM Period + Overdue toggle */}
           <div className="mb-4 flex flex-wrap gap-2">
             <FilterSelect
               value={String(periodOffset)}
@@ -504,10 +505,21 @@ export default function RequiredMCMPage() {
               options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))}
               minWidth={210}
             />
-            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
-              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
-              {getMcrRangeLabel(periodOffset)}
-            </span>
+            <TooltipProvider delayDuration={120}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex h-10 cursor-help items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
+                    <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+                    {getMcrRangeLabel(periodOffset)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start" className="max-w-xs rounded-lg border border-[#1F2937] bg-[#111827] px-3 py-2 text-left text-xs font-semibold leading-relaxed text-white shadow-none">
+                  {periodOffset === -1
+                    ? "Last 30 days is a rolling window that includes both displayed dates. The Overdue card is global and ignores this date range."
+                    : "This date range controls the period-based MCM rows and status cards. The Overdue card is global and ignores this date range."}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {(coachFilter !== "all" || programmeFilter !== "all" || orgFilter !== "all" || periodOffset !== -1 || search || overdueOnly || categoryFilter) && (
               <button
                 onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setOverdueOnly(false); setCategoryFilter(null); }}
@@ -524,7 +536,7 @@ export default function RequiredMCMPage() {
           {/* Table */}
           <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loadingâ€¦</div>
             ) : filtered.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
                 <AlertTriangle className="h-8 w-8 text-[#C5D5E3]" /><p>No learners found</p>
@@ -553,13 +565,13 @@ export default function RequiredMCMPage() {
                       <tr key={r.id} className="group border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
                         <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
                         <td className="px-3 py-3 text-xs text-[#71849A]">{r.email}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "—"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "—"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "—"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "â€”"}</td>
                         <td className="whitespace-nowrap px-3 py-3"><OverdueBadge row={r} /></td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastMcm || "—"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastActuallyCompletedMcm || "—"}</td>
-                        {/* Next Due Date — Date cell */}
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastMcm || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastActuallyCompletedMcm || "â€”"}</td>
+                        {/* Next Due Date â€” Date cell */}
                         <td className="border-l border-[#DDE7F0] px-3 py-3 text-xs font-semibold">
                           {(() => {
                             const d = r.nextDueDate ? new Date(r.nextDueDate) : null;
@@ -567,7 +579,7 @@ export default function RequiredMCMPage() {
                             return <span className={isOverdue ? "text-red-600" : "text-[#14264A]"}>{fmtDate(r.nextDueDate)}</span>;
                           })()}
                         </td>
-                        {/* Next Due Date — State cell */}
+                        {/* Next Due Date â€” State cell */}
                         <td className="whitespace-nowrap px-3 py-3">{statusBadge(nextMeetingStatus(r))}</td>
                         {/* Follow-up */}
                         <td className="whitespace-nowrap border-l border-[#DDE7F0] px-3 py-3">
