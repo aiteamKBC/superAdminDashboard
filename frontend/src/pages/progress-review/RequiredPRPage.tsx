@@ -364,6 +364,20 @@ export default function RequiredPRPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const dueToDateItems = l.plannedDates
+      .filter((d) => {
+        const dt = parseBookedDate(d.date);
+        return dt !== null && dt <= today;
+      })
+      .sort((a, b) => {
+        const aTime = parseBookedDate(a.date)?.getTime() ?? 0;
+        const bTime = parseBookedDate(b.date)?.getTime() ?? 0;
+        return aTime - bTime;
+      })
+      .map((d) => ({
+        date: d.date,
+      }));
+
     const overdueItems = l.plannedDates
       .filter((d) => {
         if (d.completed || statusIncludes(d.status, "completed")) return false;
@@ -391,11 +405,27 @@ export default function RequiredPRPage() {
       }
     }
 
+    let dueToDateCount = dueToDateItems.length;
+    if (dueToDateCount === 0) {
+      const nextDate = parseBookedDate(l.nextPrDate);
+      const nextState = String(l.nextPrState || "").trim();
+      if (nextDate && nextDate <= today) {
+        dueToDateCount = 1;
+        if (nextDate < today && overdueItems.length === 0 && !statusIncludes(nextState, "completed")) {
+          overdueItems.push({
+            date: l.nextPrDate,
+            status: nextState || "Not Scheduled",
+          });
+        }
+      }
+    }
+
     return {
       overdue: overdueItems.length > 0,
       overdueDate: overdueItems[0]?.date || "",
       overdueItems,
       overdueCount: overdueItems.length,
+      dueToDateCount,
     };
   }, []);
 
@@ -522,8 +552,7 @@ export default function RequiredPRPage() {
 
   const onFollowUp = (l: PRLearner) => {
     const scopedPrDate = getScopedTicketDate(l);
-    const { start, end } = getPrDateRange(prOffset);
-    const scopedStatus = getRangeStatus(l, start, end);
+    const globalOverdueStatus = getGlobalOverdueStatus(l);
     const existing = ticketMap.get(l.email.toLowerCase()) ?? ticketMap.get(getPrTicketKey(l.email, scopedPrDate));
     if (existing) {
       navigate(`/progress-review/tickets?ticket=${existing.id}`);
@@ -536,7 +565,7 @@ export default function RequiredPRPage() {
         lastActuallyCompletedPr: l.lastActuallyCompletedPr || "",
         lastPrDate: "",
         nextPrDate: scopedPrDate,
-        overdue: String(scopedStatus.scopedOverdueCount || l.overduePrCount),
+        overdue: String(globalOverdueStatus.overdueCount || l.overduePrCount),
       });
       navigate(`/progress-review/tickets?${params.toString()}`);
     }
@@ -550,7 +579,6 @@ export default function RequiredPRPage() {
   };
 
   const exportCsv = () => {
-    const { start, end } = getPrDateRange(prOffset);
     const cols = [
       "Learner",
       "Email",
@@ -561,15 +589,15 @@ export default function RequiredPRPage() {
       "Next Progress Review Date",
       "Next Progress Review State",
       "Overdue Count",
+      "PR Meetings Due To Date",
       "Overdue Items",
       "Follow-up Ticket",
       "Ticket Status",
     ];
     const rows = displayedRows.map((l) => {
-      const rangeStatus = getRangeStatus(l, start, end);
       const globalOverdueStatus = getGlobalOverdueStatus(l);
-      const overdueCount = cardFilter === "overdue" ? globalOverdueStatus.overdueCount : rangeStatus.scopedOverdueCount;
-      const overdueItems = cardFilter === "overdue" ? globalOverdueStatus.overdueItems : rangeStatus.overdueItems;
+      const overdueCount = globalOverdueStatus.overdueCount;
+      const overdueItems = globalOverdueStatus.overdueItems;
       const ticket = ticketMap.get(l.email.toLowerCase());
       return [
         l.fullName,
@@ -581,6 +609,7 @@ export default function RequiredPRPage() {
         fmtDate(l.nextPrDate),
         l.nextPrState || "Not Scheduled",
         overdueCount,
+        globalOverdueStatus.dueToDateCount,
         overdueItems.map((item) => `${fmtDate(item.date)} ${item.status}`.trim()).join("; "),
         ticket?.ticketRef || "",
         ticket?.status || "",
@@ -777,7 +806,7 @@ export default function RequiredPRPage() {
                       <th colSpan={2} className={`border-x border-[#CFE0F2] bg-[#EEF7FF] px-3 py-2 text-center text-xs font-bold text-[#1E6ACB] ${highlightedColumns.has("nextDate") || highlightedColumns.has("nextState") ? highlightClass("nextDate", "header") : ""}`}>
                         Next Progress Review
                       </th>
-                      <th rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("overdue", "header")}`}>Overdue</th>
+                      <th rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("overdue", "header")}`}>Overdue / Due</th>
                       <th rowSpan={2} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Follow-up</th>
                     </tr>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
@@ -788,13 +817,10 @@ export default function RequiredPRPage() {
                   <tbody>
                     {displayedRows.map((l) => {
                       const ticket = ticketMap.get(l.email.toLowerCase());
-                      const { start, end } = getPrDateRange(prOffset);
-                      const rangeStatus = getRangeStatus(l, start, end);
                       const globalOverdueStatus = getGlobalOverdueStatus(l);
-                      const overdueCount =
-                        cardFilter === "overdue" ? globalOverdueStatus.overdueCount : rangeStatus.scopedOverdueCount;
-                      const overdueItems =
-                        cardFilter === "overdue" ? globalOverdueStatus.overdueItems : rangeStatus.overdueItems;
+                      const overdueCount = globalOverdueStatus.overdueCount;
+                      const overdueItems = globalOverdueStatus.overdueItems;
+                      const dueToDateCount = globalOverdueStatus.dueToDateCount;
                       const state = String(l.nextPrState || "").trim();
                       const stateL = state.toLowerCase();
                       const stateCls =
@@ -833,12 +859,15 @@ export default function RequiredPRPage() {
                                     <TooltipTrigger asChild>
                                       <span className="inline-flex cursor-help items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
                                         <AlertTriangle className="h-3 w-3" />
-                                        {overdueCount}
+                                        {overdueCount}/{dueToDateCount}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
                                       <p className="mb-2 text-xs font-bold text-red-700">
-                                        {cardFilter === "overdue" ? "All overdue meetings" : "Overdue meetings"}
+                                        All overdue meetings
+                                      </p>
+                                      <p className="mb-2 text-xs text-[#5F7288]">
+                                        {overdueCount} overdue of {dueToDateCount} PR meeting{dueToDateCount === 1 ? "" : "s"} due to date
                                       </p>
                                       <div className="space-y-1.5">
                                         {overdueItems.map((item) => (
@@ -852,7 +881,7 @@ export default function RequiredPRPage() {
                                   </Tooltip>
                                 </TooltipProvider>
                               )
-                              : <span className="text-xs text-[#A0B0C0]">0</span>
+                              : <span className="text-xs text-[#A0B0C0]">0/{dueToDateCount}</span>
                             }
                           </td>
                           <td className="px-3 py-3">

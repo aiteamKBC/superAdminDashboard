@@ -77,31 +77,42 @@ const riskBadge = (count: number) => {
 };
 
 function OverdueBadge({ row }: { row: MCMRow }) {
-  const overdueMeetings = row.mcmDates.filter((d) => {
-    if (d.completed) return false;
-    const dt = new Date(d.date);
-    if (isNaN(dt.getTime())) return false;
-    return dt < new Date();
-  });
+  const status = getGlobalMcmDueStatus(row);
+  const { overdueCount, dueToDateCount, overdueItems } = status;
 
-  if (row.overdueMcmCount === 0) return riskBadge(0);
+  if (overdueCount === 0) {
+    return (
+      <span className="text-xs text-[#A0B0C0]">
+        0/{dueToDateCount}
+      </span>
+    );
+  }
 
-  if (!overdueMeetings.length) return riskBadge(row.overdueMcmCount);
+  const badgeTone =
+    overdueCount <= 2
+      ? "bg-amber-100 text-amber-700"
+      : "bg-red-100 text-red-700";
 
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="cursor-default">{riskBadge(row.overdueMcmCount)}</span>
+          <span className={`inline-flex cursor-default items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${badgeTone}`}>
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            {overdueCount}/{dueToDateCount}
+          </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-[240px] p-0 border border-[#DDE7F0] bg-white shadow-xl rounded-xl overflow-hidden">
           <div className="px-3 py-2 border-b border-[#DDE7F0] bg-[#F8FBFE]">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5F7288]">Overdue Meetings</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5F7288]">All Overdue Meetings</p>
+            <p className="mt-1 text-[11px] font-semibold text-[#5F7288]">
+              {overdueCount} overdue of {dueToDateCount} MCM meeting{dueToDateCount === 1 ? "" : "s"} due to date
+            </p>
           </div>
           <div className="flex flex-col gap-0 px-3 py-2">
-            {overdueMeetings.map((d, i) => (
+            {overdueItems.map((d, i) => (
               <div key={i} className="flex items-center justify-between gap-2 rounded-lg py-1">
-                <span className="text-xs font-semibold text-[#14264A]">{fmtDate(d.date)}</span>
+                <span className="text-xs font-semibold text-[#14264A]">{fmtDate(getMcmScopeDate(d)?.toISOString() || d.date)}</span>
                 <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 capitalize">{d.status || "Not Scheduled"}</span>
               </div>
             ))}
@@ -214,6 +225,39 @@ const getGlobalOverdueMcmItems = (row: MCMRow) => {
       const bTime = getMcmScopeDate(b)?.getTime() ?? 0;
       return aTime - bTime;
     });
+};
+
+const getGlobalMcmDueStatus = (row: MCMRow) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dueToDateItems = row.mcmDates
+    .filter((d) => {
+      const dt = getMcmScopeDate(d);
+      return dt !== null && dt <= today;
+    })
+    .sort((a, b) => {
+      const aTime = getMcmScopeDate(a)?.getTime() ?? 0;
+      const bTime = getMcmScopeDate(b)?.getTime() ?? 0;
+      return aTime - bTime;
+    });
+
+  const overdueItems = getGlobalOverdueMcmItems(row);
+  const nextDueDate = row.nextDueDate ? new Date(row.nextDueDate) : null;
+  const hasFallbackDue = nextDueDate && !Number.isNaN(nextDueDate.getTime()) && nextDueDate <= today;
+
+  let dueToDateCount = dueToDateItems.length;
+  if (dueToDateCount === 0 && hasFallbackDue) dueToDateCount = 1;
+
+  const backendOverdueCount = Number(row.overdueMcmCount || 0);
+  const overdueCount = Math.max(overdueItems.length, backendOverdueCount);
+  dueToDateCount = Math.max(dueToDateCount, overdueCount);
+
+  return {
+    overdueItems,
+    overdueCount,
+    dueToDateCount,
+  };
 };
 
 type MCMCategory = "not_scheduled" | "scheduled" | "in_progress" | "completed";
@@ -336,7 +380,7 @@ export default function RequiredMCMPage() {
   }, [all, search, coachFilter, programmeFilter, orgFilter]);
 
   const globalOverdueRows = useMemo(
-    () => entityFiltered.filter((r) => getGlobalOverdueMcmItems(r).length > 0),
+    () => entityFiltered.filter((r) => getGlobalMcmDueStatus(r).overdueCount > 0),
     [entityFiltered],
   );
 
@@ -366,6 +410,31 @@ export default function RequiredMCMPage() {
     if (overdueOnly) return globalOverdueRows;
     return categoryFilter ? periodFiltered.filter((r) => getMcmCategory(r, periodOffset) === categoryFilter) : periodFiltered;
   }, [categoryFilter, globalOverdueRows, overdueOnly, periodFiltered, periodOffset]);
+
+  const exportMcmCsv = () => {
+    const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "MCM Meetings Due To Date", "Overdue Items", "Next Due Date", "Last MCM", "Last Completed MCM"];
+    const rows = filtered.map((r) => {
+      const mcmStatus = getGlobalMcmDueStatus(r);
+      return [
+        r.fullName,
+        r.email,
+        r.programme,
+        r.organisationName,
+        r.caseOwner,
+        mcmStatus.overdueCount,
+        mcmStatus.dueToDateCount,
+        mcmStatus.overdueItems.map((item) => `${fmtDate(getMcmScopeDate(item)?.toISOString() || item.date)} ${item.status || "Not Scheduled"}`.trim()).join("; "),
+        fmtDate(r.nextDueDate),
+        r.lastMcm || "N/A",
+        r.lastActuallyCompletedMcm || "N/A",
+      ];
+    });
+    const csv = [cols, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "required-mcm.csv";
+    a.click();
+  };
 
   const exportCsv = () => {
     const cols = ["Name", "Email", "Programme", "Organisation", "Coach", "Overdue Count", "Next Due Date", "Last MCM", "Last Completed MCM"];
@@ -528,7 +597,7 @@ export default function RequiredMCMPage() {
                 Clear Filters
               </button>
             )}
-            <button onClick={exportCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm font-semibold text-[#24486D] hover:bg-[#F0F6FF]">
+            <button onClick={exportMcmCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm font-semibold text-[#24486D] hover:bg-[#F0F6FF]">
               <Download className="h-4 w-4" /> Export CSV
             </button>
           </div>
@@ -536,7 +605,7 @@ export default function RequiredMCMPage() {
           {/* Table */}
           <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loadingâ€¦</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading...</div>
             ) : filtered.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
                 <AlertTriangle className="h-8 w-8 text-[#C5D5E3]" /><p>No learners found</p>
@@ -547,7 +616,7 @@ export default function RequiredMCMPage() {
                   <thead>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
-                      {["Email", "Programme", "Organisation", "Coach", "Overdue", "Last MCM", "Last Completed MCM"].map((h) => (
+                      {["Email", "Programme", "Organisation", "Coach", "Overdue / Due", "Last MCM", "Last Completed MCM"].map((h) => (
                         <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
                       ))}
                       <th colSpan={2} className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-1.5 text-center text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">
