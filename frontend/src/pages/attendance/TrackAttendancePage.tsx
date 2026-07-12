@@ -93,9 +93,17 @@ const isDateInExactWeekBucket = (date: Date, weekIndex: 0 | 1 | 2 | 3) => {
 const formatUiDate = (date: Date) =>
   date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
+const getIsoWeekNumber = (date: Date) => {
+  const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  return Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+};
+
 const getWeekLabel = (weekIndex: 0 | 1 | 2 | 3) => {
   const { start, end } = getExactWeekRange(weekIndex);
-  return `${formatUiDate(start)} - ${formatUiDate(end)}`;
+  return `Week ${getIsoWeekNumber(start)} - ${formatUiDate(start)} - ${formatUiDate(end)}`;
 };
 
 const formatAttendanceDate = (raw: string) => {
@@ -518,25 +526,23 @@ export default function TrackAttendancePage() {
 
   // Total missed / total sessions for each learner — in the filtered module (or their current module if no filter)
   const missedByModule = useMemo(() => {
-    const map = new Map<string, { missed: number; total: number; sessions: { key: string; date: string; missed: boolean }[] }>();
+    const map = new Map<string, { missed: number; total: number; sessions: { key: string; date: string; missed: boolean; module: string }[] }>();
     for (const learner of allLearners) {
-      const targetModule =
-        moduleFilter !== "all" ? moduleFilter : learner.attendanceModule;
-      if (!targetModule) { map.set(learner.email, { missed: 0, total: 0, sessions: [] }); continue; }
-      const moduleRecords = learner.allRecords.filter((r) => r.date && isSameModuleProgramme(r.module, targetModule));
+      const courseRecords = learner.allRecords.filter((r) => r.date);
       // Deduplicate by date: if any record on that date is Missed → mark as missed
-      const sessions = moduleRecords
+      const sessions = courseRecords
         .sort((a, b) => String(a.date).localeCompare(String(b.date)))
         .map((record, index) => ({
           key: `${record.date}-${index}`,
           date: record.date!,
           missed: normalizeAttendanceValue(record.attendance) === 0,
+          module: String(record.module || "Unassigned module").trim() || "Unassigned module",
         }));
       const missed = sessions.filter((s) => s.missed).length;
       map.set(learner.email, { missed, total: sessions.length, sessions });
     }
     return map;
-  }, [allLearners, moduleFilter]);
+  }, [allLearners]);
 
   const entityFiltered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -1044,28 +1050,54 @@ export default function TrackAttendancePage() {
                               const s = missedByModule.get(learner.email);
                               if (!s) return <span>—</span>;
                               if (!s.sessions.length) return <span>{s.missed}/{s.total}</span>;
+                              const sessionsByModule = s.sessions.reduce(
+                                (groups, sess) => {
+                                  const module = sess.module || "Unassigned module";
+                                  if (!groups.has(module)) groups.set(module, []);
+                                  groups.get(module)!.push(sess);
+                                  return groups;
+                                },
+                                new Map<string, typeof s.sessions>()
+                              );
                               return (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="cursor-default underline decoration-dotted decoration-red-400">{s.missed}/{s.total}</span>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-[240px] p-0 border border-[#DDE7F0] bg-white shadow-lg rounded-xl overflow-hidden">
+                                    <TooltipContent side="top" className="max-w-[360px] p-0 border border-[#DDE7F0] bg-white shadow-lg rounded-xl overflow-hidden">
                                       <div className="px-3 py-2 border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#5F7288]">Sessions</p>
+                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#5F7288]">Sessions by module</p>
                                       </div>
-                                      <div className="flex flex-col gap-0 px-3 py-2">
-                                        {s.sessions.map((sess) => (
-                                          <div key={sess.key} className="flex items-center gap-2 py-1">
-                                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sess.missed ? "bg-red-500" : "bg-emerald-500"}`} />
-                                            <span className={`text-xs ${sess.missed ? "font-semibold text-red-600" : "text-[#3D5166]"}`}>
-                                              {formatAttendanceDate(sess.date)}
-                                            </span>
-                                            <span className={`ml-auto text-[10px] font-medium ${sess.missed ? "text-red-500" : "text-emerald-600"}`}>
-                                              {sess.missed ? "Missed" : "Present"}
-                                            </span>
-                                          </div>
-                                        ))}
+                                      <div className="max-h-[420px] overflow-y-auto px-3 py-2">
+                                        {Array.from(sessionsByModule.entries()).map(([module, sessions]) => {
+                                          const moduleMissed = sessions.filter((sess) => sess.missed).length;
+                                          return (
+                                            <div key={module} className="border-b border-[#EDF2F7] py-2 last:border-b-0">
+                                              <div className="mb-1.5 flex items-start justify-between gap-3">
+                                                <p className="max-w-[245px] text-left text-[11px] font-semibold leading-snug text-[#14264A]">
+                                                  {module}
+                                                </p>
+                                                <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                                                  {moduleMissed}/{sessions.length}
+                                                </span>
+                                              </div>
+                                              <div className="flex flex-col gap-0">
+                                                {sessions.map((sess) => (
+                                                  <div key={sess.key} className="flex items-center gap-2 py-1">
+                                                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sess.missed ? "bg-red-500" : "bg-emerald-500"}`} />
+                                                    <span className={`text-xs ${sess.missed ? "font-semibold text-red-600" : "text-[#3D5166]"}`}>
+                                                      {formatAttendanceDate(sess.date)}
+                                                    </span>
+                                                    <span className={`ml-auto text-[10px] font-medium ${sess.missed ? "text-red-500" : "text-emerald-600"}`}>
+                                                      {sess.missed ? "Missed" : "Present"}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </TooltipContent>
                                   </Tooltip>
