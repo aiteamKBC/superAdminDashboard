@@ -515,17 +515,44 @@ export default function PRTicketsPage() {
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
-      const [ticketsRes, summaryRes] = await Promise.all([
-        fetch(`/api/pr-tickets/?archived=${showArchived}`),
-        fetch("/api/progress-review-summary/"),
-      ]);
-      if (ticketsRes.ok) setTickets(await ticketsRes.json());
-      if (summaryRes.ok) {
+      const directTicketId = searchParams.get("ticket") || searchParams.get("open");
+      const focusedLearner = String(searchParams.get("learner") || "").trim();
+
+      let loadedTickets: PRTicket[] = [];
+      let summaryLearner = focusedLearner;
+
+      if (directTicketId) {
+        const ticketsRes = await fetch(`/api/pr-tickets/${encodeURIComponent(directTicketId)}/`);
+        if (ticketsRes.ok) {
+          const ticket = (await ticketsRes.json()) as PRTicket;
+          loadedTickets = [ticket];
+          summaryLearner = ticket.learnerEmail;
+        }
+      } else {
+        const ticketsUrl = focusedLearner
+          ? `/api/pr-tickets/?archived=${showArchived}&learner_email=${encodeURIComponent(focusedLearner)}`
+          : `/api/pr-tickets/?archived=${showArchived}`;
+        const ticketsRes = await fetch(ticketsUrl);
+        if (ticketsRes.ok) {
+          const data = await ticketsRes.json();
+          loadedTickets = Array.isArray(data) ? data : [data];
+        }
+      }
+
+      setTickets(loadedTickets);
+
+      const summaryUrl = summaryLearner
+        ? `/api/progress-review-summary/?learner_email=${encodeURIComponent(summaryLearner)}`
+        : "/api/progress-review-summary/";
+      const summaryRes = await fetch(summaryUrl);
+      if (summaryRes?.ok) {
         const rows = (await summaryRes.json()) as PRSummaryRow[];
         setReviewLookup(new Map(rows.map((row) => [row.email.toLowerCase(), row])));
+      } else {
+        setReviewLookup(new Map());
       }
     } finally { setLoading(false); }
-  }, [showArchived]);
+  }, [searchParams, showArchived]);
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
 
@@ -557,7 +584,6 @@ export default function PRTicketsPage() {
       const t = tickets.find((t) => String(t.id) === openId);
       if (t) {
         setSearch(t.learnerEmail);
-        setSearchParams({}, { replace: true });
       }
     } else if (createFlag === "1") {
       setCreatePrefill({

@@ -1150,10 +1150,22 @@ export default function MCMTicketsPage() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch(`/api/mcm-tickets/?archived=${showArchived}`);
-      if (res.ok) setTickets(await res.json());
+      const directTicketId = searchParams.get("ticket") || searchParams.get("open");
+      const focusedLearner = String(searchParams.get("learner") || "").trim();
+      const url = directTicketId
+        ? `/api/mcm-tickets/${encodeURIComponent(directTicketId)}/`
+        : focusedLearner
+        ? `/api/mcm-tickets/?archived=${showArchived}&learner_email=${encodeURIComponent(focusedLearner)}`
+        : `/api/mcm-tickets/?archived=${showArchived}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setTickets(Array.isArray(data) ? data : [data]);
+      } else {
+        setTickets([]);
+      }
     } finally { if (!silent) setLoading(false); }
-  }, [showArchived]);
+  }, [searchParams, showArchived]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -1170,13 +1182,19 @@ export default function MCMTicketsPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    const openId = searchParams.get("ticket") || searchParams.get("open");
+    if (openId && !loading) {
+      const ticket = tickets.find((item) => String(item.id) === openId);
+      if (ticket) setSearch(ticket.learnerEmail);
+      return;
+    }
+
     const learner = searchParams.get("learner");
     if (!learner || loading) return;
     const ticket = tickets.find((item) => item.learnerEmail.toLowerCase() === learner.toLowerCase());
     if (!ticket) return;
     setSearch(ticket.learnerEmail);
-    setSearchParams({}, { replace: true });
-  }, [loading, searchParams, setSearchParams, tickets]);
+  }, [loading, searchParams, tickets]);
 
   const autoCreateOverdueTickets = useCallback(async () => {
     if (showArchived) return;
@@ -1201,10 +1219,10 @@ export default function MCMTicketsPage() {
   }, [load, showArchived]);
 
   useEffect(() => {
-    if (loading || showArchived || autoSyncedRef.current) return;
+    if (loading || showArchived || autoSyncedRef.current || searchParams.get("learner") || searchParams.get("ticket") || searchParams.get("open")) return;
     autoSyncedRef.current = true;
     void autoCreateOverdueTickets();
-  }, [autoCreateOverdueTickets, loading, showArchived]);
+  }, [autoCreateOverdueTickets, loading, searchParams, showArchived]);
 
   const loadFiles = useCallback(async (id: number) => {
     const res = await fetch(`/api/mcm-tickets/${id}/files/`);
@@ -1272,7 +1290,6 @@ export default function MCMTicketsPage() {
           coachEmail: "",
           dueDate: ticket.nextMcmDate || "",
           periodDate: ticket.nextMcmDate || "",
-          bookingLink: "",
           status: "Active",
           riskCategories: ["coaching-due"],
         },

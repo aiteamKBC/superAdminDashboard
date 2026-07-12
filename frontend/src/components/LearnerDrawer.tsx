@@ -312,13 +312,6 @@ export default function LearnerDrawer({
     const risks = Array.isArray(learner.riskCategories)
       ? learner.riskCategories
       : [];
-    const links = getBookingLinks(learner.coach || "");
-    const bookingLink =
-      risks.includes("review-due")
-        ? links.pr || ""
-        : risks.includes("coaching-due")
-          ? links.mcm || ""
-          : links.support || "";
 
     return {
       learnerName: `${learner.firstName || ""} ${learner.lastName || ""}`.trim(),
@@ -333,7 +326,6 @@ export default function LearnerDrawer({
       senderName: "Progress Coordinator",
       lineManagerEmail: learner.lineManagerEmail || "",
       hrEmail: learner.hrManagerEmail || "",
-      bookingLink,
       status: learner.status || "Active",
       riskCategories: risks,
     };

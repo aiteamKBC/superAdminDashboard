@@ -1,0 +1,1044 @@
+{
+  "created_at": "2026-07-11T16:20:26.168544",
+  "policy": "keep newest created open ticket per learner email; transfer action/assigned_owner/escalated/notes/evidence; delete older open duplicates",
+  "records": [
+    {
+      "label": "PR",
+      "email": "agnes.becsei@ocs.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 189,
+        "ticket_ref": "PR-189",
+        "learner_email": "agnes.becsei@ocs.com",
+        "learner_name": "Agnes Becsei",
+        "next_pr_date": "2026-06-22",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:53.024758+00:00",
+        "updated_at": "2026-07-11T12:28:53.024780+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 31,
+          "ticket_ref": "PR-002",
+          "learner_email": "agnes.becsei@ocs.com",
+          "learner_name": "Agnes Becsei",
+          "next_pr_date": "2026-04-07",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-04-07.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-16T08:51:34.010779+00:00",
+          "updated_at": "2026-06-26T21:42:48.392160+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "alice.inskip@bigbangexperiences.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 178,
+        "ticket_ref": "PR-178",
+        "learner_email": "alice.inskip@bigbangexperiences.com",
+        "learner_name": "Alice Inskip",
+        "next_pr_date": "2026-06-25",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:50.103143+00:00",
+        "updated_at": "2026-07-11T12:28:50.103167+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 125,
+          "ticket_ref": "PR-004",
+          "learner_email": "alice.inskip@bigbangexperiences.com",
+          "learner_name": "Alice Inskip",
+          "next_pr_date": "2025-10-16",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:35.849719+00:00",
+          "updated_at": "2026-06-26T21:42:20.232251+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "barry.mclaughlin@vincifacilities.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 177,
+        "ticket_ref": "PR-177",
+        "learner_email": "barry.mclaughlin@vincifacilities.com",
+        "learner_name": "Barry McLaughlin",
+        "next_pr_date": "2026-05-20",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:49.841853+00:00",
+        "updated_at": "2026-07-11T12:28:49.841878+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 124,
+          "ticket_ref": "PR-008",
+          "learner_email": "barry.mclaughlin@vincifacilities.com",
+          "learner_name": "Barry McLaughlin",
+          "next_pr_date": "2025-11-03",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-05-20.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:35.271707+00:00",
+          "updated_at": "2026-06-26T21:42:19.314971+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "btgrenfell@spinnaker-global.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 188,
+        "ticket_ref": "PR-188",
+        "learner_email": "btgrenfell@spinnaker-global.com",
+        "learner_name": "Bethanie-Taylor Grenfell",
+        "next_pr_date": "2026-06-02",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:52.762948+00:00",
+        "updated_at": "2026-07-11T12:28:52.762972+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 142,
+          "ticket_ref": "PR-009",
+          "learner_email": "btgrenfell@spinnaker-global.com",
+          "learner_name": "Bethanie-Taylor Grenfell",
+          "next_pr_date": "2026-03-31",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-06-02.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:51.111257+00:00",
+          "updated_at": "2026-06-26T21:42:46.292420+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "dmsweetinburgh@btinternet.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 174,
+        "ticket_ref": "PR-174",
+        "learner_email": "dmsweetinburgh@btinternet.com",
+        "learner_name": "Douglas Sweetinburgh",
+        "next_pr_date": "2026-05-04",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:49.011005+00:00",
+        "updated_at": "2026-07-11T12:28:49.011027+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 123,
+          "ticket_ref": "PR-018",
+          "learner_email": "dmsweetinburgh@btinternet.com",
+          "learner_name": "Douglas Sweetinburgh",
+          "next_pr_date": "2026-03-25",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-05-04.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:34.274487+00:00",
+          "updated_at": "2026-06-26T21:42:10.101663+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "ella@blackwhitedenim.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 179,
+        "ticket_ref": "PR-179",
+        "learner_email": "ella@blackwhitedenim.com",
+        "learner_name": "Ella Pennells",
+        "next_pr_date": "2026-07-01",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:50.362600+00:00",
+        "updated_at": "2026-07-11T12:28:50.362625+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 127,
+          "ticket_ref": "PR-023",
+          "learner_email": "ella@blackwhitedenim.com",
+          "learner_name": "Ella Pennells",
+          "next_pr_date": "2025-10-22",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:36.947220+00:00",
+          "updated_at": "2026-06-26T21:42:24.142777+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "eng.mohamedelmasry68@gmail.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 173,
+        "ticket_ref": "PR-173",
+        "learner_email": "eng.mohamedelmasry68@gmail.com",
+        "learner_name": "Mohamed Elmasry",
+        "next_pr_date": "2026-05-28",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:48.735857+00:00",
+        "updated_at": "2026-07-11T12:28:48.735883+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 118,
+          "ticket_ref": "PR-068",
+          "learner_email": "eng.mohamedelmasry68@gmail.com",
+          "learner_name": "Mohamed Elmasry",
+          "next_pr_date": "2025-04-16",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-05-28.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:28.128212+00:00",
+          "updated_at": "2026-06-26T21:42:02.773299+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "francesca.milton@wates.co.uk",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 185,
+        "ticket_ref": "PR-185",
+        "learner_email": "francesca.milton@wates.co.uk",
+        "learner_name": "Francesca Milton",
+        "next_pr_date": "2026-05-08",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:51.979847+00:00",
+        "updated_at": "2026-07-11T12:28:51.979873+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 138,
+          "ticket_ref": "PR-031",
+          "learner_email": "francesca.milton@wates.co.uk",
+          "learner_name": "Francesca Milton",
+          "next_pr_date": "2026-02-04",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-05-08.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:47.975519+00:00",
+          "updated_at": "2026-06-26T21:42:42.832277+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "heather@cypressquay.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 175,
+        "ticket_ref": "PR-175",
+        "learner_email": "heather@cypressquay.com",
+        "learner_name": "Heather Macfarlane",
+        "next_pr_date": "2026-06-30",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:49.279182+00:00",
+        "updated_at": "2026-07-11T12:28:49.279196+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 8,
+          "ticket_ref": "PR-037",
+          "learner_email": "heather@cypressquay.com",
+          "learner_name": "Heather Macfarlane",
+          "next_pr_date": "2026-06-02",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-06-02.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-16T08:51:27.562383+00:00",
+          "updated_at": "2026-06-26T21:42:12.353429+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "jack.junor-graham@herbuk.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 191,
+        "ticket_ref": "PR-191",
+        "learner_email": "jack.junor-graham@herbuk.com",
+        "learner_name": "Jack Junor-Graham",
+        "next_pr_date": "2026-06-20",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:53.605587+00:00",
+        "updated_at": "2026-07-11T12:28:53.605612+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 106,
+          "ticket_ref": "PR-040",
+          "learner_email": "jack.junor-graham@herbuk.com",
+          "learner_name": "Jack Junor-Graham",
+          "next_pr_date": "2026-06-23",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-24T06:24:36.064076+00:00",
+          "updated_at": "2026-06-26T21:42:54.023822+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "jennifer.caine@kentbusinesscollege.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 187,
+        "ticket_ref": "PR-187",
+        "learner_email": "jennifer.caine@kentbusinesscollege.com",
+        "learner_name": "Jennifer Caine",
+        "next_pr_date": "2026-07-01",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:52.501623+00:00",
+        "updated_at": "2026-07-11T12:28:52.501648+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 139,
+          "ticket_ref": "PR-046",
+          "learner_email": "jennifer.caine@kentbusinesscollege.com",
+          "learner_name": "Jennifer Caine",
+          "next_pr_date": "2025-10-22",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-05-11.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:49.241484+00:00",
+          "updated_at": "2026-06-26T21:42:43.502707+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "lauren.hiney@rcplondon.ac.uk",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 181,
+        "ticket_ref": "PR-181",
+        "learner_email": "lauren.hiney@rcplondon.ac.uk",
+        "learner_name": "Lauren Hiney",
+        "next_pr_date": "2026-06-25",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:50.885716+00:00",
+        "updated_at": "2026-07-11T12:28:50.885739+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 133,
+          "ticket_ref": "PR-058",
+          "learner_email": "lauren.hiney@rcplondon.ac.uk",
+          "learner_name": "Lauren Hiney",
+          "next_pr_date": "2025-10-16",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:42.599135+00:00",
+          "updated_at": "2026-06-26T21:42:33.133218+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "marco.zilberstein@enotrac.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 190,
+        "ticket_ref": "PR-190",
+        "learner_email": "marco.zilberstein@enotrac.com",
+        "learner_name": "Marco Zilberstein",
+        "next_pr_date": "2026-05-14",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:53.294342+00:00",
+        "updated_at": "2026-07-11T12:28:53.294366+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 144,
+          "ticket_ref": "PR-063",
+          "learner_email": "marco.zilberstein@enotrac.com",
+          "learner_name": "Marco Zilberstein",
+          "next_pr_date": "2025-10-16",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-05-14.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:52.236873+00:00",
+          "updated_at": "2026-06-26T21:42:52.692779+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "rania.mohamed7277@gmail.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 186,
+        "ticket_ref": "PR-186",
+        "learner_email": "rania.mohamed7277@gmail.com",
+        "learner_name": "Rania Mohamed",
+        "next_pr_date": "2026-04-30",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:52.240880+00:00",
+        "updated_at": "2026-07-11T12:28:52.240905+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 140,
+          "ticket_ref": "PR-078",
+          "learner_email": "rania.mohamed7277@gmail.com",
+          "learner_name": "Rania Mohamed",
+          "next_pr_date": "2024-12-12",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-04-30.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:49.919042+00:00",
+          "updated_at": "2026-06-26T21:42:44.451766+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "stephen@thefamilyburns.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 180,
+        "ticket_ref": "PR-180",
+        "learner_email": "stephen@thefamilyburns.com",
+        "learner_name": "Stephen Burns",
+        "next_pr_date": "2026-07-02",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:50.623924+00:00",
+        "updated_at": "2026-07-11T12:28:50.623941+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 128,
+          "ticket_ref": "PR-088",
+          "learner_email": "stephen@thefamilyburns.com",
+          "learner_name": "Stephen Burns",
+          "next_pr_date": "2026-04-09",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:37.422646+00:00",
+          "updated_at": "2026-06-26T21:42:26.803189+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "steven.ahara@gxo.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 176,
+        "ticket_ref": "PR-176",
+        "learner_email": "steven.ahara@gxo.com",
+        "learner_name": "Steven A'Hara",
+        "next_pr_date": "2026-06-23",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:49.578744+00:00",
+        "updated_at": "2026-07-11T12:28:49.578766+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 143,
+          "ticket_ref": "PR-090",
+          "learner_email": "steven.ahara@gxo.com",
+          "learner_name": "Steven A'Hara",
+          "next_pr_date": "2024-12-13",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-06-09.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:51.594174+00:00",
+          "updated_at": "2026-06-26T21:42:49.632093+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "sue.stafford@gxo.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 182,
+        "ticket_ref": "PR-182",
+        "learner_email": "sue.stafford@gxo.com",
+        "learner_name": "Sue Stafford",
+        "next_pr_date": "2026-06-18",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:51.145665+00:00",
+        "updated_at": "2026-07-11T12:28:51.145689+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 135,
+          "ticket_ref": "PR-091",
+          "learner_email": "sue.stafford@gxo.com",
+          "learner_name": "Sue Stafford",
+          "next_pr_date": "2025-04-24",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "Auto-created for overdue PR in Last 12 Weeks. PR date: 2026-03-26.",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:43.829095+00:00",
+          "updated_at": "2026-06-26T21:42:34.552837+00:00",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "tinom@sarginsons.co.uk",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 184,
+        "ticket_ref": "PR-184",
+        "learner_email": "tinom@sarginsons.co.uk",
+        "learner_name": "Tinotenda Marodza",
+        "next_pr_date": "2026-07-02",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:51.713255+00:00",
+        "updated_at": "2026-07-11T12:28:51.713279+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 137,
+          "ticket_ref": "PR-095",
+          "learner_email": "tinom@sarginsons.co.uk",
+          "learner_name": "Tinotenda Marodza",
+          "next_pr_date": "2025-09-11",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "emailed",
+          "assigned_owner": "",
+          "notes": "Email sent on 02 Jul 2026 by Holom Mark",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:46.710016+00:00",
+          "updated_at": "2026-07-02T08:09:38.068963+00:00",
+          "evidence": [
+            {
+              "id": 3,
+              "file": "pr_evidence/ticket_137/pr-email-sent-2026-07-02.png",
+              "original_name": "pr-email-sent-2026-07-02.png",
+              "mime_type": "image/png",
+              "uploaded_at": "2026-07-02T08:09:36.418034+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "tom.emblem@kutavar.com",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 192,
+        "ticket_ref": "PR-192",
+        "learner_email": "tom.emblem@kutavar.com",
+        "learner_name": "Thomas Emblem",
+        "next_pr_date": "2026-06-08",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:54.243013+00:00",
+        "updated_at": "2026-07-11T12:28:54.243037+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 146,
+          "ticket_ref": "PR-093",
+          "learner_email": "tom.emblem@kutavar.com",
+          "learner_name": "Thomas Emblem",
+          "next_pr_date": "2026-01-20",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "emailed",
+          "assigned_owner": "",
+          "notes": "Email sent on 02 Jul 2026 by Holom Mark",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-06-26T21:30:54.341116+00:00",
+          "updated_at": "2026-07-02T08:10:42.400057+00:00",
+          "evidence": [
+            {
+              "id": 5,
+              "file": "pr_evidence/ticket_146/pr-email-sent-2026-07-02.png",
+              "original_name": "pr-email-sent-2026-07-02.png",
+              "mime_type": "image/png",
+              "uploaded_at": "2026-07-02T08:10:41.013175+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "PR",
+      "email": "zoeb@torchtrust.org",
+      "target_before": {
+        "model": "ProgressReviewTicket",
+        "id": 183,
+        "ticket_ref": "PR-183",
+        "learner_email": "zoeb@torchtrust.org",
+        "learner_name": "Zoe Byron",
+        "next_pr_date": "2026-07-02",
+        "next_mcm_date": null,
+        "status": "new",
+        "action": "no_action",
+        "assigned_owner": "",
+        "notes": "",
+        "escalated": false,
+        "is_archived": false,
+        "created_at": "2026-07-11T12:28:51.424027+00:00",
+        "updated_at": "2026-07-11T12:28:51.424052+00:00",
+        "evidence": []
+      },
+      "old_tickets": [
+        {
+          "model": "ProgressReviewTicket",
+          "id": 162,
+          "ticket_ref": "PR-110",
+          "learner_email": "zoeb@torchtrust.org",
+          "learner_name": "Zoe Byron",
+          "next_pr_date": "2026-04-22",
+          "next_mcm_date": null,
+          "status": "new",
+          "action": "no_action",
+          "assigned_owner": "",
+          "notes": "",
+          "escalated": false,
+          "is_archived": false,
+          "created_at": "2026-07-04T07:23:32.033634+00:00",
+          "updated_at": "2026-07-04T07:23:32.033644+00:00",
+          "evidence": []
+        }
+      ]
+    }
+  ],
+  "summary": [
+    {
+      "label": "PR",
+      "email": "agnes.becsei@ocs.com",
+      "kept": "PR-189",
+      "deleted": "PR-002",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "alice.inskip@bigbangexperiences.com",
+      "kept": "PR-178",
+      "deleted": "PR-004",
+      "old_action": "no_action",
+      "old_notes": false,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "barry.mclaughlin@vincifacilities.com",
+      "kept": "PR-177",
+      "deleted": "PR-008",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "btgrenfell@spinnaker-global.com",
+      "kept": "PR-188",
+      "deleted": "PR-009",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "dmsweetinburgh@btinternet.com",
+      "kept": "PR-174",
+      "deleted": "PR-018",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "ella@blackwhitedenim.com",
+      "kept": "PR-179",
+      "deleted": "PR-023",
+      "old_action": "no_action",
+      "old_notes": false,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "eng.mohamedelmasry68@gmail.com",
+      "kept": "PR-173",
+      "deleted": "PR-068",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "francesca.milton@wates.co.uk",
+      "kept": "PR-185",
+      "deleted": "PR-031",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "heather@cypressquay.com",
+      "kept": "PR-175",
+      "deleted": "PR-037",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "jack.junor-graham@herbuk.com",
+      "kept": "PR-191",
+      "deleted": "PR-040",
+      "old_action": "no_action",
+      "old_notes": false,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "jennifer.caine@kentbusinesscollege.com",
+      "kept": "PR-187",
+      "deleted": "PR-046",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "lauren.hiney@rcplondon.ac.uk",
+      "kept": "PR-181",
+      "deleted": "PR-058",
+      "old_action": "no_action",
+      "old_notes": false,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "marco.zilberstein@enotrac.com",
+      "kept": "PR-190",
+      "deleted": "PR-063",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "rania.mohamed7277@gmail.com",
+      "kept": "PR-186",
+      "deleted": "PR-078",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "stephen@thefamilyburns.com",
+      "kept": "PR-180",
+      "deleted": "PR-088",
+      "old_action": "no_action",
+      "old_notes": false,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "steven.ahara@gxo.com",
+      "kept": "PR-176",
+      "deleted": "PR-090",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "sue.stafford@gxo.com",
+      "kept": "PR-182",
+      "deleted": "PR-091",
+      "old_action": "no_action",
+      "old_notes": true,
+      "evidence_moved": 0
+    },
+    {
+      "label": "PR",
+      "email": "tinom@sarginsons.co.uk",
+      "kept": "PR-184",
+      "deleted": "PR-095",
+      "old_action": "emailed",
+      "old_notes": true,
+      "evidence_moved": 1
+    },
+    {
+      "label": "PR",
+      "email": "tom.emblem@kutavar.com",
+      "kept": "PR-192",
+      "deleted": "PR-093",
+      "old_action": "emailed",
+      "old_notes": true,
+      "evidence_moved": 1
+    },
+    {
+      "label": "PR",
+      "email": "zoeb@torchtrust.org",
+      "kept": "PR-183",
+      "deleted": "PR-110",
+      "old_action": "no_action",
+      "old_notes": false,
+      "evidence_moved": 0
+    }
+  ]
+}

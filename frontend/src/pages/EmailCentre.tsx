@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +28,6 @@ import { renderTemplate, type EmailRecipient } from "@/lib/emailCenter";
 import { buildBrandedEmailHtml } from "@/lib/emailDesign";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
 import { getMissedLearnersFromCoaches } from "@/lib/dashboard/getMissedLearners";
-import { getBookingLinks } from "@/lib/bookingLinks";
 
 const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
@@ -35,6 +35,16 @@ const kpiLabels: Record<string, string> = {
   "coaching-due": "Coaching Required",
   "otj-behind": "OTJH Behind",
 };
+
+const TEST_EMAIL = "rewan.yasser@kentbusinesscollege.com";
+const TEST_CC_EMAIL = "Ahmed.Lotfi@kentbusinesscollege.com";
+const CATCH_UP_TEMPLATE_ID = "tpl-5";
+const catchUpRequiredFields = ["catchUpSessionDateTime", "catchUpSessionLink"];
+
+const hasMergeField = (text: string, field: string) =>
+  new RegExp(`\\{\\{\\s*${field}\\s*\\}\\}`, "i").test(text);
+
+const statusKey = (value: unknown) => String(value || "").trim().toLowerCase();
 
 type EmailCentreLocationState = {
   selectedRecipient?: EmailRecipient;
@@ -45,8 +55,7 @@ type EmailCentreLocationState = {
 
 type AbsenceWeeksFilter = "all" | 0 | 1 | 2 | 3;
 type EmailTimePeriod = "all" | "today" | "last7days" | "last30days" | "thisMonth" | "last12weeks";
-type PrQuarterOffset = -2 | -1 | 0 | 1 | 2;
-type PrRecipientStatusFilter = "all" | "needsBooking";
+type PrPeriodFilter = "last12weeks" | "allOverdue";
 type McmMonthOffset = "all" | -3 | -2 | -1 | 0 | 1 | 2;
 
 const absenceWindowLabels: Record<AbsenceWeeksFilter, string> = {
@@ -55,13 +64,6 @@ const absenceWindowLabels: Record<AbsenceWeeksFilter, string> = {
   1: "Previous week",
   2: "2 weeks ago",
   3: "3 weeks ago",
-};
-
-const getTemplateBookingLink = (coachName: string, kpiCategory: string) => {
-  const links = getBookingLinks(coachName);
-  if (kpiCategory === "review-due") return links.pr || "";
-  if (kpiCategory === "coaching-due") return links.mcm || "";
-  return links.support || "";
 };
 
 const timePeriodLabels: Record<EmailTimePeriod, string> = {
@@ -73,9 +75,9 @@ const timePeriodLabels: Record<EmailTimePeriod, string> = {
   last12weeks: "Last 12 weeks",
 };
 
-const prRecipientStatusLabels: Record<PrRecipientStatusFilter, string> = {
-  all: "All",
-  needsBooking: "Needs booking only",
+const prPeriodLabels: Record<PrPeriodFilter, string> = {
+  last12weeks: "Last 12 Weeks",
+  allOverdue: "All Overdue",
 };
 
 const getMcmMonthRange = (offset: Exclude<McmMonthOffset, "all">) => {
@@ -195,24 +197,13 @@ const getTimePeriodRange = (period: EmailTimePeriod): { start: Date; end: Date }
   return { start, end };
 };
 
-const getPrQuarterRange = (offset: PrQuarterOffset) => {
-  const now = new Date();
-  const currentQ = Math.floor(now.getMonth() / 3);
-  const targetQ = currentQ + offset;
-  const yearShift = Math.floor(targetQ / 4);
-  const normQ = ((targetQ % 4) + 4) % 4;
-  const year = now.getFullYear() + yearShift;
-  const startMonth = normQ * 3;
-  const start = new Date(year, startMonth, 1);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(year, startMonth + 3, 0);
+const getPrLast12WeeksRange = () => {
+  const end = new Date();
   end.setHours(23, 59, 59, 999);
-  return { start, end, label: `Q${normQ + 1} ${year}` };
-};
-
-const getPrQuarterLabel = (offset: PrQuarterOffset) => {
-  const { label } = getPrQuarterRange(offset);
-  return offset === 0 ? `Current - ${label}` : label;
+  const start = new Date(end);
+  start.setDate(end.getDate() - 7 * 12 + 1);
+  start.setHours(0, 0, 0, 0);
+  return { start, end };
 };
 
 const isDateInPeriod = (value: unknown, period: EmailTimePeriod) => {
@@ -230,10 +221,11 @@ const findDateInPeriod = (
 ) => {
   const candidates = (Array.isArray(dates) ? dates : [])
     .filter((d) => d?.date && !d.completed)
-    .map((d) => String(d.date));
+    .map((d) => String(d.date))
+    .filter((date) => period === "all" || isDateInPeriod(date, period))
+    .sort((a, b) => String(b).localeCompare(String(a)));
 
-  if (period === "all") return candidates[0] || "";
-  return candidates.find((date) => isDateInPeriod(date, period)) || "";
+  return candidates[0] || "";
 };
 
 const findMcmDateInMonth = (
@@ -247,12 +239,13 @@ const findMcmDateInMonth = (
   const candidates = (Array.isArray(dates) ? dates : []).filter((d) => {
     if (!d?.date) return false;
 
+    const dt = parseDateValue(d.date);
+
     if (monthOffset === "all") {
-      return !d.completed;
+      return Boolean(dt && dt < mcmToday && !d.completed);
     }
 
     const { start, end } = getMcmMonthRange(monthOffset);
-    const dt = parseDateValue(d.date);
     if (!dt || dt < start || dt > end) return false;
 
     if (isPastMonth) return true;
@@ -265,34 +258,25 @@ const findMcmDateInMonth = (
     return true;
   });
 
-  return candidates.sort((a, b) => String(a.date).localeCompare(String(b.date)))[0]?.date || "";
+  return candidates.sort((a, b) => String(b.date).localeCompare(String(a.date)))[0]?.date || "";
 };
 
-const isUnbookedProgressReviewStatus = (value: unknown) => {
-  const status = String(value || "").trim().toLowerCase();
-  if (!status) return true;
-  if (status.includes("not scheduled")) return true;
-  if (status.includes("scheduled") && !status.includes("not")) return false;
-  if (status.includes("completed")) return false;
-  if (status.includes("awaiting signature")) return false;
-  if (status.includes("in progress")) return false;
-  return true;
-};
-
-const findPrDateInQuarter = (
-  dates: Array<{ date?: string; completed?: boolean; status?: string }> | undefined,
-  quarterOffset: PrQuarterOffset,
-  statusFilter: PrRecipientStatusFilter
+const findLatestOverduePrDate = (
+  dates: Array<{ date?: string; completed?: boolean; status?: string; isPast?: boolean }> | undefined,
+  period: PrPeriodFilter
 ) => {
-  const { start, end } = getPrQuarterRange(quarterOffset);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const range = period === "last12weeks" ? getPrLast12WeeksRange() : null;
   const candidates = (Array.isArray(dates) ? dates : [])
     .filter((d) => {
       if (!d?.date || d.completed) return false;
-      if (statusFilter === "needsBooking" && !isUnbookedProgressReviewStatus(d.status)) return false;
       const dt = parseDateValue(d.date);
-      return Boolean(dt && dt >= start && dt <= end);
+      if (!dt || dt >= today) return false;
+      if (!range) return true;
+      return dt >= range.start && dt <= range.end;
     })
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
   return candidates[0]?.date || "";
 };
@@ -537,9 +521,8 @@ export default function EmailCentre() {
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
   const [timePeriod, setTimePeriod] = useState<EmailTimePeriod>("last30days");
   const [absenceWeeks, setAbsenceWeeks] = useState<AbsenceWeeksFilter>(0);
-  const [prQuarterOffset, setPrQuarterOffset] = useState<PrQuarterOffset>(0);
-  const [prRecipientStatusFilter, setPrRecipientStatusFilter] = useState<PrRecipientStatusFilter>("all");
-  const [mcmMonthOffset, setMcmMonthOffset] = useState<McmMonthOffset>(0);
+  const [prPeriodFilter, setPrPeriodFilter] = useState<PrPeriodFilter>("last12weeks");
+  const [mcmMonthOffset] = useState<McmMonthOffset>(-1);
 
   const subjectRef = useRef<HTMLInputElement>(null);
 
@@ -601,8 +584,7 @@ export default function EmailCentre() {
   }, [
     timePeriod,
     absenceWeeks,
-    prQuarterOffset,
-    prRecipientStatusFilter,
+    prPeriodFilter,
     mcmMonthOffset,
     selectedTemplate.id,
     manualRecipients.length,
@@ -652,12 +634,12 @@ export default function EmailCentre() {
   const prReviewRecipients = useMemo<EmailRecipient[]>(() => {
     const seen = new Set<string>();
     return prRows
-      .filter((r) => Boolean(findPrDateInQuarter(r.plannedDates, prQuarterOffset, prRecipientStatusFilter)))
+      .filter((r) => Number(r.overduePrCount ?? 0) > 0)
+      .filter((r) => Boolean(findLatestOverduePrDate(r.plannedDates, prPeriodFilter)))
       .map((r) => {
         const coachName = String(r.caseOwner || "").trim();
         const coachEmail = coachEmailMap.get(coachName.toLowerCase()) ?? "";
-        const prLink = getBookingLinks(coachName).pr ?? "";
-        const periodDate = findPrDateInQuarter(r.plannedDates, prQuarterOffset, prRecipientStatusFilter);
+        const periodDate = findLatestOverduePrDate(r.plannedDates, prPeriodFilter) || String(r.nextPrDate || "").trim();
         return {
           learnerName: String(r.fullName || "").trim(),
           learnerEmail: String(r.email || "").trim().toLowerCase(),
@@ -666,7 +648,6 @@ export default function EmailCentre() {
           coachEmail,
           dueDate: periodDate,
           periodDate,
-          bookingLink: prLink,
           status: "Active",
           riskCategories: ["review-due"],
         };
@@ -677,7 +658,7 @@ export default function EmailCentre() {
         seen.add(r.learnerEmail);
         return true;
       });
-  }, [prRows, coachEmailMap, dashboardLearnerEmails, prQuarterOffset, prRecipientStatusFilter]);
+  }, [prRows, coachEmailMap, dashboardLearnerEmails, prPeriodFilter]);
 
   const mcrRecipients = useMemo<EmailRecipient[]>(() => {
     const seen = new Set<string>();
@@ -687,7 +668,6 @@ export default function EmailCentre() {
       .map((r) => {
         const coachName = String(r.caseOwner || "").trim();
         const coachEmail = coachEmailMap.get(coachName.toLowerCase()) ?? "";
-        const mcmLink = getBookingLinks(coachName).mcm ?? "";
         const periodDate = findMcmDateInMonth(r.mcmDates, mcmMonthOffset) || String(r.nextDueDate || r.nextMcm || "").trim();
         return {
           learnerName: String(r.fullName || "").trim(),
@@ -697,7 +677,6 @@ export default function EmailCentre() {
           coachEmail,
           dueDate: periodDate,
           periodDate,
-          bookingLink: mcmLink,
           status: "Active",
           riskCategories: ["coaching-due"],
         };
@@ -713,6 +692,7 @@ export default function EmailCentre() {
   const otjRecipients = useMemo<EmailRecipient[]>(() => {
     const seen = new Set<string>();
     return otjRows
+      .filter((r) => statusKey(r.otjHoursStatus) === "at risk")
       .map((r) => {
         const rawVariance = Number(String(r.progressVariance ?? "0").replace(/[^0-9.-]/g, "") || "0");
         const behindPct = rawVariance < 0 ? Math.abs(rawVariance) : rawVariance;
@@ -786,25 +766,42 @@ export default function EmailCentre() {
       : effectiveRecipients;
 
   const recipientCount = finalRecipients.length;
+  const isCatchUpTemplate = selectedTemplate.id === CATCH_UP_TEMPLATE_ID;
+  const missingCatchUpFields = isCatchUpTemplate
+    ? catchUpRequiredFields.filter((field) => hasMergeField(body, field))
+    : [];
+  const isCatchUpTemplateBlocked = missingCatchUpFields.length > 0;
 
   const previewRecipient: EmailRecipient | null = effectiveRecipients[0] || null;
-  const enrichRecipientForTemplate = (recipient: EmailRecipient) => ({
-    ...recipient,
-    bookingLink:
-      recipient.bookingLink ||
-      getTemplateBookingLink(recipient.coachName, selectedTemplate.kpiCategory),
-  });
+  const enrichRecipientForTemplate = (recipient: EmailRecipient) => {
+    const { bookingLink: _bookingLink, ...rest } = recipient;
+    const coachEmail =
+      String(rest.coachEmail || "").trim().toLowerCase() ||
+      coachEmailMap.get(String(rest.coachName || "").trim().toLowerCase()) ||
+      "";
+
+    return {
+      ...rest,
+      coachEmail,
+      cc: coachEmail ? [coachEmail] : [],
+      ccEmail: coachEmail,
+      coachCcEmail: coachEmail,
+    };
+  };
+  const previewRecipientWithCc = previewRecipient ? enrichRecipientForTemplate(previewRecipient) : null;
+  const previewCoachCcEmail = String(previewRecipientWithCc?.coachCcEmail || "").trim();
+  const previewCoachName = String(previewRecipientWithCc?.coachName || "Learner coach").trim();
 
   const previewSubject = previewRecipient
     ? renderTemplate(subject, {
-        ...enrichRecipientForTemplate(previewRecipient),
+        ...previewRecipientWithCc,
         senderName: "Progress Coordinator",
       })
     : subject;
 
   const previewBody = previewRecipient
     ? renderTemplate(body, {
-        ...enrichRecipientForTemplate(previewRecipient),
+        ...previewRecipientWithCc,
         senderName: "Progress Coordinator",
       })
     : body;
@@ -812,10 +809,65 @@ export default function EmailCentre() {
     ? buildBrandedEmailHtml({
         subject: previewSubject,
         body: previewBody,
-        recipient: enrichRecipientForTemplate(previewRecipient),
+        recipient: previewRecipientWithCc,
         kpiCategory: selectedTemplate.kpiCategory,
+        previewMode: true,
       })
     : "";
+
+  const buildRenderedRecipients = (recipients: EmailRecipient[]) =>
+    recipients.map((recipient) => {
+      const enrichedRecipient = enrichRecipientForTemplate(recipient);
+      const mergedData = {
+        ...enrichedRecipient,
+        senderName: "Progress Coordinator",
+      };
+      const renderedSubject = renderTemplate(subject, mergedData);
+      const renderedTextBody = renderTemplate(body, mergedData);
+      const renderedHtmlBody = buildBrandedEmailHtml({
+        subject: renderedSubject,
+        body: renderedTextBody,
+        recipient: enrichedRecipient,
+        kpiCategory: selectedTemplate.kpiCategory,
+      });
+
+      return {
+        ...enrichedRecipient,
+        renderedSubject,
+        renderedTextBody,
+        renderedHtmlBody,
+        renderedBody: renderedHtmlBody,
+      };
+    });
+
+  const sendRenderedRecipients = async (
+    renderedRecipients: ReturnType<typeof buildRenderedRecipients>,
+    extraPayload: Record<string, unknown> = {}
+  ) => {
+    return fetch("/api/send-email/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        subject,
+        body,
+        bodyFormat: "html",
+        isHtml: true,
+        senderName: "Progress Coordinator",
+        kpiCategory: selectedTemplate.kpiCategory,
+        recipients: renderedRecipients,
+        ...extraPayload,
+        preview: renderedRecipients[0]
+          ? {
+              subject: renderedRecipients[0].renderedSubject,
+              body: renderedRecipients[0].renderedBody,
+              textBody: renderedRecipients[0].renderedTextBody,
+            }
+          : null,
+      }),
+    });
+  };
 
   const handleTemplateChange = (template: (typeof mockEmailTemplates)[number]) => {
     setSelectedTemplate(template);
@@ -824,60 +876,73 @@ export default function EmailCentre() {
     setShowPreview(false);
   };
 
+  const handleSendTest = async () => {
+    if (isCatchUpTemplateBlocked) {
+      toast.error("Add the catch-up session details first", {
+        description: "Replace the catch-up session date/time and join link placeholders before sending.",
+      });
+      return;
+    }
+
+    const sourceRecipient = previewRecipient || finalRecipients[0];
+    if (!sourceRecipient) {
+      toast.error("No learner is available for the test email");
+      return;
+    }
+
+    try {
+      setSending(true);
+      const testRecipient = {
+        ...sourceRecipient,
+        learnerEmail: TEST_EMAIL,
+      };
+      const renderedRecipients = buildRenderedRecipients([testRecipient]).map((recipient) => {
+        const ccList = [TEST_CC_EMAIL];
+        return {
+          ...recipient,
+          cc: ccList,
+          ccEmail: TEST_CC_EMAIL,
+          testCcEmail: TEST_CC_EMAIL,
+        };
+      });
+      const res = await sendRenderedRecipients(renderedRecipients, {
+        cc: [TEST_CC_EMAIL],
+        ccEmail: TEST_CC_EMAIL,
+        testCcEmail: TEST_CC_EMAIL,
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result?.detail || "Failed to send test email");
+      }
+
+      toast.success("Test email sent", {
+        description: `Sent to ${TEST_EMAIL}. CC: ${TEST_CC_EMAIL}.`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Test email failed", {
+        description: err?.message || "Please try again or check the webhook.",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const handleSendNow = async () => {
     if (!finalRecipients.length) return;
+    if (isCatchUpTemplateBlocked) {
+      toast.error("Add the catch-up session details first", {
+        description: "Replace the catch-up session date/time and join link placeholders before sending.",
+      });
+      return;
+    }
 
     try {
       setSending(true);
 
-      const senderName = "Progress Coordinator";
-
-      const renderedRecipients = finalRecipients.map((recipient) => {
-        const enrichedRecipient = enrichRecipientForTemplate(recipient);
-        const mergedData = {
-          ...enrichedRecipient,
-          senderName,
-        };
-        const renderedSubject = renderTemplate(subject, mergedData);
-        const renderedTextBody = renderTemplate(body, mergedData);
-        const renderedHtmlBody = buildBrandedEmailHtml({
-          subject: renderedSubject,
-          body: renderedTextBody,
-          recipient: enrichedRecipient,
-          kpiCategory: selectedTemplate.kpiCategory,
-        });
-
-        return {
-          ...enrichedRecipient,
-          renderedSubject,
-          renderedTextBody,
-          renderedHtmlBody,
-          renderedBody: renderedHtmlBody,
-        };
-      });
-
-      const res = await fetch("/api/send-email/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subject,
-          body,
-          bodyFormat: "html",
-          isHtml: true,
-          senderName,
-          kpiCategory: selectedTemplate.kpiCategory,
-          recipients: renderedRecipients,
-          preview: renderedRecipients[0]
-            ? {
-                subject: renderedRecipients[0].renderedSubject,
-                body: renderedRecipients[0].renderedBody,
-                textBody: renderedRecipients[0].renderedTextBody,
-              }
-            : null,
-        }),
-      });
+      const renderedRecipients = buildRenderedRecipients(finalRecipients);
+      const res = await sendRenderedRecipients(renderedRecipients);
 
       const result = await res.json();
 
@@ -1111,6 +1176,15 @@ export default function EmailCentre() {
                 />
               </div>
 
+              <div className="rounded-xl border border-[#D7E5F3] bg-[#F8FBFE] p-3">
+                <p className="text-xs font-semibold text-[#14264A]">Coach CC</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {previewCoachCcEmail
+                    ? `${previewCoachName} will be copied on this email: ${previewCoachCcEmail}`
+                    : "The learner's coach will be copied when a coach email is available."}
+                </p>
+              </div>
+
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Body</label>
                 <Textarea
@@ -1132,6 +1206,20 @@ export default function EmailCentre() {
                   </Badge>
                 ))}
               </div>
+
+              {isCatchUpTemplate && (
+                <div
+                  className={`rounded-xl border p-3 text-xs ${
+                    isCatchUpTemplateBlocked
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  }`}
+                >
+                  {isCatchUpTemplateBlocked
+                    ? "Before sending, replace {{catchUpSessionDateTime}} and {{catchUpSessionLink}} with the catch-up session details."
+                    : "Catch-up session details have been added."}
+                </div>
+              )}
             </Card>
 
             {showPreview && (
@@ -1154,14 +1242,14 @@ export default function EmailCentre() {
             <Card className="space-y-4 p-5">
               <p className="text-sm font-medium text-foreground">Send Options</p>
 
-              {manualRecipients.length === 0 && (
+              {manualRecipients.length === 0 && selectedTemplate.kpiCategory !== "otj-behind" && (
                 <div className="flex flex-col gap-2 rounded-xl border border-[#E7DAF4] bg-[#FCF8FF] p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[#442F73]">
                       {selectedTemplate.kpiCategory === "missed-session"
                         ? "Attendance week"
                         : selectedTemplate.kpiCategory === "review-due"
-                          ? "PR Quarter"
+                          ? "PR Window"
                           : selectedTemplate.kpiCategory === "coaching-due"
                             ? "MCM Month"
                             : "Time period"}
@@ -1170,67 +1258,63 @@ export default function EmailCentre() {
                       {selectedTemplate.kpiCategory === "missed-session"
                         ? "Weeks start on Monday and end on Sunday."
                         : selectedTemplate.kpiCategory === "review-due"
-                          ? "Matches the dashboard by quarter. Use Needs booking only for unscheduled PR follow-up."
+                          ? "Default matches Required PR: overdue progress reviews in the last 12 weeks."
                           : selectedTemplate.kpiCategory === "coaching-due"
-                            ? "Shows Monthly Coaching Meeting dates in the selected calendar month."
+                            ? "Fixed to overdue Monthly Coaching Meeting dates from last month."
                             : "Controls which learners appear for date-based templates."}
                     </p>
                   </div>
 
                   {selectedTemplate.kpiCategory === "missed-session" ? (
-                    <select
-                      value={absenceWeeks}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setAbsenceWeeks(value === "all" ? "all" : (Number(value) as AbsenceWeeksFilter));
-                      }}
-                      className="h-10 w-full rounded-xl border border-[#D8C9EE] bg-white px-3 text-sm text-[#4C4C4C] sm:w-[280px]"
+                    <Select
+                      value={String(absenceWeeks)}
+                      onValueChange={(value) => setAbsenceWeeks(Number(value) as AbsenceWeeksFilter)}
                     >
-                      <option value={0}>{getAbsenceWindowLabel(0)}</option>
-                      <option value={1}>{getAbsenceWindowLabel(1)}</option>
-                      <option value={2}>{getAbsenceWindowLabel(2)}</option>
-                      <option value={3}>{getAbsenceWindowLabel(3)}</option>
-                      <option value="all">{getAbsenceWindowLabel("all")}</option>
-                    </select>
+                      <SelectTrigger className="h-11 w-full rounded-xl border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#14264A] shadow-sm focus:ring-[#E7DAF4] sm:w-[310px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent
+                        align="end"
+                        className="rounded-xl border-[#D8C9EE] bg-white p-1.5 shadow-xl"
+                      >
+                        {[0, 1, 2, 3].map((week) => (
+                          <SelectItem
+                            key={week}
+                            value={String(week)}
+                            className="rounded-lg py-2.5 pl-8 pr-3 text-sm font-medium text-[#14264A] focus:bg-[#EEF7FF] focus:text-[#1E6ACB] data-[state=checked]:bg-[#EEF7FF] data-[state=checked]:text-[#1E6ACB]"
+                          >
+                            {getAbsenceWindowLabel(week as 0 | 1 | 2 | 3)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : selectedTemplate.kpiCategory === "review-due" ? (
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                      <select
-                        value={prQuarterOffset}
-                        onChange={(e) => setPrQuarterOffset(Number(e.target.value) as PrQuarterOffset)}
-                        className="h-10 w-full rounded-xl border border-[#D8C9EE] bg-white px-3 text-sm text-[#4C4C4C] sm:w-[190px]"
-                      >
-                        <option value={-2}>{getPrQuarterLabel(-2)}</option>
-                        <option value={-1}>{getPrQuarterLabel(-1)}</option>
-                        <option value={0}>{getPrQuarterLabel(0)}</option>
-                        <option value={1}>{getPrQuarterLabel(1)}</option>
-                        <option value={2}>{getPrQuarterLabel(2)}</option>
-                      </select>
-                      <select
-                        value={prRecipientStatusFilter}
-                        onChange={(e) => setPrRecipientStatusFilter(e.target.value as PrRecipientStatusFilter)}
-                        className="h-10 w-full rounded-xl border border-[#D8C9EE] bg-white px-3 text-sm text-[#4C4C4C] sm:w-[170px]"
-                      >
-                        <option value="all">{prRecipientStatusLabels.all}</option>
-                        <option value="needsBooking">{prRecipientStatusLabels.needsBooking}</option>
-                      </select>
-                    </div>
-                  ) : selectedTemplate.kpiCategory === "coaching-due" ? (
-                    <select
-                      value={mcmMonthOffset}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMcmMonthOffset(value === "all" ? "all" : (Number(value) as McmMonthOffset));
-                      }}
-                      className="h-10 w-full rounded-xl border border-[#D8C9EE] bg-white px-3 text-sm text-[#4C4C4C] sm:w-[240px]"
+                    <Select
+                      value={prPeriodFilter}
+                      onValueChange={(value) => setPrPeriodFilter(value as PrPeriodFilter)}
                     >
-                      <option value={0}>{getMcmMonthLabel(0)}</option>
-                      <option value={-1}>{getMcmMonthLabel(-1)}</option>
-                      <option value={-2}>{getMcmMonthLabel(-2)}</option>
-                      <option value={-3}>{getMcmMonthLabel(-3)}</option>
-                      <option value={1}>{getMcmMonthLabel(1)}</option>
-                      <option value={2}>{getMcmMonthLabel(2)}</option>
-                      <option value="all">{getMcmMonthLabel("all")}</option>
-                    </select>
+                      <SelectTrigger className="h-11 w-full rounded-xl border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#14264A] shadow-sm focus:ring-[#E7DAF4] sm:w-[210px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent
+                        align="end"
+                        className="rounded-xl border-[#D8C9EE] bg-white p-1.5 shadow-xl"
+                      >
+                        {(["last12weeks", "allOverdue"] as PrPeriodFilter[]).map((period) => (
+                          <SelectItem
+                            key={period}
+                            value={period}
+                            className="rounded-lg py-2.5 pl-8 pr-3 text-sm font-medium text-[#14264A] focus:bg-[#EEF7FF] focus:text-[#1E6ACB] data-[state=checked]:bg-[#EEF7FF] data-[state=checked]:text-[#1E6ACB]"
+                          >
+                            {prPeriodLabels[period]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : selectedTemplate.kpiCategory === "coaching-due" ? (
+                    <div className="inline-flex h-11 w-full items-center justify-between rounded-xl border border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#14264A] shadow-sm sm:w-[240px]">
+                      {getMcmMonthLabel(-1)}
+                    </div>
                   ) : (
                     <select
                       value={timePeriod}
@@ -1260,7 +1344,7 @@ export default function EmailCentre() {
                       ? ` for ${getAbsenceWindowLabel(absenceWeeks)}`
                       : ""}
                     {manualRecipients.length === 0 && selectedTemplate.kpiCategory === "review-due"
-                      ? ` for ${getPrQuarterLabel(prQuarterOffset)} (${prRecipientStatusLabels[prRecipientStatusFilter]})`
+                      ? ` for ${prPeriodLabels[prPeriodFilter]}`
                       : ""}
                     {manualRecipients.length === 0 && selectedTemplate.kpiCategory === "coaching-due"
                       ? ` for ${getMcmMonthLabel(mcmMonthOffset)}`
@@ -1273,9 +1357,9 @@ export default function EmailCentre() {
               </div>
 
               {manualRecipients.length === 0 && selectedTemplate.kpiCategory === "otj-behind" && (
-                <p className="text-xs text-muted-foreground">
-                  OTJH Behind is a live at-risk list and does not have a dated event in the source data.
-                </p>
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs text-red-800">
+                  OTJH Behind uses the live At Risk list only. No date filter is applied.
+                </div>
               )}
 
               <div className="space-y-2">
@@ -1349,10 +1433,20 @@ export default function EmailCentre() {
                 <Button
                   className="gap-1.5"
                   onClick={() => setSendConfirmOpen(true)}
-                  disabled={sending || !recipientCount}
+                  disabled={sending || !recipientCount || isCatchUpTemplateBlocked}
                 >
                   <Send className="h-3.5 w-3.5" />
                   Send Now
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={handleSendTest}
+                  disabled={sending || !previewRecipient || isCatchUpTemplateBlocked}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Send Test
                 </Button>
 
                 <Button
@@ -1422,7 +1516,7 @@ export default function EmailCentre() {
                       void handleSendNow();
                     }}
                     className="rounded-xl bg-[#B27715] font-bold text-white hover:bg-[#9D6912]"
-                    disabled={sending}
+                    disabled={sending || isCatchUpTemplateBlocked}
                   >
                     {sending ? "Sending..." : "Send Now"}
                   </AlertDialogAction>

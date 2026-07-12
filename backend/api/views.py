@@ -202,7 +202,26 @@ def is_countable_progress_review_slot(planned_value):
     return True
 
 
+def _latest_dated_item(items, date_key="date"):
+    dated_items = []
+    for item in items or []:
+        item_date = parse_date_safe(item.get(date_key))
+        if item_date:
+            dated_items.append((item_date, item))
+    if not dated_items:
+        return None
+    dated_items.sort(key=lambda pair: pair[0])
+    return dated_items[-1][1]
+
+
 def progress_review_summary(request):
+    learner_filter = str(
+        request.GET.get("learner_email")
+        or request.GET.get("email")
+        or request.GET.get("learner")
+        or ""
+    ).strip().lower()
+
     # Fetch phone / organisation from aptem_auto_extracting for enrichment
     learner_extras = {}
     try:
@@ -222,7 +241,9 @@ def progress_review_summary(request):
         pass
 
     with connections["aptem"].cursor() as cursor:
-        cursor.execute("""
+        learner_where = 'AND LOWER(TRIM("Email")) = %s' if learner_filter else ""
+        params = [learner_filter] if learner_filter else []
+        cursor.execute(f"""
             SELECT
                 "ID",
                 "FullName",
@@ -250,7 +271,8 @@ def progress_review_summary(request):
                 "Review Planned Date16", "Review Status16"
             FROM public.progress_review
             WHERE LOWER(COALESCE("Status", '')) = 'active'
-        """)
+              {learner_where}
+        """, params)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -261,6 +283,8 @@ def progress_review_summary(request):
         overdue_count = 0
         next_due_date_from_planned = None
         next_due_state_from_planned = ""
+        latest_overdue_date_from_planned = None
+        latest_overdue_state_from_planned = ""
         all_planned_dates = []
         last_actually_completed_pr = row.get("Last Actually Completed PR") or ""
         last_progress_review = row.get("Last Progress Review") or ""
@@ -292,6 +316,9 @@ def progress_review_summary(request):
 
             if planned_date < today and not completed:
                 overdue_count += 1
+                if latest_overdue_date_from_planned is None or planned_date > latest_overdue_date_from_planned:
+                    latest_overdue_date_from_planned = planned_date
+                    latest_overdue_state_from_planned = planned_status_raw
 
             if planned_date >= today and not completed:
                 if next_due_date_from_planned is None or planned_date < next_due_date_from_planned:
@@ -310,9 +337,12 @@ def progress_review_summary(request):
         next_review_raw = row.get("Next Review (Status)") or ""
         next_pr_date_raw, next_pr_state = split_next_review_status(next_review_raw)
 
-        # Normalize nextPrDate to YYYY-MM-DD regardless of source format
+        # For overdue learners, show the most recent missed PR date.
         parsed_field_date = parse_date_safe(next_pr_date_raw) if next_pr_date_raw else None
-        if parsed_field_date and parsed_field_date not in excluded_planned_dates and (
+        if latest_overdue_date_from_planned:
+            next_pr_date = latest_overdue_date_from_planned.strftime("%Y-%m-%d")
+            next_pr_state = latest_overdue_state_from_planned
+        elif parsed_field_date and parsed_field_date not in excluded_planned_dates and (
             not countable_planned_dates or parsed_field_date in countable_planned_dates
         ):
             next_pr_date = parsed_field_date.strftime("%Y-%m-%d")
@@ -1015,6 +1045,7 @@ def mcr_summary(request):
     for row in raw_rows:
         overdue_count = 0
         next_due_date = None
+        latest_overdue_date = None
         mcm_dates = []
 
         for i in range(1, 23):
@@ -1033,6 +1064,8 @@ def mcr_summary(request):
 
             if mcm_date < today and not completed:
                 overdue_count += 1
+                if latest_overdue_date is None or mcm_date > latest_overdue_date:
+                    latest_overdue_date = mcm_date
 
             if mcm_date >= today and not completed:
                 if next_due_date is None or mcm_date < next_due_date:
@@ -1058,7 +1091,7 @@ def mcr_summary(request):
             "nextMcm": row.get("Next MCM") or "",
             "lastActuallyCompletedMcm": row.get("Last Actually Completed  MCM") or "",
             "overdueMcmCount": overdue_count,
-            "nextDueDate": next_due_date.isoformat() if next_due_date else None,
+            "nextDueDate": (latest_overdue_date or next_due_date).isoformat() if (latest_overdue_date or next_due_date) else None,
             "mcrStatus": mcr_status,
             "mcmDates": mcm_dates,
             "managerName": row.get("Manager Name") or "",
@@ -2060,6 +2093,14 @@ def pr_tickets(request):
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
         tickets = ProgressReviewTicket.objects.filter(is_archived=show_archived)
+        learner_email = str(
+            request.GET.get("learner_email")
+            or request.GET.get("email")
+            or request.GET.get("learner")
+            or ""
+        ).strip().lower()
+        if learner_email:
+            tickets = tickets.filter(learner_email__iexact=learner_email)
         return JsonResponse([_pr_ticket_to_dict(t) for t in tickets], safe=False)
 
     if request.method == "POST":
@@ -2366,12 +2407,15 @@ def _mcm_payload_from_summary_row(row):
         })
 
     overdue_items = _mcm_overdue_items(normalized_history)
+    latest_overdue_item = _latest_dated_item(overdue_items)
     next_item = _mcm_next_item(normalized_history)
     completed_items = _mcm_completed_items(normalized_history)
     completed_items.sort(key=lambda item: item["date"])
     last_completed = completed_items[-1] if completed_items else None
 
-    next_mcm_date = next_item[0].isoformat() if next_item else str(row.get("nextDueDate") or row.get("nextMcm") or "").strip()
+    next_mcm_date = str((latest_overdue_item or {}).get("date") or "").strip()
+    if not next_mcm_date:
+        next_mcm_date = next_item[0].isoformat() if next_item else str(row.get("nextDueDate") or row.get("nextMcm") or "").strip()
     last_mcm_date = str((last_completed or {}).get("date") or row.get("lastActuallyCompletedMcm") or row.get("lastMcm") or "").strip()
     overdue_count = len(overdue_items)
 
@@ -2494,6 +2538,14 @@ def mcm_tickets(request):
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
         tickets = MCMTicket.objects.filter(is_archived=show_archived)
+        learner_email = str(
+            request.GET.get("learner_email")
+            or request.GET.get("email")
+            or request.GET.get("learner")
+            or ""
+        ).strip().lower()
+        if learner_email:
+            tickets = tickets.filter(learner_email__iexact=learner_email)
         return JsonResponse([_mcm_ticket_to_dict(t) for t in tickets], safe=False)
     if request.method == "POST":
         body = _json_body(request)

@@ -59,22 +59,27 @@ export function buildBrandedEmailHtml({
   body,
   recipient,
   kpiCategory,
+  previewMode = false,
 }: {
   subject: string;
   body: string;
   recipient: EmailRecipient;
   kpiCategory: string;
+  previewMode?: boolean;
 }) {
   const bookingLink = String(recipient.bookingLink || "").trim();
   const coachEmail = String(recipient.coachEmail || "").trim();
   const programme = String(recipient.programme || "Programme").trim() || "Programme";
-  const actionUrl = bookingLink || (coachEmail ? `mailto:${coachEmail}` : "");
+  const hasActionButton =
+    ["missed-session", "review-due", "coaching-due"].includes(kpiCategory) ||
+    (previewMode && kpiCategory === "otj-behind");
+  const actionUrl = hasActionButton ? bookingLink || (coachEmail ? `mailto:${coachEmail}` : "") : "";
   const actionLabel = actionLabelByCategory[kpiCategory] || "View Next Step";
   const eyebrow = introByCategory[kpiCategory] || "Learner support update";
   const safeSubject = escapeHtml(subject);
   const safeProgramme = escapeHtml(programme);
-  const safeActionUrl = escapeAttribute(actionUrl);
-  const actionButton = actionUrl
+  const safeActionUrl = escapeAttribute(actionUrl || "#");
+  const actionButton = hasActionButton && (actionUrl || previewMode)
     ? `
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 20px 0;">
         <tr>
@@ -88,7 +93,7 @@ export function buildBrandedEmailHtml({
     `
     : "";
 
-  const fallbackLine = !actionUrl
+  const fallbackLine = hasActionButton && !actionUrl && !previewMode
     ? `<p style="margin:0 0 16px 0; color:${colors.grey700}; font-family:Arial, Helvetica, sans-serif; font-size:16px !important; line-height:24px;">No booking link is currently available for this coach. Please contact the engagement team for support.</p>`
     : "";
 

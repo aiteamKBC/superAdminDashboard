@@ -657,7 +657,7 @@ export default function RequiredMCMPage() {
                             if (ticket) {
                               return (
                                 <button
-                                  onClick={() => navigate(`/coaching-meetings/tickets?learner=${encodeURIComponent(r.email)}`)}
+                                  onClick={() => navigate(`/coaching-meetings/tickets?ticket=${ticket.id}`)}
                                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#315D93] hover:bg-[#D7E8F7] transition-colors"
                                 >
                                   <Ticket className="h-3 w-3 shrink-0" />
