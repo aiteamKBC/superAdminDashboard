@@ -44,6 +44,30 @@ const catchUpRequiredFields = ["catchUpSessionDateTime", "catchUpSessionLink"];
 const hasMergeField = (text: string, field: string) =>
   new RegExp(`\\{\\{\\s*${field}\\s*\\}\\}`, "i").test(text);
 
+const readEmailResponse = async (res: Response) => {
+  const text = await res.text();
+  let data: any = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+  }
+
+  if (!res.ok) {
+    const message =
+      data?.detail ||
+      data?.error ||
+      data?.message ||
+      data?.raw ||
+      `Email service returned ${res.status}`;
+    throw new Error(String(message));
+  }
+
+  return data;
+};
+
 const statusKey = (value: unknown) => String(value || "").trim().toLowerCase();
 
 type EmailCentreLocationState = {
@@ -910,11 +934,7 @@ export default function EmailCentre() {
         ccEmail: TEST_CC_EMAIL,
         testCcEmail: TEST_CC_EMAIL,
       });
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result?.detail || "Failed to send test email");
-      }
+      await readEmailResponse(res);
 
       toast.success("Test email sent", {
         description: `Sent to ${TEST_EMAIL}. CC: ${TEST_CC_EMAIL}.`,
@@ -943,12 +963,7 @@ export default function EmailCentre() {
 
       const renderedRecipients = buildRenderedRecipients(finalRecipients);
       const res = await sendRenderedRecipients(renderedRecipients);
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result?.detail || "Failed to send emails");
-      }
+      const result = await readEmailResponse(res);
 
       const sentCount = Number(result?.sentCount ?? 0);
       const failedCount = Number(result?.failedCount ?? 0);

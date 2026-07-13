@@ -165,3 +165,4 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # KBC API Configuration
 KBC_API_KEY = os.getenv("KBC_API_KEY", "")
 KBC_API_BASE_URL = os.getenv("KBC_API_BASE_URL", "https://api.kentbusinesscollege.net")
+N8N_EMAIL_WEBHOOK = os.getenv("N8N_EMAIL_WEBHOOK", "https://n8n.srv943390.hstgr.cloud/webhook/email_sender")

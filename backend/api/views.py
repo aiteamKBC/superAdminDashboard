@@ -3148,7 +3148,7 @@ def otj_ticket_file_delete(request, pk, file_pk):
 
 # ── Email proxy ─────────────────────────────────────────────────────────────
 
-N8N_EMAIL_WEBHOOK = "https://n8n.srv943390.hstgr.cloud/webhook/email_sender"
+N8N_EMAIL_WEBHOOK = getattr(settings, "N8N_EMAIL_WEBHOOK", "https://n8n.srv943390.hstgr.cloud/webhook/email_sender")
 
 @csrf_exempt
 def send_email_proxy(request):
@@ -3166,8 +3166,26 @@ def send_email_proxy(request):
             data = resp.json()
         except Exception:
             data = {"raw": resp.text}
+
+        if resp.status_code >= 400:
+            message = (
+                data.get("detail")
+                or data.get("error")
+                or data.get("message")
+                or data.get("raw")
+                or "n8n email webhook failed"
+            )
+            return JsonResponse(
+                {
+                    "detail": str(message),
+                    "webhookStatus": resp.status_code,
+                    "webhookResponse": data,
+                },
+                status=resp.status_code,
+            )
+
         return JsonResponse(data, status=resp.status_code, safe=False)
     except requests.Timeout:
-        return JsonResponse({"error": "n8n webhook timed out"}, status=504)
+        return JsonResponse({"detail": "n8n email webhook timed out"}, status=504)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"detail": str(e)}, status=500)
