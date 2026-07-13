@@ -799,13 +799,26 @@ export default function EmailCentre() {
   const previewRecipient: EmailRecipient | null = effectiveRecipients[0] || null;
   const enrichRecipientForTemplate = (recipient: EmailRecipient) => {
     const { bookingLink: _bookingLink, ...rest } = recipient;
+    const learnerEmail = String(rest.learnerEmail || "").trim().toLowerCase();
+    const lookupRecipient = [
+      ...prReviewRecipients,
+      ...mcrRecipients,
+      ...otjRecipients,
+      ...allRecipients,
+    ].find((item) => String(item.learnerEmail || "").trim().toLowerCase() === learnerEmail);
+    const coachName =
+      String(rest.coachName || "").trim() ||
+      String(lookupRecipient?.coachName || "").trim() ||
+      "the engagement team";
     const coachEmail =
       String(rest.coachEmail || "").trim().toLowerCase() ||
-      coachEmailMap.get(String(rest.coachName || "").trim().toLowerCase()) ||
+      String(lookupRecipient?.coachEmail || "").trim().toLowerCase() ||
+      coachEmailMap.get(coachName.toLowerCase()) ||
       "";
 
     return {
       ...rest,
+      coachName,
       coachEmail,
       cc: coachEmail ? [coachEmail] : [],
       ccEmail: coachEmail,
