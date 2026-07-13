@@ -799,7 +799,7 @@ export default function EmailCentre() {
   const previewRecipient: EmailRecipient | null = effectiveRecipients[0] || null;
   const enrichRecipientForTemplate = (recipient: EmailRecipient) => {
     const { bookingLink: _bookingLink, ...rest } = recipient;
-    const learnerEmail = String(rest.learnerEmail || "").trim().toLowerCase();
+    const learnerEmail = String((rest as any).sourceLearnerEmail || rest.learnerEmail || "").trim().toLowerCase();
     const lookupRecipient = [
       ...prReviewRecipients,
       ...mcrRecipients,
@@ -931,6 +931,7 @@ export default function EmailCentre() {
       setSending(true);
       const testRecipient = {
         ...sourceRecipient,
+        sourceLearnerEmail: sourceRecipient.learnerEmail,
         learnerEmail: TEST_EMAIL,
       };
       const renderedRecipients = buildRenderedRecipients([testRecipient]).map((recipient) => {
