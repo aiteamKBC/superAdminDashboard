@@ -1,0 +1,232 @@
+{
+  "created_at": "2026-07-13T16:12:23.287046",
+  "policy": "resequence active non-archived MCM ticket_ref values by database id ascending",
+  "active_count": 327,
+  "changed_count": 32,
+  "changes": [
+    {
+      "id": 357,
+      "learner_email": "zoe.moore-williams@oneserve.co.uk",
+      "learner_name": "Zoe Moore Williams",
+      "old_ref": "MCM-319",
+      "new_ref": "MCM-296"
+    },
+    {
+      "id": 358,
+      "learner_email": "abigail@tradeapps.co.uk",
+      "learner_name": "Abigail Reece",
+      "old_ref": "MCM-320",
+      "new_ref": "MCM-297"
+    },
+    {
+      "id": 360,
+      "learner_email": "emily.felton@madic-uk.com",
+      "learner_name": "Emily Felton",
+      "old_ref": "MCM-322",
+      "new_ref": "MCM-298"
+    },
+    {
+      "id": 362,
+      "learner_email": "abigail@tradeapps.co.uk",
+      "learner_name": "Abigail Reece",
+      "old_ref": "MCM-324",
+      "new_ref": "MCM-299"
+    },
+    {
+      "id": 367,
+      "learner_email": "kiah@pahire.com",
+      "learner_name": "Kiah Smith",
+      "old_ref": "MCM-325",
+      "new_ref": "MCM-300"
+    },
+    {
+      "id": 368,
+      "learner_email": "nakita@lupusuk.org.uk",
+      "learner_name": "Nakita Cambow",
+      "old_ref": "MCM-326",
+      "new_ref": "MCM-301"
+    },
+    {
+      "id": 369,
+      "learner_email": "hannah.brockwell@keb.co.uk",
+      "learner_name": "Hannah Killick",
+      "old_ref": "MCM-327",
+      "new_ref": "MCM-302"
+    },
+    {
+      "id": 370,
+      "learner_email": "chris@networkdm.com",
+      "learner_name": "Christopher Earle",
+      "old_ref": "MCM-328",
+      "new_ref": "MCM-303"
+    },
+    {
+      "id": 371,
+      "learner_email": "charlieholling@gmail.com",
+      "learner_name": "Charlie Holling",
+      "old_ref": "MCM-329",
+      "new_ref": "MCM-304"
+    },
+    {
+      "id": 372,
+      "learner_email": "abigail@tradeapps.co.uk",
+      "learner_name": "Abigail Reece",
+      "old_ref": "MCM-330",
+      "new_ref": "MCM-305"
+    },
+    {
+      "id": 373,
+      "learner_email": "amika@pemcointernational.com",
+      "learner_name": "Adrianna Mika",
+      "old_ref": "MCM-331",
+      "new_ref": "MCM-306"
+    },
+    {
+      "id": 374,
+      "learner_email": "chenai.chambersthomas@diegesis.co.uk",
+      "learner_name": "Chenai Chambers Thomas",
+      "old_ref": "MCM-332",
+      "new_ref": "MCM-307"
+    },
+    {
+      "id": 375,
+      "learner_email": "sophie@wrbennett.co.uk",
+      "learner_name": "Sophie Baker",
+      "old_ref": "MCM-333",
+      "new_ref": "MCM-308"
+    },
+    {
+      "id": 376,
+      "learner_email": "administration@eksdc.co.uk",
+      "learner_name": "Jade Seamer",
+      "old_ref": "MCM-334",
+      "new_ref": "MCM-309"
+    },
+    {
+      "id": 377,
+      "learner_email": "jack@frontieruk.co.uk",
+      "learner_name": "Jack Hollis",
+      "old_ref": "MCM-335",
+      "new_ref": "MCM-310"
+    },
+    {
+      "id": 378,
+      "learner_email": "rosie.sweeney@surpass.com",
+      "learner_name": "Rosemary Sweeney",
+      "old_ref": "MCM-336",
+      "new_ref": "MCM-311"
+    },
+    {
+      "id": 379,
+      "learner_email": "matt@subrosa-uk.com",
+      "learner_name": "Matthew Slater",
+      "old_ref": "MCM-337",
+      "new_ref": "MCM-312"
+    },
+    {
+      "id": 380,
+      "learner_email": "grace.wood@estsgb.net",
+      "learner_name": "Grace Wood",
+      "old_ref": "MCM-338",
+      "new_ref": "MCM-313"
+    },
+    {
+      "id": 381,
+      "learner_email": "elle@anoblegift.com",
+      "learner_name": "Ellen O'Brien",
+      "old_ref": "MCM-339",
+      "new_ref": "MCM-314"
+    },
+    {
+      "id": 382,
+      "learner_email": "w.mortimer2@lancaster.ac.uk",
+      "learner_name": "Warren Mortimer",
+      "old_ref": "MCM-340",
+      "new_ref": "MCM-315"
+    },
+    {
+      "id": 383,
+      "learner_email": "saldhous@theclgroup.co.uk",
+      "learner_name": "Rowan Aldhous",
+      "old_ref": "MCM-341",
+      "new_ref": "MCM-316"
+    },
+    {
+      "id": 384,
+      "learner_email": "emily.felton@madic-uk.com",
+      "learner_name": "Emily Felton",
+      "old_ref": "MCM-342",
+      "new_ref": "MCM-317"
+    },
+    {
+      "id": 385,
+      "learner_email": "immycop@gmail.com",
+      "learner_name": "Imogen Coppen",
+      "old_ref": "MCM-343",
+      "new_ref": "MCM-318"
+    },
+    {
+      "id": 386,
+      "learner_email": "bheaton@lawnet.co.uk",
+      "learner_name": "Betty Heaton",
+      "old_ref": "MCM-344",
+      "new_ref": "MCM-319"
+    },
+    {
+      "id": 387,
+      "learner_email": "aaron.chesworth@imperativetraining.com",
+      "learner_name": "Aaron Chesworth",
+      "old_ref": "MCM-345",
+      "new_ref": "MCM-320"
+    },
+    {
+      "id": 388,
+      "learner_email": "msolinska@edgeoftheworld.co.uk",
+      "learner_name": "Magda Solinska",
+      "old_ref": "MCM-346",
+      "new_ref": "MCM-321"
+    },
+    {
+      "id": 389,
+      "learner_email": "holly.hunt@hmox.co.uk",
+      "learner_name": "Holly Hunt",
+      "old_ref": "MCM-347",
+      "new_ref": "MCM-322"
+    },
+    {
+      "id": 390,
+      "learner_email": "pal0mita29@icloud.com",
+      "learner_name": "Sofia Beroldo",
+      "old_ref": "MCM-348",
+      "new_ref": "MCM-323"
+    },
+    {
+      "id": 391,
+      "learner_email": "adam.graver@thirtyoneeight.org",
+      "learner_name": "Adam Graver",
+      "old_ref": "MCM-349",
+      "new_ref": "MCM-324"
+    },
+    {
+      "id": 392,
+      "learner_email": "s.king@corecomtechacademy.co.uk",
+      "learner_name": "Shantelle King",
+      "old_ref": "MCM-350",
+      "new_ref": "MCM-325"
+    },
+    {
+      "id": 393,
+      "learner_email": "harry.myers@switch2.co.uk",
+      "learner_name": "Harry Myers",
+      "old_ref": "MCM-351",
+      "new_ref": "MCM-326"
+    },
+    {
+      "id": 394,
+      "learner_email": "zoe.moore-williams@oneserve.co.uk",
+      "learner_name": "Zoe Moore Williams",
+      "old_ref": "MCM-352",
+      "new_ref": "MCM-327"
+    }
+  ]
+}

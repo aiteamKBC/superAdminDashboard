@@ -120,11 +120,6 @@ const isImage = (mime: string, name: string) => mime.startsWith("image/") || /\.
 const isPdf = (mime: string, name: string) => mime === "application/pdf" || /\.pdf$/i.test(name);
 const isText = (mime: string, name: string) => mime.startsWith("text/") || /\.(csv|txt|log)$/i.test(name);
 const isCsv = (mime: string, name: string) => mime === "text/csv" || /\.csv$/i.test(name);
-const ticketRefNumber = (ref: string) => {
-  const match = String(ref || "").match(/(\d+)$/);
-  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
-};
-
 // ─── File Preview Modal ────────────────────────────────────────────────
 
 interface PreviewTarget { url: string; name: string; mime: string; size?: number; revoke?: boolean; }
@@ -686,7 +681,7 @@ export default function PRTicketsPage() {
         if (cardFilter === "resolved" && t.status !== "resolved") return false;
         return true;
       })
-      .sort((a, b) => ticketRefNumber(b.ticketRef) - ticketRefNumber(a.ticketRef));
+      .sort((a, b) => b.id - a.id);
   }, [tickets, search, ragFilter, cardFilter]);
 
   const allCount = tickets.length;

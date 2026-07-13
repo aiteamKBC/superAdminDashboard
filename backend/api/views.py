@@ -2008,6 +2008,15 @@ def _next_pr_ticket_ref():
     return f"PR-{max_ref + 1:03d}"
 
 
+def _pr_reason_key(learner_email, next_pr_date):
+    if hasattr(next_pr_date, "isoformat"):
+        normalized_date = next_pr_date.isoformat()
+    else:
+        parsed_date = parse_date_safe(next_pr_date)
+        normalized_date = parsed_date.isoformat() if parsed_date else str(next_pr_date or "").strip()
+    return (str(learner_email or "").strip().lower(), normalized_date)
+
+
 @csrf_exempt
 def auto_create_pr_tickets(request):
     """Auto-create PR tickets for scoped overdue progress reviews."""
@@ -2021,6 +2030,11 @@ def auto_create_pr_tickets(request):
 
     created_list = []
     existing_list = []
+    resolved_reason_keys = {
+        _pr_reason_key(ticket.learner_email, ticket.next_pr_date)
+        for ticket in ProgressReviewTicket.objects.filter(is_archived=False, status="resolved")
+        if ticket.next_pr_date
+    }
 
     for learner in learners:
         email = str(learner.get("email") or "").strip().lower()
@@ -2037,6 +2051,8 @@ def auto_create_pr_tickets(request):
                 next_pr_date = None
 
         if next_pr_date is None:
+            continue
+        if _pr_reason_key(email, next_pr_date) in resolved_reason_keys:
             continue
 
         raw_last_pr_date = learner.get("last_pr_date")
@@ -2098,7 +2114,7 @@ def pr_tickets(request):
 
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
-        tickets = ProgressReviewTicket.objects.filter(is_archived=show_archived)
+        tickets = ProgressReviewTicket.objects.filter(is_archived=show_archived).order_by("-id")
         learner_email = str(
             request.GET.get("learner_email")
             or request.GET.get("email")
@@ -2402,6 +2418,12 @@ def _mcm_risk(overdue_count):
     return "green"
 
 
+def _mcm_reason_key(learner_email, next_mcm_date):
+    reason_date = parse_date_safe(next_mcm_date)
+    normalized_date = reason_date.isoformat() if reason_date else str(next_mcm_date or "").strip()
+    return (str(learner_email or "").strip().lower(), normalized_date)
+
+
 def _mcm_payload_from_summary_row(row):
     history = row.get("mcmDates") if isinstance(row.get("mcmDates"), list) else []
     normalized_history = []
@@ -2457,6 +2479,11 @@ def auto_create_mcm_tickets(request):
     if not isinstance(rows, list):
         return JsonResponse({"error": "rows must be a list"}, status=400)
 
+    resolved_reason_keys = {
+        _mcm_reason_key(ticket.learner_email, ticket.next_mcm_date)
+        for ticket in MCMTicket.objects.filter(is_archived=False, status="resolved")
+        if ticket.next_mcm_date
+    }
     active_by_email = {
         ticket.learner_email.strip().lower(): ticket
         for ticket in MCMTicket.objects.filter(is_archived=False).exclude(status="resolved")
@@ -2469,6 +2496,8 @@ def auto_create_mcm_tickets(request):
             continue
         payload = _mcm_payload_from_summary_row(row)
         if not payload["learner_email"] or not payload["learner_name"] or payload["overdue_count"] <= 0:
+            continue
+        if _mcm_reason_key(payload["learner_email"], payload["next_mcm_date"]) in resolved_reason_keys:
             continue
 
         existing = active_by_email.get(payload["learner_email"])
@@ -2547,7 +2576,7 @@ def mcm_tickets(request):
 
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
-        tickets = MCMTicket.objects.filter(is_archived=show_archived)
+        tickets = MCMTicket.objects.filter(is_archived=show_archived).order_by("-id")
         learner_email = str(
             request.GET.get("learner_email")
             or request.GET.get("email")

@@ -140,11 +140,6 @@ const daysOpen = (createdAt: string) => {
   return Math.max(0, Math.floor(diff / 86_400_000));
 };
 
-const ticketRefNumber = (ref: string) => {
-  const match = String(ref || "").match(/(\d+)$/);
-  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
-};
-
 const DaysCreatedHeader = ({ label = "Days Open" }: { label?: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
@@ -1329,7 +1324,7 @@ export default function MCMTicketsPage() {
         if (statusFilter !== "all" && t.status !== statusFilter) return false;
         return true;
       })
-      .sort((a, b) => ticketRefNumber(b.ticketRef) - ticketRefNumber(a.ticketRef));
+      .sort((a, b) => b.id - a.id);
   }, [tickets, search, ragFilter, statusFilter]);
 
   const totals = useMemo(() => ({
