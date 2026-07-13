@@ -176,6 +176,9 @@ const parseMcmStatusDate = (status: string | null | undefined): Date | null => {
   return dt;
 };
 
+const isArchivedMcmStatus = (status: string | null | undefined) =>
+  String(status || "").toLowerCase().includes("archived");
+
 const getMcmScopeDate = (entry: { date: string; status: string; completed: boolean }) => {
   const statusLower = String(entry.status || "").toLowerCase();
   const statusDate = statusLower.includes("not scheduled") ? null : parseMcmStatusDate(entry.status);
@@ -194,6 +197,7 @@ function matchesPeriod(row: MCMRow, offset: number): boolean {
   const mcrToday = new Date(); mcrToday.setHours(0, 0, 0, 0);
 
   return row.mcmDates.some((d) => {
+    if (isArchivedMcmStatus(d.status)) return false;
     const dt = getMcmScopeDate(d);
     if (!dt) return false;
     if (dt > end) return false;
@@ -215,6 +219,7 @@ const getGlobalOverdueMcmItems = (row: MCMRow) => {
 
   return row.mcmDates
     .filter((d) => {
+      if (isArchivedMcmStatus(d.status)) return false;
       if (d.completed) return false;
       const dt = getMcmScopeDate(d);
       if (!dt || dt >= today) return false;
@@ -233,6 +238,7 @@ const getGlobalMcmDueStatus = (row: MCMRow) => {
 
   const dueToDateItems = row.mcmDates
     .filter((d) => {
+      if (isArchivedMcmStatus(d.status)) return false;
       const dt = getMcmScopeDate(d);
       return dt !== null && dt <= today;
     })
@@ -245,12 +251,13 @@ const getGlobalMcmDueStatus = (row: MCMRow) => {
   const overdueItems = getGlobalOverdueMcmItems(row);
   const nextDueDate = row.nextDueDate ? new Date(row.nextDueDate) : null;
   const hasFallbackDue = nextDueDate && !Number.isNaN(nextDueDate.getTime()) && nextDueDate <= today;
+  const hasMcmHistory = row.mcmDates.length > 0;
 
   let dueToDateCount = dueToDateItems.length;
-  if (dueToDateCount === 0 && hasFallbackDue) dueToDateCount = 1;
+  if (dueToDateCount === 0 && hasFallbackDue && !hasMcmHistory) dueToDateCount = 1;
 
   const backendOverdueCount = Number(row.overdueMcmCount || 0);
-  const overdueCount = Math.max(overdueItems.length, backendOverdueCount);
+  const overdueCount = hasMcmHistory ? overdueItems.length : backendOverdueCount;
   dueToDateCount = Math.max(dueToDateCount, overdueCount);
 
   return {
@@ -270,6 +277,7 @@ function getMcmCategory(row: MCMRow, offset: number): MCMCategory {
   // Keep category selection identical to Scheduled MCM: use the first
   // qualifying entry in the source order for the selected period.
   const match = row.mcmDates.find((d) => {
+    if (isArchivedMcmStatus(d.status)) return false;
     const dt = getMcmScopeDate(d);
     if (!dt) return false;
     if (dt > end) return false;

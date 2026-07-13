@@ -194,6 +194,11 @@ def is_completed_status(status_value):
     return "completed" in s
 
 
+def is_archived_status(status_value):
+    s = str(status_value or "").strip().lower()
+    return "archived" in s
+
+
 def is_countable_progress_review_slot(planned_value):
     planned_text = str(planned_value or "").strip().lower()
     if "personal support plan" in planned_text or "gateway review" in planned_text:
@@ -1052,6 +1057,7 @@ def mcr_summary(request):
             mcm_date = parse_date_safe(row.get(f"MCM{i}"))
             status_raw = str(row.get(f"Status{i}") or "").strip()
             completed = is_completed_status(status_raw)
+            archived = is_archived_status(status_raw)
 
             if not mcm_date:
                 continue
@@ -1062,12 +1068,12 @@ def mcr_summary(request):
                 "completed": completed,
             })
 
-            if mcm_date < today and not completed:
+            if mcm_date < today and not completed and not archived:
                 overdue_count += 1
                 if latest_overdue_date is None or mcm_date > latest_overdue_date:
                     latest_overdue_date = mcm_date
 
-            if mcm_date >= today and not completed:
+            if mcm_date >= today and not completed and not archived:
                 if next_due_date is None or mcm_date < next_due_date:
                     next_due_date = mcm_date
 
@@ -2334,6 +2340,10 @@ def _mcm_completed_status(value):
     return "completed" in str(value or "").strip().lower()
 
 
+def _mcm_archived_status(value):
+    return "archived" in str(value or "").strip().lower()
+
+
 def _mcm_overdue_items(history):
     today = date.today()
     overdue = []
@@ -2343,7 +2353,7 @@ def _mcm_overdue_items(history):
             continue
         item_status = str(item.get("status") or "").strip()
         completed = bool(item.get("completed")) or _mcm_completed_status(item_status)
-        if item_date < today and not completed:
+        if item_date < today and not completed and not _mcm_archived_status(item_status):
             overdue.append({
                 "date": item_date.isoformat(),
                 "status": item_status,
@@ -2376,7 +2386,7 @@ def _mcm_next_item(history):
             continue
         item_status = str(item.get("status") or "").strip()
         completed = bool(item.get("completed")) or _mcm_completed_status(item_status)
-        if item_date >= today and not completed:
+        if item_date >= today and not completed and not _mcm_archived_status(item_status):
             next_items.append((item_date, item_status))
     if not next_items:
         return None

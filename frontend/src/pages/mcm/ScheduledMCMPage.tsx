@@ -80,6 +80,9 @@ const parseMcmStatusDate = (status: string | null | undefined): Date | null => {
   return dt;
 };
 
+const isArchivedMcmStatus = (status: string | null | undefined) =>
+  String(status || "").toLowerCase().includes("archived");
+
 const getMcmScopeDate = (entry: { date: string; status: string; completed: boolean }) => {
   const statusLower = String(entry.status || "").toLowerCase();
   const statusDate = statusLower.includes("not scheduled") ? null : parseMcmStatusDate(entry.status);
@@ -101,6 +104,7 @@ function getScheduledEntry(
   const excludeStart = offset === -1;
 
   const match = mcmDates.find((d) => {
+    if (isArchivedMcmStatus(d.status)) return false;
     const dt = getMcmScopeDate(d);
     if (!dt) return false;
     if (dt > end) return false;
@@ -229,7 +233,14 @@ export default function ScheduledMCMPage() {
   const periodFiltered = useMemo(() => {
     const q = search.toLowerCase();
     return withScheduled.filter((r) => {
-      if (overdueOnly && r.overdueMcmCount < 1) return false;
+      if (overdueOnly && !r.mcmDates.some((d) => {
+        if (isArchivedMcmStatus(d.status) || d.completed) return false;
+        const dt = getMcmScopeDate(d);
+        if (!dt) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return dt < today && !d.status.toLowerCase().includes("completed");
+      })) return false;
       if (q && !r.fullName.toLowerCase().includes(q) && !r.email.toLowerCase().includes(q)) return false;
       if (coachFilter !== "all" && r.caseOwner !== coachFilter) return false;
       if (programmeFilter !== "all" && r.programme !== programmeFilter) return false;
@@ -239,7 +250,14 @@ export default function ScheduledMCMPage() {
   }, [withScheduled, search, coachFilter, programmeFilter, orgFilter, overdueOnly]);
 
   const totalOverdue = useMemo(() =>
-    withScheduled.filter((r) => r.overdueMcmCount >= 1).length,
+    withScheduled.filter((r) => r.mcmDates.some((d) => {
+      if (isArchivedMcmStatus(d.status) || d.completed) return false;
+      const dt = getMcmScopeDate(d);
+      if (!dt) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return dt < today && !d.status.toLowerCase().includes("completed");
+    })).length,
   [withScheduled]);
 
   const filtered = useMemo(() =>
