@@ -1,0 +1,567 @@
+{
+  "created_at": "2026-07-13T16:27:28.591860",
+  "policy": "delete non-resolved MCM tickets recreated before deployment when a non-archived resolved ticket already exists for the same learner_email and next_mcm_date",
+  "count": 28,
+  "tickets": [
+    {
+      "delete": {
+        "id": 367,
+        "ticket_ref": "MCM-300",
+        "learner_email": "kiah@pahire.com",
+        "learner_name": "Kiah Smith",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.423757+00:00",
+        "updated_at": "2026-07-13T13:02:54.423771+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 269,
+        "ticket_ref": "MCM-231",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 368,
+        "ticket_ref": "MCM-301",
+        "learner_email": "nakita@lupusuk.org.uk",
+        "learner_name": "Nakita Cambow",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.452582+00:00",
+        "updated_at": "2026-07-13T13:02:54.452594+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 257,
+        "ticket_ref": "MCM-219",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 369,
+        "ticket_ref": "MCM-302",
+        "learner_email": "hannah.brockwell@keb.co.uk",
+        "learner_name": "Hannah Killick",
+        "status": "new",
+        "next_mcm_date": "2026-06-30",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.481902+00:00",
+        "updated_at": "2026-07-13T13:02:54.481915+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 275,
+        "ticket_ref": "MCM-237",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-30"
+      }
+    },
+    {
+      "delete": {
+        "id": 370,
+        "ticket_ref": "MCM-303",
+        "learner_email": "chris@networkdm.com",
+        "learner_name": "Christopher Earle",
+        "status": "new",
+        "next_mcm_date": "2026-06-30",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.515905+00:00",
+        "updated_at": "2026-07-13T13:02:54.515920+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 262,
+        "ticket_ref": "MCM-224",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-30"
+      }
+    },
+    {
+      "delete": {
+        "id": 371,
+        "ticket_ref": "MCM-304",
+        "learner_email": "charlieholling@gmail.com",
+        "learner_name": "Charlie Holling",
+        "status": "new",
+        "next_mcm_date": "2026-06-28",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.542822+00:00",
+        "updated_at": "2026-07-13T13:02:54.542833+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 277,
+        "ticket_ref": "MCM-239",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-28"
+      }
+    },
+    {
+      "delete": {
+        "id": 372,
+        "ticket_ref": "MCM-305",
+        "learner_email": "abigail@tradeapps.co.uk",
+        "learner_name": "Abigail Reece",
+        "status": "new",
+        "next_mcm_date": "2026-07-01",
+        "overdue_count": 2,
+        "created_at": "2026-07-13T13:02:54.571476+00:00",
+        "updated_at": "2026-07-13T13:02:54.571492+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 128,
+        "ticket_ref": "MCM-108",
+        "status": "resolved",
+        "next_mcm_date": "2026-07-01"
+      }
+    },
+    {
+      "delete": {
+        "id": 373,
+        "ticket_ref": "MCM-306",
+        "learner_email": "amika@pemcointernational.com",
+        "learner_name": "Adrianna Mika",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.598905+00:00",
+        "updated_at": "2026-07-13T13:02:54.598919+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 266,
+        "ticket_ref": "MCM-228",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 374,
+        "ticket_ref": "MCM-307",
+        "learner_email": "chenai.chambersthomas@diegesis.co.uk",
+        "learner_name": "Chenai Chambers Thomas",
+        "status": "new",
+        "next_mcm_date": "2026-06-30",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.635677+00:00",
+        "updated_at": "2026-07-13T13:02:54.635693+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 272,
+        "ticket_ref": "MCM-234",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-30"
+      }
+    },
+    {
+      "delete": {
+        "id": 375,
+        "ticket_ref": "MCM-308",
+        "learner_email": "sophie@wrbennett.co.uk",
+        "learner_name": "Sophie Baker",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.669928+00:00",
+        "updated_at": "2026-07-13T13:02:54.669943+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 279,
+        "ticket_ref": "MCM-241",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 376,
+        "ticket_ref": "MCM-309",
+        "learner_email": "administration@eksdc.co.uk",
+        "learner_name": "Jade Seamer",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.704213+00:00",
+        "updated_at": "2026-07-13T13:02:54.704228+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 267,
+        "ticket_ref": "MCM-229",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 377,
+        "ticket_ref": "MCM-310",
+        "learner_email": "jack@frontieruk.co.uk",
+        "learner_name": "Jack Hollis",
+        "status": "new",
+        "next_mcm_date": "2026-06-28",
+        "overdue_count": 5,
+        "created_at": "2026-07-13T13:02:54.734916+00:00",
+        "updated_at": "2026-07-13T13:02:54.734930+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 158,
+        "ticket_ref": "MCM-131",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-28"
+      }
+    },
+    {
+      "delete": {
+        "id": 378,
+        "ticket_ref": "MCM-311",
+        "learner_email": "rosie.sweeney@surpass.com",
+        "learner_name": "Rosemary Sweeney",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.774047+00:00",
+        "updated_at": "2026-07-13T13:02:54.774060+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 282,
+        "ticket_ref": "MCM-244",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 379,
+        "ticket_ref": "MCM-312",
+        "learner_email": "matt@subrosa-uk.com",
+        "learner_name": "Matthew Slater",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.802635+00:00",
+        "updated_at": "2026-07-13T13:02:54.802652+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 283,
+        "ticket_ref": "MCM-245",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 380,
+        "ticket_ref": "MCM-313",
+        "learner_email": "grace.wood@estsgb.net",
+        "learner_name": "Grace Wood",
+        "status": "new",
+        "next_mcm_date": "2026-06-30",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.833856+00:00",
+        "updated_at": "2026-07-13T13:02:54.833871+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 285,
+        "ticket_ref": "MCM-247",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-30"
+      }
+    },
+    {
+      "delete": {
+        "id": 381,
+        "ticket_ref": "MCM-314",
+        "learner_email": "elle@anoblegift.com",
+        "learner_name": "Ellen O'Brien",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.862125+00:00",
+        "updated_at": "2026-07-13T13:02:54.862137+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 286,
+        "ticket_ref": "MCM-248",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 382,
+        "ticket_ref": "MCM-315",
+        "learner_email": "w.mortimer2@lancaster.ac.uk",
+        "learner_name": "Warren Mortimer",
+        "status": "new",
+        "next_mcm_date": "2026-06-30",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.894116+00:00",
+        "updated_at": "2026-07-13T13:02:54.894129+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 263,
+        "ticket_ref": "MCM-225",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-30"
+      }
+    },
+    {
+      "delete": {
+        "id": 383,
+        "ticket_ref": "MCM-316",
+        "learner_email": "saldhous@theclgroup.co.uk",
+        "learner_name": "Rowan Aldhous",
+        "status": "new",
+        "next_mcm_date": "2026-06-29",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.945290+00:00",
+        "updated_at": "2026-07-13T13:02:54.945302+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 305,
+        "ticket_ref": "MCM-267",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-29"
+      }
+    },
+    {
+      "delete": {
+        "id": 384,
+        "ticket_ref": "MCM-317",
+        "learner_email": "emily.felton@madic-uk.com",
+        "learner_name": "Emily Felton",
+        "status": "new",
+        "next_mcm_date": "2026-04-29",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:54.976415+00:00",
+        "updated_at": "2026-07-13T13:02:54.976430+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 146,
+        "ticket_ref": "MCM-123",
+        "status": "resolved",
+        "next_mcm_date": "2026-04-29"
+      }
+    },
+    {
+      "delete": {
+        "id": 385,
+        "ticket_ref": "MCM-318",
+        "learner_email": "immycop@gmail.com",
+        "learner_name": "Imogen Coppen",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.014210+00:00",
+        "updated_at": "2026-07-13T13:02:55.014226+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 309,
+        "ticket_ref": "MCM-271",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 386,
+        "ticket_ref": "MCM-319",
+        "learner_email": "bheaton@lawnet.co.uk",
+        "learner_name": "Betty Heaton",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.043747+00:00",
+        "updated_at": "2026-07-13T13:02:55.043761+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 310,
+        "ticket_ref": "MCM-272",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 387,
+        "ticket_ref": "MCM-320",
+        "learner_email": "aaron.chesworth@imperativetraining.com",
+        "learner_name": "Aaron Chesworth",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 5,
+        "created_at": "2026-07-13T13:02:55.075983+00:00",
+        "updated_at": "2026-07-13T13:02:55.075996+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 103,
+        "ticket_ref": "MCM-086",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 388,
+        "ticket_ref": "MCM-321",
+        "learner_email": "msolinska@edgeoftheworld.co.uk",
+        "learner_name": "Magda Solinska",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.110155+00:00",
+        "updated_at": "2026-07-13T13:02:55.110168+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 315,
+        "ticket_ref": "MCM-277",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 389,
+        "ticket_ref": "MCM-322",
+        "learner_email": "holly.hunt@hmox.co.uk",
+        "learner_name": "Holly Hunt",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.139776+00:00",
+        "updated_at": "2026-07-13T13:02:55.139787+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 317,
+        "ticket_ref": "MCM-279",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 390,
+        "ticket_ref": "MCM-323",
+        "learner_email": "pal0mita29@icloud.com",
+        "learner_name": "Sofia Beroldo",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.172365+00:00",
+        "updated_at": "2026-07-13T13:02:55.172379+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 318,
+        "ticket_ref": "MCM-280",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 391,
+        "ticket_ref": "MCM-324",
+        "learner_email": "adam.graver@thirtyoneeight.org",
+        "learner_name": "Adam Graver",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.199236+00:00",
+        "updated_at": "2026-07-13T13:02:55.199256+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 319,
+        "ticket_ref": "MCM-281",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 392,
+        "ticket_ref": "MCM-325",
+        "learner_email": "s.king@corecomtechacademy.co.uk",
+        "learner_name": "Shantelle King",
+        "status": "new",
+        "next_mcm_date": "2026-06-30",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.226219+00:00",
+        "updated_at": "2026-07-13T13:02:55.226231+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 320,
+        "ticket_ref": "MCM-282",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-30"
+      }
+    },
+    {
+      "delete": {
+        "id": 393,
+        "ticket_ref": "MCM-326",
+        "learner_email": "harry.myers@switch2.co.uk",
+        "learner_name": "Harry Myers",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.251783+00:00",
+        "updated_at": "2026-07-13T13:02:55.251796+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 322,
+        "ticket_ref": "MCM-284",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    },
+    {
+      "delete": {
+        "id": 394,
+        "ticket_ref": "MCM-327",
+        "learner_email": "zoe.moore-williams@oneserve.co.uk",
+        "learner_name": "Zoe Moore Williams",
+        "status": "new",
+        "next_mcm_date": "2026-06-27",
+        "overdue_count": 1,
+        "created_at": "2026-07-13T13:02:55.294506+00:00",
+        "updated_at": "2026-07-13T13:02:55.294532+00:00",
+        "notes": ""
+      },
+      "kept_resolved": {
+        "id": 190,
+        "ticket_ref": "MCM-160",
+        "status": "resolved",
+        "next_mcm_date": "2026-06-27"
+      }
+    }
+  ]
+}

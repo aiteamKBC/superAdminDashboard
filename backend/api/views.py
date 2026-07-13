@@ -2001,7 +2001,7 @@ def _next_pr_ticket_ref():
     from .models import ProgressReviewTicket
 
     max_ref = 0
-    for ref in ProgressReviewTicket.objects.values_list("ticket_ref", flat=True):
+    for ref in ProgressReviewTicket.objects.filter(is_archived=False).values_list("ticket_ref", flat=True):
         match = re.fullmatch(r"PR-(\d+)", str(ref or "").strip())
         if match:
             max_ref = max(max_ref, int(match.group(1)))
@@ -2335,7 +2335,7 @@ def _next_mcm_ticket_ref():
     from .models import MCMTicket
 
     max_ref = 0
-    for ref in MCMTicket.objects.values_list("ticket_ref", flat=True):
+    for ref in MCMTicket.objects.filter(is_archived=False).values_list("ticket_ref", flat=True):
         match = re.fullmatch(r"MCM-(\d+)", str(ref or "").strip())
         if match:
             max_ref = max(max_ref, int(match.group(1)))
