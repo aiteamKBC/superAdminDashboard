@@ -21,6 +21,7 @@ export interface EmailRecipient {
 
   dueDate?: string;
   bookingLink?: string;
+  sourceLearnerEmail?: string;
   lineManagerName?: string;
   expectedHours?: string;
   actualHours?: string;
