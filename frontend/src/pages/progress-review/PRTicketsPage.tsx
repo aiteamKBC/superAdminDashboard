@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { preservePageScroll } from "@/lib/pageScroll";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -668,7 +669,7 @@ export default function PRTicketsPage() {
 
   const handleQuickAction = useCallback(async (ticketId: number, updates: Record<string, unknown>) => {
     await fetch(`/api/pr-tickets/${ticketId}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) });
-    await loadTickets();
+    await preservePageScroll(loadTickets);
   }, [loadTickets]);
 
   const filtered = useMemo(() => {

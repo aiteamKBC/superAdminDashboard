@@ -58,6 +58,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { preservePageScroll } from "@/lib/pageScroll";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -1432,29 +1433,37 @@ export default function AttendanceTicketsPage() {
   const [evidenceTicket, setEvidenceTicket] = useState<AttTicket | null>(null);
   const [addNoteTicket, setAddNoteTicket] = useState<AttTicket | null>(null);
   const [quickEvidenceTicket, setQuickEvidenceTicket] = useState<AttTicket | null>(null);
+  const directTicketId = searchParams.get("ticket") || searchParams.get("open");
 
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
+      if (directTicketId) {
+        const res = await fetch(`/api/attendance-tickets/${encodeURIComponent(directTicketId)}/`);
+        if (res.ok) {
+          setTickets([await res.json()]);
+        }
+        return;
+      }
+
       if (!showArchived) await syncRecentAttendanceTickets();
       const res = await fetch(`/api/attendance-tickets/?archived=${showArchived}`);
       if (res.ok) setTickets(await res.json());
     } finally {
       setLoading(false);
     }
-  }, [showArchived]);
+  }, [directTicketId, showArchived]);
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
 
   // Handle ?ticket=<id> / legacy ?open=<id> and ?create=1&email=...&name=... query params
   useEffect(() => {
-    const openId = searchParams.get("ticket") || searchParams.get("open");
+    const openId = directTicketId;
     const createFlag = searchParams.get("create");
     if (openId && !loading) {
       const ticket = tickets.find((t) => String(t.id) === openId);
       if (ticket) {
         setSearch(ticket.learnerEmail);
-        setSearchParams({}, { replace: true });
       }
     } else if (createFlag === "1") {
       setCreatePrefill({
@@ -1468,7 +1477,7 @@ export default function AttendanceTicketsPage() {
       setCreateOpen(true);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, tickets, loading, setSearchParams]);
+  }, [directTicketId, searchParams, tickets, loading, setSearchParams]);
 
   useEffect(() => {
     const emailedId = searchParams.get("emailed_ticket");
@@ -1602,7 +1611,7 @@ export default function AttendanceTicketsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      await loadTickets();
+      await preservePageScroll(loadTickets);
     },
     [loadTickets],
   );

@@ -256,6 +256,7 @@ export default function TrackAttendancePage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceSourceRow[]>([]);
   const [contactActions, setContactActions] = useState<Record<string, ContactActionState>>({});
   const [tickets, setTickets] = useState<TicketInfo[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [absenceWindow, setAbsenceWindow] = useState<AbsenceWindow>(0);
   const [search, setSearch] = useState("");
@@ -266,9 +267,10 @@ export default function TrackAttendancePage() {
   const [moduleFilter, setModuleFilter] = useState("all");
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadTickets = useCallback(async () => {
+  const loadTickets = useCallback(async (showLookupLoading = true) => {
+    if (showLookupLoading) setTicketsLoading(true);
     try {
-      const response = await fetch("/api/attendance-tickets/?archived=false");
+      const response = await fetch("/api/attendance-tickets/?archived=false&lookup=true");
       if (!response.ok) return;
       const data: Array<{
         id: number;
@@ -288,6 +290,8 @@ export default function TrackAttendancePage() {
       );
     } catch {
       setTickets([]);
+    } finally {
+      if (showLookupLoading) setTicketsLoading(false);
     }
   }, []);
 
@@ -326,7 +330,12 @@ export default function TrackAttendancePage() {
   }, []);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadAttendance(), loadTickets()]);
+    setLoading(true);
+    try {
+      await Promise.all([loadAttendance(false), loadTickets()]);
+    } finally {
+      setLoading(false);
+    }
   }, [loadAttendance, loadTickets]);
 
   useEffect(() => {
@@ -335,7 +344,7 @@ export default function TrackAttendancePage() {
 
   useEffect(() => {
     refreshIntervalRef.current = setInterval(
-      () => void Promise.all([loadAttendance(false), loadTickets()]),
+      () => void Promise.all([loadAttendance(false), loadTickets(false)]),
       5000
     );
     return () => {
@@ -625,7 +634,7 @@ export default function TrackAttendancePage() {
     })
       .then((response) => response.json())
       .then((data) => {
-        if (data.created > 0) void loadTickets();
+        if (data.created > 0) void loadTickets(false);
       })
       .catch(() => {});
   }, [absenceWindow, loading, loadTickets, missedLearners]);
@@ -673,6 +682,7 @@ export default function TrackAttendancePage() {
   );
 
   const openFollowUp = (learner: AttendanceLearner) => {
+    if (ticketsLoading) return;
     const email = normEmail(learner.email);
     const ticket = learner.attendanceDate
       ? ticketMaps.byAttendance.get(`${email}||${learner.attendanceDate}`)
@@ -1161,13 +1171,21 @@ export default function TrackAttendancePage() {
                               size="sm"
                               variant="outline"
                               onClick={() => openFollowUp(learner)}
+                              disabled={ticketsLoading}
                               className={`h-7 gap-1 rounded-lg px-2 text-xs font-semibold ${
-                                ticket
+                                ticketsLoading
+                                  ? "border-[#D7E5F3] text-[#71849A]"
+                                  : ticket
                                   ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
                                   : "border-[#D7E5F3] text-[#1E6ACB] hover:bg-[#EEF7FF]"
                               }`}
                             >
-                              {ticket ? (
+                              {ticketsLoading ? (
+                                <>
+                                  <RefreshCw className="h-3 w-3 animate-spin" />
+                                  Checking...
+                                </>
+                              ) : ticket ? (
                                 <>
                                   <ExternalLink className="h-3 w-3" />
                                   View Ticket

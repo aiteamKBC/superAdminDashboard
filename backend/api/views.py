@@ -1785,7 +1785,27 @@ def attendance_tickets(request):
 
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
+        lookup_only = request.GET.get("lookup", "false").lower() == "true"
         tickets = AttendanceTicket.objects.filter(is_archived=show_archived)
+        if lookup_only:
+            rows = tickets.values(
+                "id",
+                "ticket_ref",
+                "learner_email",
+                "attendance_date",
+                "status",
+            )
+            return JsonResponse([
+                {
+                    "id": row["id"],
+                    "ticketRef": row["ticket_ref"],
+                    "learnerEmail": row["learner_email"],
+                    "attendanceDate": row["attendance_date"].isoformat() if row["attendance_date"] else None,
+                    "status": row["status"],
+                }
+                for row in rows
+            ], safe=False)
+
         if not show_archived:
             _sync_attendance_ticket_risks(
                 tickets.exclude(status__in=["resolved", "covered"])

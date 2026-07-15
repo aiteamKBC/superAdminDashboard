@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { preservePageScroll } from "@/lib/pageScroll";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -494,14 +495,21 @@ export default function OTJTicketsPage() {
   const [quickNotesTicket, setQuickNotesTicket] = useState<OTJTicket | null>(null);
   const [quickEvidenceTicket, setQuickEvidenceTicket] = useState<OTJTicket | null>(null);
   const [quickEvidenceFiles, setQuickEvidenceFiles] = useState<EvidenceFile[]>([]);
+  const directTicketId = searchParams.get("ticket") || searchParams.get("open");
 
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
+      if (directTicketId) {
+        const res = await fetch(`/api/otj-tickets/${encodeURIComponent(directTicketId)}/`);
+        if (res.ok) setTickets([await res.json()]);
+        return;
+      }
+
       const res = await fetch(`/api/otj-tickets/?archived=${showArchived}`);
       if (res.ok) setTickets(await res.json());
     } finally { setLoading(false); }
-  }, [showArchived]);
+  }, [directTicketId, showArchived]);
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
 
@@ -518,13 +526,12 @@ export default function OTJTicketsPage() {
   }, [quickEvidenceTicket]);
 
   useEffect(() => {
-    const openId = searchParams.get("ticket") || searchParams.get("open");
+    const openId = directTicketId;
     const createFlag = searchParams.get("create");
     if (openId && !loading) {
       const t = tickets.find((t) => String(t.id) === openId);
       if (t) {
         setSearch(t.learnerEmail);
-        setSearchParams({}, { replace: true });
       }
     } else if (createFlag === "1") {
       setCreatePrefill({
@@ -542,7 +549,7 @@ export default function OTJTicketsPage() {
       setCreateOpen(true);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, tickets, loading, setSearchParams]);
+  }, [directTicketId, searchParams, tickets, loading, setSearchParams]);
 
   useEffect(() => {
     const emailedId = searchParams.get("emailed_ticket");
@@ -627,7 +634,7 @@ export default function OTJTicketsPage() {
 
   const handleQuickAction = useCallback(async (ticketId: number, updates: Record<string, unknown>) => {
     await fetch(`/api/otj-tickets/${ticketId}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) });
-    await loadTickets();
+    await preservePageScroll(loadTickets);
   }, [loadTickets]);
 
   const filtered = useMemo(() => {
