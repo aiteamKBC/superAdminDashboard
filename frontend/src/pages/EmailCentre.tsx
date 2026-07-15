@@ -69,6 +69,32 @@ const readEmailResponse = async (res: Response) => {
 };
 
 const statusKey = (value: unknown) => String(value || "").trim().toLowerCase();
+const cleanEmail = (value: unknown) =>
+  String(value || "")
+    .replace(/[\u202A-\u202E]/g, "")
+    .trim()
+    .toLowerCase();
+
+const getCoachEmailFromRaw = (raw: any) => {
+  const directEmail = cleanEmail(raw?.OwnerEmail || raw?.coachEmail || raw?.email || raw?.case_owner_email);
+  if (directEmail) return directEmail;
+
+  const progressReview = raw?.overall_progress_review;
+  if (progressReview && typeof progressReview === "object") {
+    return cleanEmail(progressReview?.coach?.email);
+  }
+
+  if (typeof progressReview === "string") {
+    try {
+      const parsed = JSON.parse(progressReview);
+      return cleanEmail(parsed?.coach?.email);
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+};
 
 type EmailCentreLocationState = {
   selectedRecipient?: EmailRecipient;
@@ -621,7 +647,7 @@ export default function EmailCentre() {
   const coachEmailMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const coach of coaches) {
-      const email = String((coach as any)?.raw?.OwnerEmail || "").trim().toLowerCase();
+      const email = getCoachEmailFromRaw((coach as any)?.raw);
       if (coach.name && email) map.set(coach.name.toLowerCase(), email);
     }
     return map;
