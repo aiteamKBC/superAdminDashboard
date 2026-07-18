@@ -184,6 +184,40 @@
     font-weight: 600;
   }
 
+  thead th[data-global-sortable="true"] {
+    cursor: pointer;
+    user-select: none;
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+
+  thead th[data-global-sortable="true"]:hover {
+    color: #1E6ACB;
+  }
+
+  thead th[data-global-sortable="true"]:not(:has(button))::after {
+    content: "↕";
+    display: inline-block;
+    margin-left: 0.35rem;
+    color: #8AA0B6;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  thead th[data-global-sort-active="true"] {
+    color: #1E6ACB;
+  }
+
+  thead th[data-global-sortable="true"][data-global-sort-dir="asc"]:not(:has(button))::after {
+    content: "↑";
+    color: #1E6ACB;
+  }
+
+  thead th[data-global-sortable="true"][data-global-sort-dir="desc"]:not(:has(button))::after {
+    content: "↓";
+    color: #1E6ACB;
+  }
+
   td,
   th {
     vertical-align: middle;

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
+import GlobalTableSorter from "@/components/GlobalTableSorter";
 import HomePage from "./pages/HomePage";
 import Dashboard from "./pages/Index";
 import AttendancePage from "./pages/AttendancePage";
@@ -37,6 +38,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <GlobalTableSorter />
       <Toaster />
       <Sonner />
       <BrowserRouter>

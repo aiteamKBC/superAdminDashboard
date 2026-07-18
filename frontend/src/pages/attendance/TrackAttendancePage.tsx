@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
+  ArrowUpDown,
   CheckCircle2,
   Download,
   ExternalLink,
@@ -24,6 +25,21 @@ import type { Learner } from "@/types/dashboard";
 
 type AbsenceWindow = "all" | 0 | 1 | 2 | 3;
 type FollowUpFilter = "all" | "unresolved" | "contacted" | "resolved";
+type AttendanceSortField =
+  | "learner"
+  | "phone"
+  | "organisation"
+  | "programme"
+  | "group"
+  | "coach"
+  | "lastSession"
+  | "sessionStatus"
+  | "totalMissedSessions"
+  | "absenceRatio"
+  | "called"
+  | "emailed"
+  | "note"
+  | "followUp";
 type AttRec = { date: string | null; attendance: unknown; module: string; note?: string };
 type ContactActionState = { called: boolean; emailed: boolean; resolved: boolean; note: string };
 
@@ -265,6 +281,8 @@ export default function TrackAttendancePage() {
   const [organisationFilter, setOrganisationFilter] = useState("all");
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>("all");
   const [moduleFilter, setModuleFilter] = useState("all");
+  const [sortField, setSortField] = useState<AttendanceSortField>("learner");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadTickets = useCallback(async (showLookupLoading = true) => {
@@ -588,15 +606,88 @@ export default function TrackAttendancePage() {
   ]);
 
   const filteredLearners = useMemo(
-    () =>
-      entityFiltered.filter((learner) => {
+    () => {
+      const rows = entityFiltered.filter((learner) => {
         if (followUpFilter === "unresolved") return !learner.isResolved;
         if (followUpFilter === "contacted")
           return (learner.called || learner.emailed) && !learner.isResolved;
         if (followUpFilter === "resolved") return Boolean(learner.isResolved);
         return true;
-      }),
-    [entityFiltered, followUpFilter]
+      });
+
+      const textValue = (value: unknown) => String(value ?? "").trim().toLowerCase();
+      const phoneValue = (value: unknown) => textValue(value).replace(/\D/g, "");
+      const missedValue = (learner: AttendanceLearner) =>
+        missedByModule.get(learner.email)?.missed ?? 0;
+      const dateValue = (value: unknown) => {
+        const parsed = parseAttendanceDate(String(value || ""));
+        return parsed ? parsed.getTime() : 0;
+      };
+      const getSortValue = (learner: AttendanceLearner): string | number => {
+        switch (sortField) {
+          case "learner":
+            return textValue(`${learner.firstName} ${learner.lastName}`);
+          case "phone":
+            return phoneValue(learner.phone);
+          case "organisation":
+            return textValue(learner.organisation);
+          case "programme":
+            return textValue(learner.programme);
+          case "group":
+            return textValue(learner.attendanceModule);
+          case "coach":
+            return textValue(learner.coachName);
+          case "lastSession":
+            return dateValue(learner.attendanceDate || learner.lastSessionDate);
+          case "sessionStatus":
+            return textValue(learner.lastSessionStatus);
+          case "totalMissedSessions":
+            return missedValue(learner);
+          case "absenceRatio":
+            return Number(learner.absenceRatio || 0);
+          case "called":
+            return learner.called ? 1 : 0;
+          case "emailed":
+            return learner.emailed ? 1 : 0;
+          case "note":
+            return textValue(learner.note);
+          case "followUp": {
+            const email = normEmail(learner.email);
+            const ticket = learner.attendanceDate
+              ? ticketMaps.byAttendance.get(`${email}||${learner.attendanceDate}`)
+              : ticketMaps.byEmail.get(email);
+            if (ticket?.status === "resolved") return "2-resolved";
+            if (ticket) return "1-open";
+            return "0-new";
+          }
+          default:
+            return "";
+        }
+      };
+
+      return [...rows].sort((a, b) => {
+        const av = getSortValue(a);
+        const bv = getSortValue(b);
+        const direction = sortDir === "asc" ? 1 : -1;
+
+        if (typeof av === "number" && typeof bv === "number") {
+          if (av !== bv) return (av - bv) * direction;
+        } else {
+          const result = String(av).localeCompare(String(bv), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+          if (result !== 0) return result * direction;
+        }
+
+        return textValue(`${a.firstName} ${a.lastName}`).localeCompare(
+          textValue(`${b.firstName} ${b.lastName}`),
+          undefined,
+          { sensitivity: "base" }
+        );
+      });
+    },
+    [entityFiltered, followUpFilter, missedByModule, sortDir, sortField, ticketMaps]
   );
 
   const autoCreateKeyRef = useRef("");
@@ -703,6 +794,52 @@ export default function TrackAttendancePage() {
     });
     navigate(`/attendance/tickets?${params.toString()}`);
   };
+
+  const toggleSort = (field: AttendanceSortField) => {
+    if (sortField === field) {
+      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortField(field);
+    setSortDir("asc");
+  };
+
+  const sortColumns: Array<{ heading: string; field: AttendanceSortField }> = [
+    { heading: "Phone", field: "phone" },
+    { heading: "Organisation", field: "organisation" },
+    { heading: "Programme", field: "programme" },
+    { heading: "Group", field: "group" },
+    { heading: "Coach", field: "coach" },
+    { heading: "Last Session", field: "lastSession" },
+    { heading: "Session Status", field: "sessionStatus" },
+    { heading: "Total Missed Sessions", field: "totalMissedSessions" },
+    { heading: "Absence Ratio", field: "absenceRatio" },
+    { heading: "Called", field: "called" },
+    { heading: "Emailed", field: "emailed" },
+    { heading: "Note", field: "note" },
+    { heading: "Follow-up", field: "followUp" },
+  ];
+
+  const renderSortLabel = (heading: string, field: AttendanceSortField) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(field)}
+      className="inline-flex w-full items-center gap-1 text-left font-semibold text-[#5F7288] hover:text-[#1E6ACB]"
+      aria-label={`Sort by ${heading}`}
+    >
+      <span>{heading}</span>
+      <ArrowUpDown
+        className={`h-3.5 w-3.5 shrink-0 ${
+          sortField === field ? "text-[#1E6ACB]" : "text-[#8AA0B6]"
+        }`}
+      />
+      {sortField === field && (
+        <span className="sr-only">
+          {sortDir === "asc" ? "ascending" : "descending"}
+        </span>
+      )}
+    </button>
+  );
 
   const exportCsv = () => {
     const headers = [
@@ -986,28 +1123,14 @@ export default function TrackAttendancePage() {
                   <thead>
                     <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
                       <th className="sticky left-0 top-0 z-30 min-w-[220px] border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
-                        Learner
+                        {renderSortLabel("Learner", "learner")}
                       </th>
-                      {[
-                        "Phone",
-                        "Organisation",
-                        "Programme",
-                        "Group",
-                        "Coach",
-                        "Last Session",
-                        "Session Status",
-                        "Total Missed Sessions",
-                        "Absence Ratio",
-                        "Called",
-                        "Emailed",
-                        "Note",
-                        "Follow-up",
-                      ].map((heading) => (
+                      {sortColumns.map(({ heading, field }) => (
                         <th
                           key={heading}
                           className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]"
                         >
-                          {heading}
+                          {renderSortLabel(heading, field)}
                         </th>
                       ))}
                     </tr>
