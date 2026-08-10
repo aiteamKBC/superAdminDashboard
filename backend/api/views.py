@@ -167,6 +167,8 @@ def parse_date_safe(value):
         "%Y/%m/%d",
         "%d-%m-%y",
         "%d/%m/%y",
+        "%d %b %Y",
+        "%d %B %Y",
     ]
 
     for fmt in formats:
@@ -177,7 +179,10 @@ def parse_date_safe(value):
 
     import re
 
-    match = re.search(r"(\d{2}[/-]\d{2}[/-]\d{2,4}|\d{4}[/-]\d{2}[/-]\d{2})$", value)
+    match = re.search(
+        r"(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})",
+        value,
+    )
     if match:
         extracted = match.group(1).strip()
         for fmt in formats:
@@ -197,6 +202,11 @@ def is_completed_status(status_value):
 def is_archived_status(status_value):
     s = str(status_value or "").strip().lower()
     return "archived" in s
+
+
+def is_scheduled_status(status_value):
+    s = str(status_value or "").strip().lower()
+    return "scheduled" in s and "not scheduled" not in s
 
 
 def is_countable_progress_review_slot(planned_value):
@@ -286,13 +296,15 @@ def progress_review_summary(request):
 
     for row in raw_rows:
         overdue_count = 0
-        next_due_date_from_planned = None
-        next_due_state_from_planned = ""
-        latest_overdue_date_from_planned = None
-        latest_overdue_state_from_planned = ""
+        next_pr_date_from_planned = None
+        next_pr_state_from_planned = ""
+        latest_due_pr_date = None
+        latest_due_pr_state = ""
         all_planned_dates = []
+        planned_candidates = []
         last_actually_completed_pr = row.get("Last Actually Completed PR") or ""
         last_progress_review = row.get("Last Progress Review") or ""
+        last_completed_pr_date = parse_date_safe(last_actually_completed_pr or last_progress_review)
         excluded_planned_dates = set()
         countable_planned_dates = set()
 
@@ -304,6 +316,7 @@ def progress_review_summary(request):
             planned_date = parse_date_safe(planned_value)
             planned_status_raw = str(row.get(status_key) or "").strip()
             completed = is_completed_status(planned_status_raw)
+            archived = is_archived_status(planned_status_raw)
 
             if not planned_date:
                 continue
@@ -318,17 +331,24 @@ def progress_review_summary(request):
                 "completed": completed,
                 "isPast": planned_date < today,
             })
+            planned_candidates.append({
+                "date": planned_date,
+                "status": planned_status_raw,
+                "completed": completed,
+                "archived": archived,
+            })
 
-            if planned_date < today and not completed:
+            if planned_date < today and not completed and not archived:
                 overdue_count += 1
-                if latest_overdue_date_from_planned is None or planned_date > latest_overdue_date_from_planned:
-                    latest_overdue_date_from_planned = planned_date
-                    latest_overdue_state_from_planned = planned_status_raw
+                if latest_due_pr_date is None or planned_date > latest_due_pr_date:
+                    latest_due_pr_date = planned_date
+                    latest_due_pr_state = planned_status_raw
 
-            if planned_date >= today and not completed:
-                if next_due_date_from_planned is None or planned_date < next_due_date_from_planned:
-                    next_due_date_from_planned = planned_date
-                    next_due_state_from_planned = planned_status_raw
+            is_after_last_completed = not last_completed_pr_date or planned_date > last_completed_pr_date
+            if planned_date >= today and is_after_last_completed and not completed and not archived:
+                if next_pr_date_from_planned is None or planned_date < next_pr_date_from_planned:
+                    next_pr_date_from_planned = planned_date
+                    next_pr_state_from_planned = planned_status_raw
 
         if overdue_count <= 0:
             review_status = "Ahead"
@@ -342,22 +362,42 @@ def progress_review_summary(request):
         next_review_raw = row.get("Next Review (Status)") or ""
         next_pr_date_raw, next_pr_state = split_next_review_status(next_review_raw)
 
-        # For overdue learners, show the most recent missed PR date.
         parsed_field_date = parse_date_safe(next_pr_date_raw) if next_pr_date_raw else None
-        if latest_overdue_date_from_planned:
-            next_pr_date = latest_overdue_date_from_planned.strftime("%Y-%m-%d")
-            next_pr_state = latest_overdue_state_from_planned
-        elif parsed_field_date and parsed_field_date not in excluded_planned_dates and (
+        reference_pr_date = last_completed_pr_date or today
+        scheduled_window_start = reference_pr_date + timedelta(weeks=10)
+        scheduled_window_end = reference_pr_date + timedelta(weeks=12)
+        scheduled_pr_candidate = None
+        for candidate in planned_candidates:
+            candidate_date = candidate["date"]
+            if not (
+                is_scheduled_status(candidate["status"])
+                and not candidate["completed"]
+                and not candidate["archived"]
+                and candidate_date >= today
+                and scheduled_window_start <= candidate_date <= scheduled_window_end
+            ):
+                continue
+            if scheduled_pr_candidate is None or candidate_date < scheduled_pr_candidate["date"]:
+                scheduled_pr_candidate = candidate
+
+        if scheduled_pr_candidate:
+            next_pr_date = scheduled_pr_candidate["date"].strftime("%Y-%m-%d")
+            next_pr_state = scheduled_pr_candidate["status"]
+        elif parsed_field_date and parsed_field_date >= today and (
+            not last_completed_pr_date or parsed_field_date > last_completed_pr_date
+        ) and parsed_field_date not in excluded_planned_dates and (
             not countable_planned_dates or parsed_field_date in countable_planned_dates
         ):
             next_pr_date = parsed_field_date.strftime("%Y-%m-%d")
-        elif next_due_date_from_planned:
-            next_pr_date = next_due_date_from_planned.strftime("%Y-%m-%d")
+        elif next_pr_date_from_planned:
+            next_pr_date = next_pr_date_from_planned.strftime("%Y-%m-%d")
+            next_pr_state = next_pr_state_from_planned
         else:
             next_pr_date = ""
+            next_pr_state = ""
 
-        if not next_pr_state and next_due_state_from_planned:
-            next_pr_state = next_due_state_from_planned
+        if not next_pr_state and next_pr_state_from_planned:
+            next_pr_state = next_pr_state_from_planned
 
         email_key = (row.get("Email") or "").strip().lower()
         extras = learner_extras.get(email_key, {})
@@ -373,6 +413,8 @@ def progress_review_summary(request):
             "lastActuallyCompletedPr": last_actually_completed_pr,
             "lastProgressReview": last_progress_review,
             "nextReviewStatus": next_review_raw,
+            "duePrDate": latest_due_pr_date.strftime("%Y-%m-%d") if latest_due_pr_date else "",
+            "duePrState": latest_due_pr_state,
             "nextPrDate": next_pr_date,
             "nextPrState": next_pr_state,
             "overduePrCount": overdue_count,
@@ -1049,9 +1091,13 @@ def mcr_summary(request):
 
     for row in raw_rows:
         overdue_count = 0
-        next_due_date = None
-        latest_overdue_date = None
+        next_mcm_date = None
+        latest_due_mcm_date = None
+        last_completed_mcm_date = parse_date_safe(
+            row.get("Last Actually Completed  MCM") or row.get("Last MCM")
+        )
         mcm_dates = []
+        mcm_candidates = []
 
         for i in range(1, 23):
             mcm_date = parse_date_safe(row.get(f"MCM{i}"))
@@ -1067,15 +1113,47 @@ def mcr_summary(request):
                 "status": status_raw,
                 "completed": completed,
             })
+            mcm_candidates.append({
+                "date": mcm_date,
+                "status": status_raw,
+                "completed": completed,
+                "archived": archived,
+            })
 
             if mcm_date < today and not completed and not archived:
                 overdue_count += 1
-                if latest_overdue_date is None or mcm_date > latest_overdue_date:
-                    latest_overdue_date = mcm_date
+                if latest_due_mcm_date is None or mcm_date > latest_due_mcm_date:
+                    latest_due_mcm_date = mcm_date
 
-            if mcm_date >= today and not completed and not archived:
-                if next_due_date is None or mcm_date < next_due_date:
-                    next_due_date = mcm_date
+            is_after_last_completed = not last_completed_mcm_date or mcm_date > last_completed_mcm_date
+            if mcm_date >= today and is_after_last_completed and not completed and not archived:
+                if next_mcm_date is None or mcm_date < next_mcm_date:
+                    next_mcm_date = mcm_date
+
+        next_mcm_field_date = parse_date_safe(row.get("Next MCM"))
+        if next_mcm_field_date and next_mcm_field_date >= today:
+            is_after_last_completed = not last_completed_mcm_date or next_mcm_field_date > last_completed_mcm_date
+            if is_after_last_completed and (next_mcm_date is None or next_mcm_field_date < next_mcm_date):
+                next_mcm_date = next_mcm_field_date
+
+        reference_mcm_date = last_completed_mcm_date or today
+        scheduled_window_start = reference_mcm_date + timedelta(weeks=4)
+        scheduled_window_end = reference_mcm_date + timedelta(weeks=5)
+        scheduled_mcm_candidate = None
+        for candidate in mcm_candidates:
+            candidate_date = candidate["date"]
+            if not (
+                is_scheduled_status(candidate["status"])
+                and not candidate["completed"]
+                and not candidate["archived"]
+                and candidate_date >= today
+                and scheduled_window_start <= candidate_date <= scheduled_window_end
+            ):
+                continue
+            if scheduled_mcm_candidate is None or candidate_date < scheduled_mcm_candidate["date"]:
+                scheduled_mcm_candidate = candidate
+        if scheduled_mcm_candidate:
+            next_mcm_date = scheduled_mcm_candidate["date"]
 
         if overdue_count <= 0:
             mcr_status = "Ahead"
@@ -1097,7 +1175,8 @@ def mcr_summary(request):
             "nextMcm": row.get("Next MCM") or "",
             "lastActuallyCompletedMcm": row.get("Last Actually Completed  MCM") or "",
             "overdueMcmCount": overdue_count,
-            "nextDueDate": (latest_overdue_date or next_due_date).isoformat() if (latest_overdue_date or next_due_date) else None,
+            "dueMcmDate": latest_due_mcm_date.isoformat() if latest_due_mcm_date else None,
+            "nextDueDate": next_mcm_date.isoformat() if next_mcm_date else None,
             "mcrStatus": mcr_status,
             "mcmDates": mcm_dates,
             "managerName": row.get("Manager Name") or "",
@@ -1218,67 +1297,307 @@ def kbc_attendance_summary(request):
     return JsonResponse(results, safe=False)
 
 
+def _quote_pg_identifier(name):
+    return '"' + str(name).replace('"', '""') + '"'
+
+
+def _learner_evidence_table_info(alias):
+    with connections[alias].cursor() as cursor:
+        cursor.execute("""
+            SELECT table_schema
+            FROM information_schema.tables
+            WHERE table_name = %s
+              AND table_type = %s
+            ORDER BY CASE WHEN table_schema = %s THEN 0 ELSE 1 END, table_schema
+            LIMIT 1
+        """, ["learner_evidence", "BASE TABLE", "public"])
+        table_schema_row = cursor.fetchone()
+        if not table_schema_row:
+            return "", []
+
+        table_schema = table_schema_row[0]
+        cursor.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = %s
+              AND table_name = %s
+            ORDER BY ordinal_position
+        """, [table_schema, "learner_evidence"])
+        return table_schema, [row[0] for row in cursor.fetchall()]
+
+
+def _assignment_rows_from_learner_evidence(active_learners_by_id):
+    alias = "learner_evidence" if "learner_evidence" in settings.DATABASES else ""
+    if not alias:
+        return []
+
+    active_ids = [learner_id for learner_id in active_learners_by_id.keys() if learner_id]
+    if not active_ids:
+        return []
+
+    try:
+        table_schema, columns = _learner_evidence_table_info(alias)
+        if not table_schema or "evidence" not in columns or "learner_id" not in columns:
+            return []
+
+        table_sql = f"{_quote_pg_identifier(table_schema)}.{_quote_pg_identifier('learner_evidence')}"
+        row_order_sql = "fetched_at DESC NULLS LAST" if "fetched_at" in columns else "id DESC" if "id" in columns else "learner_id"
+        full_name_sql = _quote_pg_identifier("full_name") if "full_name" in columns else "''"
+        program_name_sql = _quote_pg_identifier("program_name") if "program_name" in columns else "''"
+
+        with connections[alias].cursor() as cursor:
+            cursor.execute(
+                f"""
+                    WITH latest_rows AS (
+                        SELECT DISTINCT ON (learner_id::text)
+                            learner_id::text AS learner_id,
+                            {full_name_sql} AS full_name,
+                            {program_name_sql} AS program_name,
+                            evidence::jsonb AS evidence
+                        FROM {table_sql}
+                        WHERE learner_id::text = ANY(%s)
+                        ORDER BY learner_id::text, {row_order_sql}
+                    ),
+                    evidence_items AS (
+                        SELECT
+                            latest_rows.learner_id,
+                            latest_rows.full_name,
+                            latest_rows.program_name,
+                            item.value AS evidence_item,
+                            LOWER(COALESCE(
+                                item.value->>'kind',
+                                item.value->>'type',
+                                item.value->>'EvidenceKind',
+                                item.value->'raw'->>'EvidenceKind',
+                                ''
+                            )) AS evidence_kind,
+                            LOWER(COALESCE(
+                                item.value->>'status',
+                                item.value->>'LatestStatus',
+                                item.value->>'ConfirmedStatus',
+                                item.value->'raw'->>'LatestStatus',
+                                item.value->'raw'->>'ConfirmedStatus',
+                                ''
+                            )) AS evidence_status,
+                            COALESCE(
+                                item.value->'raw'->>'SubmissionDate',
+                                item.value->>'SubmissionDate',
+                                item.value->>'submissionDate',
+                                item.value->>'submission_date',
+                                item.value->>'submittedAt',
+                                item.value->>'submitted_at',
+                                item.value->>'created_date',
+                                item.value->>'createdDate',
+                                item.value->'raw'->>'UpdatedDate',
+                                item.value->>'UpdatedDate'
+                            ) AS submission_text
+                        FROM latest_rows
+                        LEFT JOIN LATERAL jsonb_array_elements(
+                            CASE
+                                WHEN jsonb_typeof(latest_rows.evidence) = 'array' THEN latest_rows.evidence
+                                ELSE '[]'::jsonb
+                            END
+                        ) AS item(value) ON TRUE
+                    ),
+                    parsed_items AS (
+                        SELECT
+                            learner_id,
+                            full_name,
+                            program_name,
+                            evidence_kind,
+                            evidence_status,
+                            CASE
+                                WHEN submission_text ~ '^\\d{{4}}-\\d{{2}}-\\d{{2}}'
+                                THEN submission_text::timestamptz
+                                ELSE NULL
+                            END AS submitted_at
+                        FROM evidence_items
+                    )
+                    SELECT
+                        learner_id,
+                        full_name,
+                        program_name,
+                        COUNT(*) FILTER (
+                            WHERE evidence_kind = 'file'
+                        ) AS total_file_count,
+                        COUNT(*) FILTER (
+                            WHERE evidence_kind = 'file'
+                              AND evidence_status = 'pendingassessment'
+                        ) AS pending_count,
+                        COUNT(*) FILTER (
+                            WHERE evidence_kind = 'file'
+                              AND evidence_status = 'accepted'
+                        ) AS accepted_count,
+                        COUNT(*) FILTER (
+                            WHERE evidence_kind = 'file'
+                              AND evidence_status = 'referred'
+                        ) AS referred_count,
+                        MAX(submitted_at) FILTER (WHERE evidence_kind = 'file') AS latest_submit
+                    FROM parsed_items
+                    GROUP BY learner_id, full_name, program_name
+                """,
+                [active_ids],
+            )
+            query_columns = [col[0] for col in cursor.description]
+            raw_rows = [dict(zip(query_columns, row)) for row in cursor.fetchall()]
+    except Exception:
+        return []
+
+    by_learner = {}
+    for row in raw_rows:
+        learner_id = str(row.get("learner_id") or "").strip()
+        if not learner_id or learner_id in by_learner:
+            continue
+
+        learner = active_learners_by_id.get(learner_id, {})
+        latest_submit = row.get("latest_submit")
+        latest_submit_value = latest_submit.date().isoformat() if latest_submit else ""
+        by_learner[learner_id] = {
+            "learnerId": learner_id,
+            "fullName": learner.get("fullName") or row.get("full_name") or "",
+            "email": learner.get("email") or "",
+            "caseOwner": learner.get("caseOwner") or "",
+            "caseOwnerId": learner.get("caseOwnerId"),
+            "countEvidencePending": int(row.get("pending_count") or 0),
+            "evidenceAccepted": int(row.get("accepted_count") or 0),
+            "evidenceReferred": int(row.get("referred_count") or 0),
+            "totalEvidence": int(row.get("total_file_count") or 0),
+            "lastSubDate": latest_submit_value,
+            "lastFileSubmitDate": latest_submit_value,
+            "status": "Active",
+        }
+
+    return list(by_learner.values())
+
+
 def require_marking_summary(request):
+    active_learners_by_id = {}
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
             SELECT
-                "LearnerId",
+                "ID",
                 "FullName",
                 "Email",
-                "Subscription Status",
-                "CaseOwner ID",
-                "CaseOwner",
-                "ElapsedDays",
-                "Phone",
-                "CountEvidencePending",
-                "Evidence Accepted",
-                "Evidence Reffered",
-                "Referred Closure",
-                "Total Evidence",
-                "Last Snapshot CountApproved",
-                "Last Snapshot Date",
-                "Today",
-                "Yesterday",
-                "-2", "-3", "-4", "-5", "-6", "-7",
-                "Start-Date",
-                "Status",
-                "LastSubDate"
-            FROM public."Require Marking"
-            WHERE LOWER(COALESCE("Status", '')) = 'active'
-              AND "CaseOwner" IS NOT NULL
+                "OwnerName",
+                "OwnerEmail",
+                "case_owner_id",
+                "Program-Status"
+            FROM public.aptem_auto_extracting
+            WHERE LOWER(COALESCE("Program-Status", '')) = 'active'
         """)
         columns = [col[0] for col in cursor.description]
-        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        for row in [dict(zip(columns, row)) for row in cursor.fetchall()]:
+            learner_id = str(row.get("ID") or "").strip()
+            if not learner_id:
+                continue
+            active_learners_by_id[learner_id] = {
+                "fullName": row.get("FullName") or "",
+                "email": (row.get("Email") or "").strip().lower(),
+                "caseOwner": row.get("OwnerName") or "",
+                "ownerEmail": (row.get("OwnerEmail") or "").strip().lower(),
+                "caseOwnerId": row.get("case_owner_id"),
+            }
 
+    results = _assignment_rows_from_learner_evidence(active_learners_by_id)
+
+    return JsonResponse(results, safe=False)
+
+
+def lms_activity_summary(request):
+    active_learners_by_email = {}
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                "ID",
+                "FullName",
+                "Email",
+                "OwnerName",
+                "Program-Status"
+            FROM public.aptem_auto_extracting
+            WHERE LOWER(COALESCE("Program-Status", '')) = 'active'
+        """)
+        columns = [col[0] for col in cursor.description]
+        for row in [dict(zip(columns, row)) for row in cursor.fetchall()]:
+            email = (row.get("Email") or "").strip().lower()
+            if not email:
+                continue
+            active_learners_by_email[email] = {
+                "learnerId": row.get("ID"),
+                "fullName": row.get("FullName") or "",
+                "email": email,
+                "caseOwner": row.get("OwnerName") or "",
+            }
+
+    if not active_learners_by_email or "learner_evidence" not in settings.DATABASES:
+        return JsonResponse([], safe=False)
+
+    active_emails = list(active_learners_by_email.keys())
+    try:
+        with connections["learner_evidence"].cursor() as cursor:
+            cursor.execute("""
+                SELECT table_schema
+                FROM information_schema.tables
+                WHERE table_name = %s
+                  AND table_type = %s
+                ORDER BY CASE WHEN table_schema = %s THEN 0 ELSE 1 END, table_schema
+                LIMIT 1
+            """, ["LMS_data", "BASE TABLE", "Audit"])
+            schema_row = cursor.fetchone()
+            if not schema_row:
+                return JsonResponse([], safe=False)
+
+            table_sql = f"{_quote_pg_identifier(schema_row[0])}.{_quote_pg_identifier('LMS_data')}"
+            cursor.execute(
+                f"""
+                    WITH progress_rows AS (
+                        SELECT
+                            LOWER(TRIM(data::jsonb->>'email')) AS email,
+                            data::jsonb AS data
+                        FROM {table_sql}
+                        WHERE LOWER(TRIM(data::jsonb->>'email')) = ANY(%s)
+                    ),
+                    completed_values AS (
+                        SELECT
+                            email,
+                            NULLIF(TRIM(data->>'course_completed_at'), '') AS completed_text
+                        FROM progress_rows
+                        UNION ALL
+                        SELECT
+                            email,
+                            NULLIF(TRIM(value #>> '{{}}'), '') AS completed_text
+                        FROM progress_rows
+                        CROSS JOIN LATERAL jsonb_path_query(data, '$.**.completed_at') AS completed(value)
+                    ),
+                    parsed_values AS (
+                        SELECT
+                            email,
+                            CASE
+                                WHEN completed_text ~ '^\\d{{4}}-\\d{{2}}-\\d{{2}}[ T]\\d{{2}}:\\d{{2}}'
+                                THEN completed_text::timestamptz
+                                WHEN completed_text ~ '^\\d{{4}}-\\d{{2}}-\\d{{2}}$'
+                                THEN completed_text::date::timestamptz
+                                ELSE NULL
+                            END AS completed_at
+                        FROM completed_values
+                    )
+                    SELECT email, MAX(completed_at) AS last_activity
+                    FROM parsed_values
+                    WHERE completed_at IS NOT NULL
+                    GROUP BY email
+                """,
+                [active_emails],
+            )
+            rows = cursor.fetchall()
+    except Exception:
+        return JsonResponse([], safe=False)
+
+    latest_by_email = {email: last_activity for email, last_activity in rows if email}
     results = []
-    for row in raw_rows:
+    for email, learner in active_learners_by_email.items():
+        last_activity = latest_by_email.get(email)
         results.append({
-            "learnerId": row.get("LearnerId"),
-            "fullName": row.get("FullName") or "",
-            "email": (row.get("Email") or "").strip().lower(),
-            "subscriptionStatus": row.get("Subscription Status") or "",
-            "caseOwnerId": row.get("CaseOwner ID"),
-            "caseOwner": row.get("CaseOwner") or "",
-            "elapsedDays": row.get("ElapsedDays"),
-            "phone": row.get("Phone") or "",
-            "countEvidencePending": row.get("CountEvidencePending") or 0,
-            "evidenceAccepted": row.get("Evidence Accepted") or 0,
-            "evidenceReferred": row.get("Evidence Reffered") or 0,
-            "referredClosure": row.get("Referred Closure") or 0,
-            "totalEvidence": row.get("Total Evidence") or 0,
-            "lastSnapshotCountApproved": row.get("Last Snapshot CountApproved") or "",
-            "lastSnapshotDate": row.get("Last Snapshot Date").isoformat() if row.get("Last Snapshot Date") else None,
-            "todayCount": row.get("Today") or 0,
-            "yesterdayCount": row.get("Yesterday") or 0,
-            "day2Count": row.get("-2") or 0,
-            "day3Count": row.get("-3") or 0,
-            "day4Count": row.get("-4") or 0,
-            "day5Count": row.get("-5") or 0,
-            "day6Count": row.get("-6") or 0,
-            "day7Count": row.get("-7") or 0,
-            "startDate": row.get("Start-Date").isoformat() if row.get("Start-Date") else None,
-            "status": row.get("Status") or "",
-            "lastSubDate": row.get("LastSubDate") or "",
+            **learner,
+            "lastActivity": last_activity.date().isoformat() if last_activity else "",
         })
 
     return JsonResponse(results, safe=False)

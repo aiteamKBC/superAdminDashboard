@@ -1,4 +1,3 @@
-
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,6 +8,7 @@ import {
   CheckSquare,
   ClipboardList,
   GraduationCap,
+  TrendingUp,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
@@ -19,7 +19,7 @@ const cards = [
     icon: ClipboardList,
     path: "/attendance",
     accent: "#1E6ACB",
-    bg: "from-[#EEF7FF] to-[#DAEEFF]",
+    bg: "from-white to-[#EAF4FF]",
     iconBg: "#1E6ACB",
   },
   {
@@ -28,7 +28,7 @@ const cards = [
     icon: BookOpen,
     path: "/progress-review",
     accent: "#0369A1",
-    bg: "from-[#EFF9FF] to-[#D6EFFD]",
+    bg: "from-white to-[#EAF6FC]",
     iconBg: "#0369A1",
   },
   {
@@ -37,7 +37,7 @@ const cards = [
     icon: CalendarCheck2,
     path: "/coaching-meetings",
     accent: "#315D93",
-    bg: "from-[#F1F6FC] to-[#DCE9F7]",
+    bg: "from-white to-[#EDF4FB]",
     iconBg: "#315D93",
   },
   {
@@ -46,7 +46,7 @@ const cards = [
     icon: BriefcaseBusiness,
     path: "/otj-hours",
     accent: "#24557F",
-    bg: "from-[#EFF6FB] to-[#D8E8F4]",
+    bg: "from-white to-[#EAF3FA]",
     iconBg: "#24557F",
   },
   {
@@ -54,9 +54,9 @@ const cards = [
     description: "Grade and provide feedback on submitted work",
     icon: CheckSquare,
     path: "/marking",
-    accent: "#475569",
-    bg: "from-[#F1F5F9] to-[#E2E8F0]",
-    iconBg: "#475569",
+    accent: "#24486D",
+    bg: "from-white to-[#EDF4FB]",
+    iconBg: "#24486D",
   },
   {
     label: "Active Learners",
@@ -64,7 +64,7 @@ const cards = [
     icon: GraduationCap,
     path: "/active-learners",
     accent: "#14264A",
-    bg: "from-[#EEF3FA] to-[#D9E4F4]",
+    bg: "from-white to-[#E8F0FA]",
     iconBg: "#14264A",
   },
   {
@@ -73,7 +73,16 @@ const cards = [
     icon: Award,
     path: "/gateway",
     accent: "#1E6ACB",
-    bg: "from-[#EEF7FF] to-[#DAEEFF]",
+    bg: "from-white to-[#EAF4FF]",
+    iconBg: "#1E6ACB",
+  },
+  {
+    label: "Learner Progress",
+    description: "PR, MCR, and OTJH in one learner snapshot",
+    icon: TrendingUp,
+    path: "/learner-progress",
+    accent: "#1E6ACB",
+    bg: "from-white to-[#EAF4FF]",
     iconBg: "#1E6ACB",
   },
 ];
@@ -99,7 +108,7 @@ export default function HomePage() {
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className={`group relative flex flex-col rounded-2xl bg-gradient-to-br ${bg} border border-white p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
+                className={`group relative flex flex-col rounded-lg bg-gradient-to-br ${bg} border border-[#DDE7F0] p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#BCD4EA] hover:shadow-[0_16px_34px_rgba(20,38,74,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
                 style={{ "--ring-color": accent } as CSSProperties}
               >
                 <div
@@ -109,10 +118,7 @@ export default function HomePage() {
                   <Icon className="h-6 w-6" />
                 </div>
 
-                <h2
-                  className="text-base font-bold leading-snug"
-                  style={{ color: accent }}
-                >
+                <h2 className="text-base font-bold leading-snug" style={{ color: accent }}>
                   {label}
                 </h2>
 

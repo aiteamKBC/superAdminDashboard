@@ -25,6 +25,7 @@ import TrackOTJPage from "./pages/otj/TrackOTJPage";
 import OTJTicketsPage from "./pages/otj/OTJTicketsPage";
 import MarkingPage from "./pages/MarkingPage";
 import ActiveLearnersPage from "./pages/ActiveLearnersPage";
+import LearnerProgressPage from "./pages/LearnerProgressPage";
 import MCMPage from "./pages/mcm/MCMPage";
 import RequiredMCMPage from "./pages/mcm/RequiredMCMPage";
 import ScheduledMCMPage from "./pages/mcm/ScheduledMCMPage";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/otj-hours/tickets" element={<ProtectedRoute><OTJTicketsPage /></ProtectedRoute>} />
             <Route path="/marking" element={<ProtectedRoute><MarkingPage /></ProtectedRoute>} />
             <Route path="/active-learners" element={<ProtectedRoute><ActiveLearnersPage /></ProtectedRoute>} />
+            <Route path="/learner-progress" element={<ProtectedRoute><LearnerProgressPage /></ProtectedRoute>} />
             <Route path="/coaching-meetings" element={<ProtectedRoute><MCMPage /></ProtectedRoute>} />
             <Route path="/coaching-meetings/required" element={<ProtectedRoute><RequiredMCMPage /></ProtectedRoute>} />
             <Route path="/coaching-meetings/scheduled" element={<ProtectedRoute><ScheduledMCMPage /></ProtectedRoute>} />

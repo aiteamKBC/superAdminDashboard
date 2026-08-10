@@ -116,6 +116,13 @@ if os.getenv("APPTEM_DATABASE_URL"):
         ssl_require=True,
     )
 
+if os.getenv("LEARNER_EVIDENCE_DATABASE_URL"):
+    DATABASES["learner_evidence"] = dj_database_url.parse(
+        os.getenv("LEARNER_EVIDENCE_DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+
 
 # CORS Settings - Allow frontend to access API
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
