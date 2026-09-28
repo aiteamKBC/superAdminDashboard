@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { GraduationCap, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, GraduationCap, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -46,6 +46,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [error, setError] = useState("");
@@ -249,11 +250,19 @@ export default function LoginPage() {
                     id="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="h-12 rounded-xl border-[#DDE7F0] bg-[#F8FBFE] pl-10 text-[#20344D] placeholder:text-[#8AA0B6] focus-visible:ring-[#1E6ACB]"
+                    className="h-12 rounded-xl border-[#DDE7F0] bg-[#F8FBFE] pl-10 pr-11 text-[#20344D] placeholder:text-[#8AA0B6] focus-visible:ring-[#1E6ACB]"
                     placeholder="Enter your password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#7EA6CF] transition hover:bg-[#EEF7FF] hover:text-[#1E6ACB] focus:outline-none focus:ring-2 focus:ring-[#1E6ACB] focus:ring-offset-2"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
