@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+﻿import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, TicketCheck } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
@@ -19,9 +19,9 @@ const cards = [
     description: "Create and manage attendance support tickets linked to KBC attendance",
     icon: TicketCheck,
     path: "/attendance/tickets",
-    accent: "#1E6ACB",
-    bg: "from-[#EEF7FF] to-[#DAEEFF]",
-    iconBg: "#1E6ACB",
+    accent: "#5B47D5",
+    bg: "from-[#EEF2FF] to-[#DAEEFF]",
+    iconBg: "#5B47D5",
   },
 ];
 
@@ -30,18 +30,18 @@ export default function AttendancePage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC] p-6 sm:p-8">
+      <div className="min-h-full bg-[#F5F4FB] p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <BackButton to="/" label="Home" />
 
           <div className="mb-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#1E6ACB]">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#5B47D5]">
               Attendance
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-[#14264A] sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-bold text-[#1D1050] sm:text-3xl">
               Attendance Management
             </h1>
-            <p className="mt-1 text-sm text-[#5F7288]">
+            <p className="mt-1 text-sm text-[#6E6D8A]">
               Choose a section to manage learner attendance
             </p>
           </div>
@@ -65,7 +65,7 @@ export default function AttendancePage() {
                   {label}
                 </h2>
 
-                <p className="mt-2 text-sm leading-relaxed text-[#5F7288]">{description}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#6E6D8A]">{description}</p>
 
                 <div
                   className="mt-6 flex items-center gap-1 text-xs font-semibold opacity-0 transition-opacity duration-200 group-hover:opacity-100"

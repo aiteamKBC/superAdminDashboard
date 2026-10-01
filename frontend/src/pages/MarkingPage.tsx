@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckSquare, Download, RefreshCw, TrendingUp, ClipboardCheck, AlertCircle } from "lucide-react";
 import {
   Bar,
@@ -152,9 +152,9 @@ export default function MarkingPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
+      <div className="min-h-full bg-[#F5F4FB]">
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/" label="Home" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -162,15 +162,15 @@ export default function MarkingPage() {
                 <CheckSquare className="h-5 w-5 text-slate-600" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">Marking</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">Grade and provide feedback on submitted work</p>
+                <h1 className="text-xl font-bold text-[#1D1050]">Marking</h1>
+                <p className="mt-0.5 text-sm text-[#6E6D8A]">Grade and provide feedback on submitted work</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={load} className="h-9 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+              <Button variant="outline" size="sm" onClick={load} className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
                 <RefreshCw className="h-4 w-4" /> Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+              <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
                 <Download className="h-4 w-4" /> Export CSV
               </Button>
             </div>
@@ -180,22 +180,22 @@ export default function MarkingPage() {
         <div className="p-4 sm:p-6">
           {/* Summary cards */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-[#5F7288]">
+            <div className="rounded-xl border border-[#E2DCF8] bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-[#6E6D8A]">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Pending Evidence</span>
               </div>
-              <p className="mt-3 text-3xl font-bold text-[#14264A]">{loading ? "…" : totals.totalPending.toLocaleString()}</p>
+              <p className="mt-3 text-3xl font-bold text-[#1D1050]">{loading ? "…" : totals.totalPending.toLocaleString()}</p>
             </div>
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-[#5F7288]">
+            <div className="rounded-xl border border-[#E2DCF8] bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-[#6E6D8A]">
                 <ClipboardCheck className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Weekly Marked Total</span>
               </div>
-              <p className="mt-3 text-3xl font-bold text-[#14264A]">{loading ? "…" : totals.weeklyMarked.toLocaleString()}</p>
+              <p className="mt-3 text-3xl font-bold text-[#1D1050]">{loading ? "…" : totals.weeklyMarked.toLocaleString()}</p>
             </div>
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-[#5F7288]">
+            <div className="rounded-xl border border-[#E2DCF8] bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-[#6E6D8A]">
                 <TrendingUp className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Weekly Correction Rate</span>
               </div>
@@ -204,45 +204,45 @@ export default function MarkingPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading data…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading data…</div>
             ) : coachRows.length === 0 ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">No data found</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">No data found</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">Coach Name</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-[#5F7288]">Pending Evidence</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Coach Name</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-[#6E6D8A]">Pending Evidence</th>
                       {DAY_COLS.map((d) => (
-                        <th key={d.key} className="px-4 py-3 text-right text-xs font-semibold text-[#5F7288]">{d.label}</th>
+                        <th key={d.key} className="px-4 py-3 text-right text-xs font-semibold text-[#6E6D8A]">{d.label}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {coachRows.map((row) => (
                       <tr key={row.coach} className="border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                        <td className="px-4 py-3 font-semibold text-[#14264A]">{row.coach}</td>
+                        <td className="px-4 py-3 font-semibold text-[#1D1050]">{row.coach}</td>
                         <td className="px-4 py-3 text-right">
-                          <span className={`font-semibold ${row.pendingEvidence > 50 ? "text-red-600" : row.pendingEvidence > 20 ? "text-amber-600" : "text-[#14264A]"}`}>
+                          <span className={`font-semibold ${row.pendingEvidence > 50 ? "text-red-600" : row.pendingEvidence > 20 ? "text-amber-600" : "text-[#1D1050]"}`}>
                             {row.pendingEvidence}
                           </span>
                         </td>
                         {DAY_COLS.map((d) => (
                           <td key={d.key} className="px-4 py-3 text-right text-[#3A506B]">
-                            {row[d.key] > 0 ? <span className="font-semibold text-[#14264A]">{row[d.key]}</span> : <span className="text-[#C5D5E3]">0</span>}
+                            {row[d.key] > 0 ? <span className="font-semibold text-[#1D1050]">{row[d.key]}</span> : <span className="text-[#C5D5E3]">0</span>}
                           </td>
                         ))}
                       </tr>
                     ))}
                     {/* TOTAL row */}
-                    <tr className="border-t-2 border-[#DDE7F0] bg-[#F0F6FF]">
-                      <td className="px-4 py-3 text-sm font-bold text-[#14264A]">TOTAL</td>
+                    <tr className="border-t-2 border-[#E2DCF8] bg-[#F0F6FF]">
+                      <td className="px-4 py-3 text-sm font-bold text-[#1D1050]">TOTAL</td>
                       <td className="px-4 py-3 text-right text-sm font-bold text-red-600">{totals.totalPending}</td>
                       {DAY_COLS.map((d) => (
-                        <td key={d.key} className="px-4 py-3 text-right text-sm font-bold text-[#14264A]">{TOTAL_KEYS[d.key]}</td>
+                        <td key={d.key} className="px-4 py-3 text-right text-sm font-bold text-[#1D1050]">{TOTAL_KEYS[d.key]}</td>
                       ))}
                     </tr>
                   </tbody>
@@ -252,13 +252,13 @@ export default function MarkingPage() {
           </div>
 
           {!loading && coachRows.length > 0 && (
-            <div className="mt-6 overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DDE7F0] px-4 py-4 sm:px-5">
+            <div className="mt-6 overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2DCF8] px-4 py-4 sm:px-5">
                 <div>
-                  <h2 className="text-sm font-bold text-[#14264A]">
+                  <h2 className="text-sm font-bold text-[#1D1050]">
                     Weekly Correction Rate by Coach
                   </h2>
-                  <p className="mt-0.5 text-xs text-[#71849A]">
+                  <p className="mt-0.5 text-xs text-[#6E6D8A]">
                     Weekly marked evidence compared with marked plus current pending evidence
                   </p>
                 </div>
@@ -288,30 +288,30 @@ export default function MarkingPage() {
                         type="number"
                         domain={[0, 100]}
                         tickFormatter={(value) => `${value}%`}
-                        tick={{ fill: "#71849A", fontSize: 11 }}
-                        axisLine={{ stroke: "#DDE7F0" }}
+                        tick={{ fill: "#6E6D8A", fontSize: 11 }}
+                        axisLine={{ stroke: "#E2DCF8" }}
                         tickLine={false}
                       />
                       <YAxis
                         type="category"
                         dataKey="coach"
                         width={130}
-                        tick={{ fill: "#14264A", fontSize: 11, fontWeight: 600 }}
+                        tick={{ fill: "#1D1050", fontSize: 11, fontWeight: 600 }}
                         axisLine={false}
                         tickLine={false}
                       />
                       <Tooltip
-                        cursor={{ fill: "#F4F8FC" }}
+                        cursor={{ fill: "#F5F4FB" }}
                         content={({ active, payload }) => {
                           if (!active || !payload?.length) return null;
                           const row = payload[0].payload as CoachRow;
                           return (
-                            <div className="rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs shadow-lg">
-                              <p className="font-bold text-[#14264A]">{row.coach}</p>
-                              <p className="mt-1 text-[#5F7288]">
+                            <div className="rounded-lg border border-[#E2DCF8] bg-white px-3 py-2 text-xs shadow-lg">
+                              <p className="font-bold text-[#1D1050]">{row.coach}</p>
+                              <p className="mt-1 text-[#6E6D8A]">
                                 Weekly marked: <strong>{row.weeklyTotal}</strong>
                               </p>
-                              <p className="text-[#5F7288]">
+                              <p className="text-[#6E6D8A]">
                                 Pending evidence: <strong>{row.pendingEvidence}</strong>
                               </p>
                               <p className="mt-1 font-bold text-slate-600">
@@ -342,7 +342,7 @@ export default function MarkingPage() {
                           dataKey="correctionRate"
                           position="right"
                           formatter={(value: number) => `${value}%`}
-                          fill="#14264A"
+                          fill="#1D1050"
                           fontSize={11}
                           fontWeight={700}
                         />

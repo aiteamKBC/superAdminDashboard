@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CalendarCheck2, CalendarRange, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
@@ -288,18 +288,18 @@ export default function ScheduledMCMPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/coaching-meetings" label="Monthly Coaching Meetings" />
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F0F9]">
-              <CalendarCheck2 className="h-5 w-5 text-[#315D93]" />
+              <CalendarCheck2 className="h-5 w-5 text-[#4338CA]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">Scheduled MCM</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">
+              <h1 className="text-xl font-bold text-[#1D1050]">Scheduled MCM</h1>
+              <p className="mt-0.5 text-sm text-[#6E6D8A]">
                 Learners with scheduled coaching activity in the{" "}
-                <strong className="font-bold text-[#315D93]">Last 30 days</strong>
+                <strong className="font-bold text-[#4338CA]">Last 30 days</strong>
               </p>
             </div>
           </div>
@@ -308,11 +308,11 @@ export default function ScheduledMCMPage() {
         <div className="p-4 sm:p-6">
           {/* Summary */}
           <div className="mb-5">
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold text-[#5F7288]">Scheduled MCM</p>
-              <p className="mt-1 text-3xl font-bold text-[#315D93]">
+            <div className="rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-[#6E6D8A]">Scheduled MCM</p>
+              <p className="mt-1 text-3xl font-bold text-[#4338CA]">
                 {periodFiltered.length}
-                <span className="ml-2 text-base font-normal text-[#8AA0B6]">of {all.length} active learners</span>
+                <span className="ml-2 text-base font-normal text-[#9B94C8]">of {all.length} active learners</span>
               </p>
             </div>
           </div>
@@ -345,8 +345,8 @@ export default function ScheduledMCMPage() {
           {/* Filters — row 1 */}
           <div className="mb-2 flex flex-wrap gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
             <FilterSelect value={programmeFilter} onChange={setProgrammeFilter} options={[{ value: "all", label: "All Programmes" }, ...programmes.filter((p) => p !== "all").map((p) => ({ value: p, label: p }))]} minWidth={180} />
             <FilterSelect value={coachFilter} onChange={setCoachFilter} options={[{ value: "all", label: "All Coaches" }, ...coaches.filter((c) => c !== "all").map((c) => ({ value: c, label: c }))]} minWidth={160} />
@@ -356,48 +356,48 @@ export default function ScheduledMCMPage() {
           {/* Filters — row 2 */}
           <div className="mb-4 flex flex-wrap gap-2">
             <FilterSelect value={String(periodOffset)} onChange={(v) => { setPeriodOffset(Number(v)); setCategoryFilter(null); }} options={PERIOD_OPTIONS.map((o) => ({ value: String(o.offset), label: o.label }))} minWidth={210} />
-            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
-              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-[#F8FBFE] px-3 text-xs font-medium text-[#6E6D8A]">
+              <CalendarRange className="h-3.5 w-3.5 text-[#9B94C8]" />
               {getMcrRangeLabel(periodOffset)}
             </span>
             <button
               onClick={() => setOverdueOnly((p) => !p)}
               className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors ${
-                overdueOnly ? "border-[#315D93] bg-[#315D93] text-white" : "border-[#315D93] bg-[#315D93] text-white hover:bg-[#274D7A]"
+                overdueOnly ? "border-[#4338CA] bg-[#4338CA] text-white" : "border-[#4338CA] bg-[#4338CA] text-white hover:bg-[#274D7A]"
               }`}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
               Overdue
-              <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#315D93]">{totalOverdue}</span>
+              <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#4338CA]">{totalOverdue}</span>
             </button>
             {hasFilters && (
-              <button onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setCategoryFilter(null); setOverdueOnly(false); }} className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]">
+              <button onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setCategoryFilter(null); setOverdueOnly(false); }} className="h-10 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm text-[#6E6D8A] hover:bg-[#F0F6FF]">
                 Clear Filters
               </button>
             )}
-            <button onClick={exportCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm font-semibold text-[#24486D] hover:bg-[#F0F6FF]">
+            <button onClick={exportCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm font-semibold text-[#3730A3] hover:bg-[#F0F6FF]">
               <Download className="h-4 w-4" /> Export CSV
             </button>
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <CalendarCheck2 className="h-8 w-8 text-[#C5D5E3]" /><p>No scheduled sessions found</p>
               </div>
             ) : (
               <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 500px)" }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Learner</th>
                       {["Email", "Programme", "Organisation", "Coach", dateColLabel, "Status", "Last MCM", "Last Completed MCM"].map((h) => (
-                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">{h}</th>
                       ))}
-                      <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">Follow-up</th>
+                      <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A] border-l border-[#E2DCF8]">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -405,11 +405,11 @@ export default function ScheduledMCMPage() {
                       const ticket = ticketMap[r.email.toLowerCase()];
                       return (
                         <tr key={r.id} className="group border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
-                          <td className="px-3 py-3 text-xs text-[#71849A]">{r.email}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "—"}</td>
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 font-semibold text-[#1D1050] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.email}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.programme || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.organisationName || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.caseOwner || "—"}</td>
                           <td className="whitespace-nowrap px-3 py-3">
                             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${categoryDateStyle[r.category]}`}>
                               {fmtDate(r.scheduledDate)}
@@ -420,13 +420,13 @@ export default function ScheduledMCMPage() {
                               {categoryLabel[r.category]}
                             </span>
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastMcm || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastActuallyCompletedMcm || "—"}</td>
-                          <td className="whitespace-nowrap border-l border-[#DDE7F0] px-3 py-3">
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.lastMcm || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.lastActuallyCompletedMcm || "—"}</td>
+                          <td className="whitespace-nowrap border-l border-[#E2DCF8] px-3 py-3">
                             {ticket ? (
                               <button
                                 onClick={() => navigate(`/coaching-meetings/tickets?ticket=${ticket.id}`)}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#315D93] hover:bg-[#D7E8F7] transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#4338CA] hover:bg-[#D7E8F7] transition-colors"
                               >
                                 <Ticket className="h-3 w-3 shrink-0" />
                                 {ticket.ticketRef}
@@ -435,7 +435,7 @@ export default function ScheduledMCMPage() {
                             ) : (
                               <button
                                 onClick={() => navigate(`/coaching-meetings/tickets?newFor=${encodeURIComponent(r.email)}&newName=${encodeURIComponent(r.fullName)}`)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#B8D7F2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#5F7288] hover:border-[#315D93] hover:bg-[#F0F7FF] hover:text-[#315D93] transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#C4B8F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#6E6D8A] hover:border-[#4338CA] hover:bg-[#F0F7FF] hover:text-[#4338CA] transition-colors"
                               >
                                 <Plus className="h-3 w-3 shrink-0" />
                                 Open Ticket

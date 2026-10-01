@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Award, CalendarClock, Medal, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
@@ -41,7 +41,7 @@ const CARDS = [
     icon: Ticket,
     path: "/gateway/tickets",
     iconBg: "bg-[#E8F0F9]",
-    iconColor: "text-[#315D93]",
+    iconColor: "text-[#4338CA]",
     border: "border-[#C8D9EA] hover:border-[#7899BC]",
   },
 ];
@@ -51,16 +51,16 @@ export default function GatewayPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/" label="Home" />
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
               <Award className="h-5 w-5 text-blue-700" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">Gateway (EPA)</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Manage EPA readiness, deadlines and overdue follow-up</p>
+              <h1 className="text-xl font-bold text-[#1D1050]">Gateway (EPA)</h1>
+              <p className="mt-0.5 text-sm text-[#6E6D8A]">Manage EPA readiness, deadlines and overdue follow-up</p>
             </div>
           </div>
         </div>
@@ -77,8 +77,8 @@ export default function GatewayPage() {
                   <Icon className={`h-6 w-6 ${iconColor}`} />
                 </div>
                 <div>
-                  <p className="text-base font-bold text-[#14264A] group-hover:text-blue-700">{title}</p>
-                  <p className="mt-1 text-sm text-[#5F7288]">{description}</p>
+                  <p className="text-base font-bold text-[#1D1050] group-hover:text-blue-700">{title}</p>
+                  <p className="mt-1 text-sm text-[#6E6D8A]">{description}</p>
                 </div>
               </button>
             ))}

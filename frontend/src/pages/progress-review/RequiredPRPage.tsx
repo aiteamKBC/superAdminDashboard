@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, CalendarRange, CheckCircle2, ChevronDown,
@@ -171,7 +171,7 @@ function FilterSelect<T extends string | number>({
 
   return (
     <div className="relative inline-flex items-center">
-      <span className="pointer-events-none absolute left-3 z-10 whitespace-nowrap text-xs font-bold text-[#14264A]">
+      <span className="pointer-events-none absolute left-3 z-10 whitespace-nowrap text-xs font-bold text-[#1D1050]">
         {label}
       </span>
       <AppFilterSelect
@@ -181,7 +181,7 @@ function FilterSelect<T extends string | number>({
           if (selected) onChange(selected.value);
         }}
         options={selectOptions}
-        className="pl-[7.25rem] font-semibold text-[#1E6ACB]"
+        className="pl-[7.25rem] font-semibold text-[#5B47D5]"
         minWidth={240}
       />
     </div>
@@ -202,7 +202,7 @@ function SimpleSelect({ value, onChange, options, placeholder }: {
         value={value}
         onChange={onChange}
         options={[{ value: "", label: placeholder }, ...options.map((o) => ({ value: o, label: o }))]}
-        className="w-full flex-1 bg-[#F8FBFE] font-normal text-[#20344D]"
+        className="w-full flex-1 bg-[#F8FBFE] font-normal text-[#1D1050]"
         minWidth={160}
       />
     </div>
@@ -660,31 +660,31 @@ export default function RequiredPRPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
+      <div className="min-h-full bg-[#F5F4FB]">
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/progress-review" label="Progress Review" />
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">Required PR</h1>
-              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#5F7288]">
+              <h1 className="text-xl font-bold text-[#1D1050]">Required PR</h1>
+              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#6E6D8A]">
                 <span>Default view: learners with overdue or upcoming progress reviews</span>
-                <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+                <span className="rounded-full bg-[#1D1050] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
                   Last 12 Weeks
                 </span>
-                <span className="inline-flex items-center rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
+                <span className="inline-flex items-center rounded-full bg-[#1D1050] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
                   {activeLearnersLoading ? "..." : activeLearnersCount} active learners
                 </span>
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8]">
+              <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 py-2 text-xs font-semibold text-[#6E6D8A] hover:bg-[#F0F4F8]">
                 <RefreshCw className="h-3.5 w-3.5" /> Refresh
               </button>
               <button
                 onClick={exportCsv}
                 disabled={loading || displayedRows.length === 0}
-                className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#24486D] hover:bg-[#F0F4F8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 py-2 text-xs font-semibold text-[#3730A3] hover:bg-[#F0F4F8] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Download className="h-3.5 w-3.5" /> Export CSV
               </button>
@@ -712,10 +712,10 @@ export default function RequiredPRPage() {
           {/* Filter bar — row 2: search + PR quarter */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search learner, email, coach…"
-                className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+                className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
             <FilterSelect<PrOffset>
               label="PR Quarter"
@@ -723,13 +723,13 @@ export default function RequiredPRPage() {
               onChange={setPrOffset}
               options={QUARTER_OPTIONS}
             />
-            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
-              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-[#F8FBFE] px-3 text-xs font-medium text-[#6E6D8A]">
+              <CalendarRange className="h-3.5 w-3.5 text-[#9B94C8]" />
               {getPrRangeLabel(prOffset)}
             </span>
             {hasFilters && (
               <button onClick={clearAll}
-                className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-xs font-semibold text-[#71849A] hover:bg-[#F0F4F8]">
+                className="h-10 rounded-lg border border-[#E2DCF8] bg-white px-3 text-xs font-semibold text-[#6E6D8A] hover:bg-[#F0F4F8]">
                 Clear filters
               </button>
             )}
@@ -738,7 +738,7 @@ export default function RequiredPRPage() {
           {/* Summary cards — clickable filters */}
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {([
-              { key: "all", label: "Total Shown", count: summary.total, icon: <CalendarRange className="h-4 w-4" />, base: "border-[#DDE7F0] bg-white text-[#14264A]", active: "border-[#14264A] bg-[#14264A] text-white shadow-md", sub: `Period: ${getPrMonthLabel(prOffset)}` },
+              { key: "all", label: "Total Shown", count: summary.total, icon: <CalendarRange className="h-4 w-4" />, base: "border-[#E2DCF8] bg-white text-[#1D1050]", active: "border-[#1D1050] bg-[#1D1050] text-white shadow-md", sub: `Period: ${getPrMonthLabel(prOffset)}` },
               { key: "scheduled", label: "Scheduled", count: summary.scheduled, icon: <CheckCircle2 className="h-4 w-4" />, base: "border-teal-200 bg-teal-50 text-teal-800", active: "border-teal-600 bg-teal-600 text-white shadow-md", sub: "Date booked" },
               { key: "notScheduled", label: "Not Scheduled", count: summary.notScheduled, icon: <AlertTriangle className="h-4 w-4" />, base: "border-red-200 bg-red-50 text-red-800", active: "border-red-600 bg-red-600 text-white shadow-md", sub: "No date booked" },
               { key: "inProgress", label: "In Progress", count: summary.inProgress, icon: <CheckCircle2 className="h-4 w-4" />, base: "border-blue-200 bg-blue-50 text-blue-800", active: "border-blue-600 bg-blue-600 text-white shadow-md", sub: "In Progress / Awaiting Sig." },
@@ -776,24 +776,24 @@ export default function RequiredPRPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div>
             ) : displayedRows.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" />
                 <p>No learners found for this selection</p>
                 {(hasFilters || cardFilter !== "all") && (
                   <button onClick={clearAll}
-                    className="text-xs font-semibold text-[#1E6ACB] hover:underline">Clear all filters</button>
+                    className="text-xs font-semibold text-[#5B47D5] hover:underline">Clear all filters</button>
                 )}
               </div>
             ) : (
               <div className="overflow-x-auto" style={{ maxHeight: "60vh", overflowY: "auto" }}>
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th rowSpan={2} className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th rowSpan={2} className="sticky left-0 z-20 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Learner</th>
                       {[
                         { label: "Email", column: "email" },
                         { label: "Coach", column: "coach" },
@@ -801,17 +801,17 @@ export default function RequiredPRPage() {
                         { label: "Last actual completed", column: "lastActual" },
                         { label: "Last PR", column: "lastPr" },
                       ].map(({ label, column }) => (
-                        <th key={label} rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#5F7288] ${highlightClass(column, "header")}`}>{label}</th>
+                        <th key={label} rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A] ${highlightClass(column, "header")}`}>{label}</th>
                       ))}
-                      <th colSpan={2} className={`border-x border-[#CFE0F2] bg-[#EEF7FF] px-3 py-2 text-center text-xs font-bold text-[#1E6ACB] ${highlightedColumns.has("nextDate") || highlightedColumns.has("nextState") ? highlightClass("nextDate", "header") : ""}`}>
+                      <th colSpan={2} className={`border-x border-[#CFE0F2] bg-[#EEF2FF] px-3 py-2 text-center text-xs font-bold text-[#5B47D5] ${highlightedColumns.has("nextDate") || highlightedColumns.has("nextState") ? highlightClass("nextDate", "header") : ""}`}>
                         Next Progress Review
                       </th>
-                      <th rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("overdue", "header")}`}>Overdue / Due</th>
-                      <th rowSpan={2} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Follow-up</th>
+                      <th rowSpan={2} className={`px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A] ${highlightClass("overdue", "header")}`}>Overdue / Due</th>
+                      <th rowSpan={2} className="px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Follow-up</th>
                     </tr>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className={`border-l border-[#CFE0F2] px-3 py-2 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("nextDate", "header")}`}>Date</th>
-                      <th className={`border-r border-[#CFE0F2] px-3 py-2 text-left text-xs font-semibold text-[#5F7288] ${highlightClass("nextState", "header")}`}>State</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className={`border-l border-[#CFE0F2] px-3 py-2 text-left text-xs font-semibold text-[#6E6D8A] ${highlightClass("nextDate", "header")}`}>Date</th>
+                      <th className={`border-r border-[#CFE0F2] px-3 py-2 text-left text-xs font-semibold text-[#6E6D8A] ${highlightClass("nextState", "header")}`}>State</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -838,13 +838,13 @@ export default function RequiredPRPage() {
 
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{l.fullName}</td>
-                          <td className="px-3 py-3 text-xs text-[#71849A]">{l.email}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.caseOwner || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.group || "—"}</td>
-                          <td className={`px-3 py-3 text-xs text-[#5F7288] ${highlightClass("lastActual")}`}>{fmtProgressReviewText(l.lastActuallyCompletedPr)}</td>
-                          <td className={`px-3 py-3 text-xs text-[#5F7288] ${highlightClass("lastPr")}`}>{fmtProgressReviewText(l.lastProgressReview)}</td>
-                          <td className={`px-3 py-3 text-xs font-semibold text-[#14264A] ${highlightClass("nextDate")}`}>{fmtDate(l.nextPrDate)}</td>
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 font-semibold text-[#1D1050] group-hover:bg-[#F8FBFE]">{l.fullName}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.email}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.caseOwner || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.group || "—"}</td>
+                          <td className={`px-3 py-3 text-xs text-[#6E6D8A] ${highlightClass("lastActual")}`}>{fmtProgressReviewText(l.lastActuallyCompletedPr)}</td>
+                          <td className={`px-3 py-3 text-xs text-[#6E6D8A] ${highlightClass("lastPr")}`}>{fmtProgressReviewText(l.lastProgressReview)}</td>
+                          <td className={`px-3 py-3 text-xs font-semibold text-[#1D1050] ${highlightClass("nextDate")}`}>{fmtDate(l.nextPrDate)}</td>
                           <td className={`px-3 py-3 ${highlightClass("nextState")}`}>
                             {state
                               ? <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${stateCls}`}>{state}</span>
@@ -862,18 +862,18 @@ export default function RequiredPRPage() {
                                         {overdueCount}/{dueToDateCount}
                                       </span>
                                     </TooltipTrigger>
-                                    <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
+                                    <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#1D1050] shadow-lg">
                                       <p className="mb-2 text-xs font-bold text-red-700">
                                         All overdue meetings
                                       </p>
-                                      <p className="mb-2 text-xs text-[#5F7288]">
+                                      <p className="mb-2 text-xs text-[#6E6D8A]">
                                         {overdueCount} overdue of {dueToDateCount} PR meeting{dueToDateCount === 1 ? "" : "s"} due to date
                                       </p>
                                       <div className="space-y-1.5">
                                         {overdueItems.map((item) => (
                                           <div key={`${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
-                                            <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
-                                            <span className="text-[#5F7288]">{item.status}</span>
+                                            <span className="font-semibold text-[#1D1050]">{fmtDate(item.date)}</span>
+                                            <span className="text-[#6E6D8A]">{item.status}</span>
                                           </div>
                                         ))}
                                       </div>
@@ -886,11 +886,11 @@ export default function RequiredPRPage() {
                           </td>
                           <td className="px-3 py-3">
                             {ticket ? (
-                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF7FF] px-2.5 py-1.5 text-xs font-semibold text-[#1E6ACB] hover:bg-[#D8EEFF]">
+                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF2FF] px-2.5 py-1.5 text-xs font-semibold text-[#5B47D5] hover:bg-[#D8EEFF]">
                                 <ExternalLink className="h-3.5 w-3.5" /> View Ticket
                               </button>
                             ) : (
-                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#14264A] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A6A]">
+                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#1D1050] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A6A]">
                                 <Plus className="h-3.5 w-3.5" /> Open Ticket
                               </button>
                             )}

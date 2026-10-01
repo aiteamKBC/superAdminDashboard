@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -824,13 +824,13 @@ export default function TrackAttendancePage() {
     <button
       type="button"
       onClick={() => toggleSort(field)}
-      className="inline-flex w-full items-center gap-1 text-left font-semibold text-[#5F7288] hover:text-[#1E6ACB]"
+      className="inline-flex w-full items-center gap-1 text-left font-semibold text-[#6E6D8A] hover:text-[#5B47D5]"
       aria-label={`Sort by ${heading}`}
     >
       <span>{heading}</span>
       <ArrowUpDown
         className={`h-3.5 w-3.5 shrink-0 ${
-          sortField === field ? "text-[#1E6ACB]" : "text-[#8AA0B6]"
+          sortField === field ? "text-[#5B47D5]" : "text-[#9B94C8]"
         }`}
       />
       {sortField === field && (
@@ -920,8 +920,8 @@ export default function TrackAttendancePage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/attendance" label="Attendance" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -929,17 +929,17 @@ export default function TrackAttendancePage() {
                 <AlertTriangle className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">
+                <h1 className="text-xl font-bold text-[#1D1050]">
                   Track Attendance
                 </h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">
+                <p className="mt-0.5 text-sm text-[#6E6D8A]">
                   Learners with missed sessions and follow-up activity
                 </p>
               </div>
             </div>
             <Button
               onClick={() => navigate("/attendance/tickets")}
-              className="h-9 gap-1.5 rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]"
+              className="h-9 gap-1.5 rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]"
             >
               <Ticket className="h-4 w-4" />
               Attendance Tickets
@@ -992,12 +992,12 @@ export default function TrackAttendancePage() {
 
           <div className="mb-2 flex flex-wrap gap-2">
             <div className="relative min-w-[220px] flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search name, email, organisation..."
-                className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm"
+                className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm"
               />
             </div>
             <FilterSelect
@@ -1070,7 +1070,7 @@ export default function TrackAttendancePage() {
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
+                className="h-10 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm text-[#6E6D8A] hover:bg-[#F0F6FF]"
               >
                 Clear Filters
               </button>
@@ -1080,7 +1080,7 @@ export default function TrackAttendancePage() {
               size="sm"
               onClick={refreshAll}
               disabled={loading}
-              className="ml-auto h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]"
+              className="ml-auto h-10 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
@@ -1089,26 +1089,26 @@ export default function TrackAttendancePage() {
               variant="outline"
               size="sm"
               onClick={exportCsv}
-              className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]"
+              className="h-10 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]"
             >
               <Download className="h-4 w-4" />
               Export CSV
             </Button>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">
                 Loading learners...
               </div>
             ) : filteredLearners.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" />
                 <p>No missed attendance learners found</p>
                 {hasFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-xs font-semibold text-[#1E6ACB] hover:underline"
+                    className="text-xs font-semibold text-[#5B47D5] hover:underline"
                   >
                     Clear all filters
                   </button>
@@ -1121,14 +1121,14 @@ export default function TrackAttendancePage() {
               >
                 <table className="min-w-[1450px] w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 top-0 z-30 min-w-[220px] border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-0 z-30 min-w-[220px] border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                         {renderSortLabel("Learner", "learner")}
                       </th>
                       {sortColumns.map(({ heading, field }) => (
                         <th
                           key={heading}
-                          className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]"
+                          className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]"
                         >
                           {renderSortLabel(heading, field)}
                         </th>
@@ -1148,28 +1148,28 @@ export default function TrackAttendancePage() {
                           key={learner.id}
                           className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]"
                         >
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
-                            <p className="whitespace-nowrap font-semibold text-[#14264A]">
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
+                            <p className="whitespace-nowrap font-semibold text-[#1D1050]">
                               {learner.firstName} {learner.lastName}
                             </p>
-                            <p className="text-xs text-[#71849A]">{learner.email}</p>
+                            <p className="text-xs text-[#6E6D8A]">{learner.email}</p>
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">
                             {learner.phone || "N/A"}
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">
                             {learner.organisation || "N/A"}
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">
                             {learner.programme || "N/A"}
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">
                             {learner.attendanceModule || "—"}
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">
                             {learner.coachName || "Unassigned"}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#14264A]">
+                          <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#1D1050]">
                             {formatAttendanceDate(learner.attendanceDate)}
                           </td>
                           <td className="px-3 py-3">
@@ -1198,9 +1198,9 @@ export default function TrackAttendancePage() {
                                     <TooltipTrigger asChild>
                                       <span className="cursor-default underline decoration-dotted decoration-red-400">{s.missed}/{s.total}</span>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-[360px] p-0 border border-[#DDE7F0] bg-white shadow-lg rounded-xl overflow-hidden">
-                                      <div className="px-3 py-2 border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#5F7288]">Sessions by module</p>
+                                    <TooltipContent side="top" className="max-w-[360px] p-0 border border-[#E2DCF8] bg-white shadow-lg rounded-xl overflow-hidden">
+                                      <div className="px-3 py-2 border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6E6D8A]">Sessions by module</p>
                                       </div>
                                       <div className="max-h-[420px] overflow-y-auto px-3 py-2">
                                         {Array.from(sessionsByModule.entries()).map(([module, sessions]) => {
@@ -1208,7 +1208,7 @@ export default function TrackAttendancePage() {
                                           return (
                                             <div key={module} className="border-b border-[#EDF2F7] py-2 last:border-b-0">
                                               <div className="mb-1.5 flex items-start justify-between gap-3">
-                                                <p className="max-w-[245px] text-left text-[11px] font-semibold leading-snug text-[#14264A]">
+                                                <p className="max-w-[245px] text-left text-[11px] font-semibold leading-snug text-[#1D1050]">
                                                   {module}
                                                 </p>
                                                 <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
@@ -1245,7 +1245,7 @@ export default function TrackAttendancePage() {
                                   ? "text-red-600"
                                   : learner.absenceRatio >= 25
                                     ? "text-amber-600"
-                                    : "text-[#5F7288]"
+                                    : "text-[#6E6D8A]"
                               }`}
                             >
                               {learner.absenceRatio}%
@@ -1281,7 +1281,7 @@ export default function TrackAttendancePage() {
                               }
                             />
                           </td>
-                          <td className="max-w-[220px] px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="max-w-[220px] px-3 py-3 text-xs text-[#6E6D8A]">
                             <p className="line-clamp-2" title={learner.note}>
                               {learner.note || "No note"}
                             </p>
@@ -1297,10 +1297,10 @@ export default function TrackAttendancePage() {
                               disabled={ticketsLoading}
                               className={`h-7 gap-1 rounded-lg px-2 text-xs font-semibold ${
                                 ticketsLoading
-                                  ? "border-[#D7E5F3] text-[#71849A]"
+                                  ? "border-[#E2DCF8] text-[#6E6D8A]"
                                   : ticket
                                   ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-                                  : "border-[#D7E5F3] text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                                  : "border-[#E2DCF8] text-[#5B47D5] hover:bg-[#EEF2FF]"
                               }`}
                             >
                               {ticketsLoading ? (

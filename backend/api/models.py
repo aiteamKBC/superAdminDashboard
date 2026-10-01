@@ -368,3 +368,83 @@ class DashboardBooking(models.Model):
     class Meta:
         ordering = ['booking_date', 'booking_time']
         db_table = 'dashboard_bookings'
+
+
+class ZoomPhoneCall(models.Model):
+    source_account = models.CharField(max_length=16, db_index=True)
+    zoom_account_id = models.CharField(max_length=128)
+    history_id = models.CharField(max_length=255)
+    call_id = models.CharField(max_length=255, blank=True)
+    direction = models.CharField(max_length=16)
+    caller_number = models.CharField(max_length=128, blank=True)
+    caller_name = models.CharField(max_length=255, blank=True)
+    caller_user_id = models.CharField(max_length=128, blank=True)
+    caller_email = models.CharField(max_length=255, blank=True)
+    callee_number = models.CharField(max_length=128, blank=True)
+    callee_name = models.CharField(max_length=255, blank=True)
+    started_at = models.DateTimeField()
+    answered_at = models.DateTimeField(null=True)
+    ended_at = models.DateTimeField(null=True)
+    duration_seconds = models.PositiveIntegerField(null=True)
+    raw_result = models.CharField(max_length=128, blank=True)
+    result = models.CharField(max_length=32)
+    synced_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'dashboard_zoom_phone_call'
+        constraints = [models.UniqueConstraint(
+            fields=['zoom_account_id', 'history_id'], name='zoom_account_history_unique',
+        )]
+        indexes = [models.Index(fields=['source_account', 'started_at'], name='zoom_source_started_idx')]
+        ordering = ['-started_at', '-id']
+
+
+class ZoomSyncState(models.Model):
+    source_account = models.CharField(max_length=16, primary_key=True)
+    zoom_account_id = models.CharField(max_length=128)
+    last_success_at = models.DateTimeField(null=True)
+    covered_through = models.DateField(null=True)
+    last_error = models.CharField(max_length=255, blank=True)
+    locked_until = models.DateTimeField(null=True)
+    lock_token = models.CharField(max_length=36, blank=True)
+    recordings_covered_through = models.DateField(null=True)
+    recordings_last_success_at = models.DateTimeField(null=True)
+    recordings_error = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = 'dashboard_zoom_sync_state'
+
+
+class ZoomPhoneRecording(models.Model):
+    source_account = models.CharField(max_length=16, db_index=True)
+    zoom_account_id = models.CharField(max_length=128)
+    recording_id = models.CharField(max_length=255)
+    call_id = models.CharField(max_length=255, blank=True, db_index=True)
+    call_log_id = models.CharField(max_length=255, blank=True)
+    call_element_id = models.CharField(max_length=255, blank=True)
+    direction = models.CharField(max_length=16, blank=True)
+    caller_number = models.CharField(max_length=128, blank=True)
+    caller_name = models.CharField(max_length=255, blank=True)
+    callee_number = models.CharField(max_length=128, blank=True)
+    callee_name = models.CharField(max_length=255, blank=True)
+    owner_id = models.CharField(max_length=128, blank=True)
+    owner_name = models.CharField(max_length=255, blank=True)
+    recording_type = models.CharField(max_length=32, blank=True)
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True)
+    duration_seconds = models.PositiveIntegerField(null=True)
+    transcript_status = models.CharField(max_length=16, default='pending')
+    transcript_text = models.TextField(blank=True)
+    transcript_data = models.JSONField(default=dict, blank=True)
+    transcript_error = models.CharField(max_length=255, blank=True)
+    transcript_checked_at = models.DateTimeField(null=True)
+    transcript_next_retry_at = models.DateTimeField(null=True, db_index=True)
+    synced_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'dashboard_zoom_phone_recording'
+        constraints = [models.UniqueConstraint(
+            fields=['zoom_account_id', 'recording_id'], name='zoom_account_recording_unique',
+        )]
+        indexes = [models.Index(fields=['source_account', 'started_at'], name='zoom_recording_started_idx')]
+        ordering = ['-started_at', '-id']

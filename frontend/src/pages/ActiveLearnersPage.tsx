@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -138,7 +138,7 @@ const otjKpi = (completed: number, expected: number) => {
 // Portal-based tooltip — renders on document.body to escape table overflow clipping
 function CompTooltip({ l }: { l: Learner }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  if (l.totalCompCount == null) return <span className="text-xs text-[#5F7288]">{l.completedCompPct || "—"}</span>;
+  if (l.totalCompCount == null) return <span className="text-xs text-[#6E6D8A]">{l.completedCompPct || "—"}</span>;
   const remaining = (l.totalCompCount ?? 0) - (l.completedCompCount ?? 0);
   return (
     <span
@@ -147,11 +147,11 @@ function CompTooltip({ l }: { l: Learner }) {
       onMouseLeave={() => setPos(null)}
       className="cursor-help"
     >
-      <span className="font-semibold text-[#14264A]">{l.completedCompPct || "—"}</span>
+      <span className="font-semibold text-[#1D1050]">{l.completedCompPct || "—"}</span>
       <span className="ml-1 text-[10px] text-[#A0B0C0]">({l.completedCompCount ?? "?"}/{l.totalCompCount})</span>
       {pos && createPortal(
         <div
-          className="pointer-events-none w-60 rounded-2xl bg-[#14264A] p-4 shadow-2xl ring-1 ring-white/10"
+          className="pointer-events-none w-60 rounded-2xl bg-[#1D1050] p-4 shadow-2xl ring-1 ring-white/10"
           style={{
             position: "fixed",
             left: Math.min(pos.x + 18, window.innerWidth - 260),
@@ -274,25 +274,25 @@ export default function ActiveLearnersPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
+      <div className="min-h-full bg-[#F5F4FB]">
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/" label="Home" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#DDE7F0]">
-                <GraduationCap className="h-5 w-5 text-[#14264A]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E2DCF8]">
+                <GraduationCap className="h-5 w-5 text-[#1D1050]" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">Active Learners</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">All currently active learners and their status</p>
+                <h1 className="text-xl font-bold text-[#1D1050]">Active Learners</h1>
+                <p className="mt-0.5 text-sm text-[#6E6D8A]">All currently active learners and their status</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={load} className="h-9 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+              <Button variant="outline" size="sm" onClick={load} className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
                 <RefreshCw className="h-4 w-4" /> Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+              <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
                 <Download className="h-4 w-4" /> Export CSV
               </Button>
             </div>
@@ -303,7 +303,7 @@ export default function ActiveLearnersPage() {
           {/* Summary cards */}
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Total", value: stats.total, icon: Users, color: "text-[#14264A]", bg: "bg-[#EEF3FA] border-[#DDE7F0]" },
+              { label: "Total", value: stats.total, icon: Users, color: "text-[#1D1050]", bg: "bg-[#EEF3FA] border-[#E2DCF8]" },
               { label: "Red Coach RAG", value: stats.redRag, icon: Shield, color: "text-red-700", bg: "bg-red-50 border-red-200" },
               { label: "OTJH At Risk", value: stats.otjAtRisk, icon: AlertTriangle, color: "text-red-700", bg: "bg-red-50 border-red-200" },
               { label: "Need Attention", value: stats.otjBehind, icon: TrendingUp, color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
@@ -321,14 +321,14 @@ export default function ActiveLearnersPage() {
           {/* Filters */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 220 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation, programme…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation, programme…" className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+              <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="all">All Statuses</SelectItem>
                 {statusOptions.filter((s) => s.toLowerCase() !== "active").map((s) => (
@@ -338,20 +338,20 @@ export default function ActiveLearnersPage() {
             </Select>
 
             <Select value={coachFilter} onValueChange={setCoachFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+              <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="max-h-72 rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="max-h-72 rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="all">All Coaches</SelectItem>
                 {coaches.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
 
             <Select value={ragFilter} onValueChange={setRagFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[140px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+              <SelectTrigger className="h-10 w-auto min-w-[140px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="all">All Coach RAG</SelectItem>
                 <SelectItem value="red">Red</SelectItem>
                 <SelectItem value="amber">Amber</SelectItem>
@@ -360,10 +360,10 @@ export default function ActiveLearnersPage() {
             </Select>
 
             <Select value={otjFilter} onValueChange={setOtjFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+              <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="all">All OTJH Status</SelectItem>
                 <SelectItem value="At Risk">At Risk</SelectItem>
                 <SelectItem value="On Track">On Track</SelectItem>
@@ -372,37 +372,37 @@ export default function ActiveLearnersPage() {
             </Select>
 
             <Select value={levyFilter} onValueChange={setLevyFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[120px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+              <SelectTrigger className="h-10 w-auto min-w-[120px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="all">All Levy</SelectItem>
                 {levyOptions.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
               </SelectContent>
             </Select>
             {activeFilters > 0 && (
-              <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 gap-1 rounded-lg border-[#DDE7F0] bg-white text-[#5F7288]">
+              <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 gap-1 rounded-lg border-[#E2DCF8] bg-white text-[#6E6D8A]">
                 <X className="h-3.5 w-3.5" /> Clear ({activeFilters})
               </Button>
             )}
             {loading ? (
-              <span className="ml-auto text-xs text-[#71849A]">Loading…</span>
+              <span className="ml-auto text-xs text-[#6E6D8A]">Loading…</span>
             ) : filtered.length < statusFiltered.length ? (
-              <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#14264A] px-3 py-1 text-xs font-bold text-white shadow-sm">
+              <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#1D1050] px-3 py-1 text-xs font-bold text-white shadow-sm">
                 <span className="text-sm font-extrabold">{filtered.length}</span>
                 <span className="opacity-70">of {statusFiltered.length} learners</span>
               </span>
             ) : (
-              <span className="ml-auto text-xs text-[#71849A]">{filtered.length} learners</span>
+              <span className="ml-auto text-xs text-[#6E6D8A]">{filtered.length} learners</span>
             )}
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading learners…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading learners…</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <GraduationCap className="h-8 w-8 text-[#C5D5E3]" />
                 <p>No learners found</p>
               </div>
@@ -411,9 +411,9 @@ export default function ActiveLearnersPage() {
                 <table className="w-full text-sm">
                   <thead>
                     {/* ── Group header row ── */}
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
                       {/* Learner sticky corner */}
-                      <th className="sticky left-0 top-0 z-30 border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-1.5" />
+                      <th className="sticky left-0 top-0 z-30 border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-1.5" />
                       {/* Info columns (Organisation … End Date) = 7 */}
                       <th colSpan={7} className="sticky top-0 z-20 bg-[#F8FBFE] px-3 py-1.5" />
                       {/* OTJH group = 6 columns */}
@@ -435,12 +435,12 @@ export default function ActiveLearnersPage() {
                     </tr>
 
                     {/* ── Column header row ── */}
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 top-[34px] z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#5F7288]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-[34px] z-30 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#6E6D8A]">
                         Learner
                       </th>
                       {["Organisation", "Manager", "Programme", "Coach", "Coach RAG", "Start Date", "End Date"].map((h) => (
-                        <th key={h} className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#6E6D8A]">{h}</th>
                       ))}
                       {/* OTJH group columns */}
                       {["OTJH Status", "Planned Hours", "Completed", "Target Now", "% Behind / Ahead", "Req. to Submit"].map((h) => (
@@ -449,18 +449,18 @@ export default function ActiveLearnersPage() {
                       {/* KSB group column */}
                       <th className="sticky top-[34px] z-20 whitespace-nowrap bg-blue-50 px-3 py-2.5 text-left text-xs font-semibold text-blue-800">KSB Status</th>
                       {/* Remaining columns */}
-                      <th className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#5F7288]">
+                      <th className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#6E6D8A]">
                         <span className="flex items-center gap-1">
                           Learning Plan
                           <span className="group relative cursor-help">
                             <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#C5D5E3] text-[9px] font-bold text-white">i</span>
-                            <span className="pointer-events-none absolute left-0 top-5 z-50 hidden w-56 rounded-lg bg-[#14264A] px-3 py-2 text-[11px] font-normal leading-snug text-white shadow-xl group-hover:block">
+                            <span className="pointer-events-none absolute left-0 top-5 z-50 hidden w-56 rounded-lg bg-[#1D1050] px-3 py-2 text-[11px] font-normal leading-snug text-white shadow-xl group-hover:block">
                               Learning Plan Activities — % of programme components completed vs target. Hover each row cell for full breakdown.
                             </span>
                           </span>
                         </span>
                       </th>
-                      <th className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#5F7288]">Levy</th>
+                      <th className="sticky top-[34px] z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-2.5 text-left text-xs font-semibold text-[#6E6D8A]">Levy</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -477,35 +477,35 @@ export default function ActiveLearnersPage() {
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
                           {/* Sticky Learner cell */}
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
-                            <p className="whitespace-nowrap font-semibold text-[#14264A]">{l.fullName}</p>
-                            <p className="text-xs text-[#71849A]">{l.email}</p>
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
+                            <p className="whitespace-nowrap font-semibold text-[#1D1050]">{l.fullName}</p>
+                            <p className="text-xs text-[#6E6D8A]">{l.email}</p>
                             {l.learnerPhone && <p className="text-xs text-[#A0B0C0]">{l.learnerPhone}</p>}
                           </td>
                           {/* Info columns */}
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.organizationName || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.organizationName || "—"}</td>
                           <td className="px-3 py-3">
                             {l.managerName ? (
                               <>
-                                <p className="whitespace-nowrap text-xs font-semibold text-[#14264A]">{l.managerName}</p>
-                                {l.managerEmail && <p className="text-[11px] text-[#71849A]">{l.managerEmail}</p>}
+                                <p className="whitespace-nowrap text-xs font-semibold text-[#1D1050]">{l.managerName}</p>
+                                {l.managerEmail && <p className="text-[11px] text-[#6E6D8A]">{l.managerEmail}</p>}
                                 {l.managerPhone && <p className="text-[11px] text-[#A0B0C0]">{l.managerPhone}</p>}
                               </>
                             ) : <span className="text-xs italic text-[#A0B0C0]">—</span>}
                           </td>
                           <td className="px-3 py-3">
-                            <p className="whitespace-nowrap text-xs font-semibold text-[#14264A]">{l.programName || "—"}</p>
+                            <p className="whitespace-nowrap text-xs font-semibold text-[#1D1050]">{l.programName || "—"}</p>
                             {l.subprogramme && <p className="text-[11px] text-[#A0B0C0]">{l.subprogramme}</p>}
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288] whitespace-nowrap">{l.ownerName || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A] whitespace-nowrap">{l.ownerName || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
                           <td className="px-3 py-3">{ragBadge(l.coachRag)}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-[#5F7288]">{fmtDate(l.startDate)}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-[#5F7288]">{fmtDate(l.endDate)}</td>
+                          <td className="px-3 py-3 whitespace-nowrap text-xs text-[#6E6D8A]">{fmtDate(l.startDate)}</td>
+                          <td className="px-3 py-3 whitespace-nowrap text-xs text-[#6E6D8A]">{fmtDate(l.endDate)}</td>
                           {/* OTJH group cells */}
                           <td className="bg-orange-50/30 px-3 py-3">{otjBadge(l.otjHoursStatus)}</td>
-                          <td className="bg-orange-50/30 px-3 py-3 text-right text-xs text-[#71849A]">{fmtHoursMin(l.otjPlanned)}</td>
-                          <td className="bg-orange-50/30 px-3 py-3 text-right text-xs font-semibold text-[#14264A]">{fmtHoursMin(l.otjCompleted)}</td>
-                          <td className="bg-orange-50/30 px-3 py-3 text-right text-xs text-[#5F7288]">{fmtHoursMin(targetNow)}</td>
+                          <td className="bg-orange-50/30 px-3 py-3 text-right text-xs text-[#6E6D8A]">{fmtHoursMin(l.otjPlanned)}</td>
+                          <td className="bg-orange-50/30 px-3 py-3 text-right text-xs font-semibold text-[#1D1050]">{fmtHoursMin(l.otjCompleted)}</td>
+                          <td className="bg-orange-50/30 px-3 py-3 text-right text-xs text-[#6E6D8A]">{fmtHoursMin(targetNow)}</td>
                           <td className="bg-orange-50/30 px-3 py-3">
                             <div className="flex flex-col gap-1">
                               <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#E8EFF7]">
@@ -534,7 +534,7 @@ export default function ActiveLearnersPage() {
                           </td>
                           {/* Remaining */}
                           <td className="px-3 py-3"><CompTooltip l={l} /></td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.levyOrNot || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.levyOrNot || "—"}</td>
                         </tr>
                       );
                     })}

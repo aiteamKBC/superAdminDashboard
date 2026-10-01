@@ -5,12 +5,15 @@ import json
 import re
 import requests
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 from django.http import JsonResponse
 from django.db import connection, connections
 from django.contrib.auth import authenticate, get_user_model, login as django_login, logout as django_logout
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, date, timedelta
 from django.conf import settings
+
+LONDON = ZoneInfo("Europe/London")
 
 
 def _json_body(request):
@@ -1725,10 +1728,94 @@ def _coaches_data_value(value):
     return value
 
 
+def _norm_phone(value):
+    """Mirror the frontend normalizePhone so backend/UI matching agrees."""
+    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
+    if digits.startswith("0044"):
+        digits = digits[2:]
+    if digits.startswith("44"):
+        digits = "0" + digits[2:]
+    if len(digits) == 10 and not digits.startswith("0"):
+        digits = "0" + digits
+    return digits
+
+
+def _phone_lookup_keys(normalized):
+    if not normalized:
+        return []
+    return [k for k in (normalized, normalized[-10:], normalized[-9:]) if k]
+
+
+def _live_calls_by_coach(rows):
+    """Group live Zoom outbound calls (dashboard_zoom_phone_call) per coach.
+
+    coaches_data.calls is a frozen snapshot; the real, actively-synced calls
+    live in dashboard_zoom_phone_call. Each learner phone in learners_json maps
+    to a coach; a call whose callee matches goes under that coach, otherwise it
+    is bucketed under a catch-all coach so monthly totals stay exact.
+    """
+    phone_to_coach = {}
+    for item in rows:
+        coach_name = str(item.get("case_owner") or "").strip()
+        if not coach_name:
+            continue
+        learners = item.get("learners_json")
+        if isinstance(learners, str):
+            try:
+                learners = json.loads(learners)
+            except Exception:
+                learners = []
+        if not isinstance(learners, list):
+            continue
+        for learner in learners:
+            if not isinstance(learner, dict):
+                continue
+            phone = (
+                learner.get("learner_phone")
+                or learner.get("Learner_Phone")
+                or learner.get("learner-phone")
+                or ""
+            )
+            for key in _phone_lookup_keys(_norm_phone(phone)):
+                phone_to_coach.setdefault(key, coach_name)
+
+    catch_all = next((str(r.get("case_owner") or "").strip() for r in rows
+                      if str(r.get("case_owner") or "").strip()), "")
+
+    grouped = {}
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT call_id, callee_number, started_at, ended_at, result
+               FROM public.dashboard_zoom_phone_call
+               WHERE direction = 'outbound'
+               ORDER BY started_at"""
+        )
+        for call_id, callee, started_at, ended_at, result in cursor.fetchall():
+            if started_at is None:
+                continue
+            local = started_at.astimezone(LONDON)
+            date_key = local.date().isoformat()
+            coach_name = catch_all
+            for key in _phone_lookup_keys(_norm_phone(callee)):
+                if key in phone_to_coach:
+                    coach_name = phone_to_coach[key]
+                    break
+            call_result = "connected" if str(result or "").lower() == "answered" else "hang_up"
+            grouped.setdefault(coach_name, {}).setdefault(date_key, []).append({
+                "call_id": call_id or "",
+                "start_time": started_at.isoformat(),
+                "end_time": ended_at.isoformat() if ended_at else None,
+                "call_result": call_result,
+                "callee_did_number": callee or "",
+            })
+    return grouped
+
+
 def fetch_all_coaches_analytics(request):
     """
     Fetch coach analytics directly from public.coaches_data.
-    This replaces the old external KBC API integration.
+    Call activity is served from the live Zoom sync (dashboard_zoom_phone_call)
+    rather than the frozen coaches_data.calls snapshot.
     """
     try:
         with connection.cursor() as cursor:
@@ -1749,6 +1836,11 @@ def fetch_all_coaches_analytics(request):
                     if phone and phone.lower() not in {"empty", "null", "none"}
                 ]
                 rows.append(item)
+
+        live_calls = _live_calls_by_coach(rows)
+        for item in rows:
+            coach_name = str(item.get("case_owner") or "").strip()
+            item["calls"] = live_calls.get(coach_name, {})
 
         return JsonResponse(rows, safe=False)
 

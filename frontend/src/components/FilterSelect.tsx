@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+﻿import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import * as RadixSelect from "@radix-ui/react-select";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export default function FilterSelect({
     <RadixSelect.Root value={toSelectValue(value)} onValueChange={(next) => onChange(fromSelectValue(next))}>
       <RadixSelect.Trigger
         className={cn(
-          "flex h-10 items-center justify-between gap-2 rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm font-medium text-[#14264A] shadow-sm outline-none transition-colors hover:border-[#1E6ACB] hover:bg-[#F8FBFE] focus:border-[#1E6ACB] focus:ring-2 focus:ring-[#1E6ACB]/20 data-[state=open]:border-[#1E6ACB] data-[state=open]:ring-2 data-[state=open]:ring-[#1E6ACB]/20",
+          "flex h-10 items-center justify-between gap-2 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm font-medium text-[#1D1050] shadow-sm outline-none transition-colors hover:border-[#5B47D5] hover:bg-[#F8FBFE] focus:border-[#5B47D5] focus:ring-2 focus:ring-[#5B47D5]/20 data-[state=open]:border-[#5B47D5] data-[state=open]:ring-2 data-[state=open]:ring-[#5B47D5]/20",
           className
         )}
         style={{ minWidth }}
@@ -42,7 +42,7 @@ export default function FilterSelect({
           <span className="truncate">{selected?.label ?? placeholder}</span>
         </RadixSelect.Value>
         <RadixSelect.Icon asChild>
-          <ChevronDown className="h-4 w-4 shrink-0 text-[#8AA0B6] transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-[#9B94C8] transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
 
@@ -51,9 +51,9 @@ export default function FilterSelect({
           position="popper"
           sideOffset={6}
           align="start"
-          className="z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-xl animate-in fade-in-0 zoom-in-95"
+          className="z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-xl animate-in fade-in-0 zoom-in-95"
         >
-          <RadixSelect.ScrollUpButton className="flex h-7 cursor-default items-center justify-center border-b border-[#E8EFF7] bg-[#F8FBFE] text-[#5F7288]">
+          <RadixSelect.ScrollUpButton className="flex h-7 cursor-default items-center justify-center border-b border-[#E8EFF7] bg-[#F8FBFE] text-[#6E6D8A]">
             <ChevronUp className="h-4 w-4" />
           </RadixSelect.ScrollUpButton>
 
@@ -62,17 +62,17 @@ export default function FilterSelect({
               <RadixSelect.Item
                 key={opt.value}
                 value={toSelectValue(opt.value)}
-                className="relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#14264A] outline-none transition-colors hover:bg-[#EEF3FB] focus:bg-[#EEF3FB] data-[state=checked]:bg-[#EEF3FB] data-[state=checked]:font-semibold data-[state=checked]:text-[#1E6ACB]"
+                className="relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#1D1050] outline-none transition-colors hover:bg-[#EEF3FB] focus:bg-[#EEF3FB] data-[state=checked]:bg-[#EEF3FB] data-[state=checked]:font-semibold data-[state=checked]:text-[#5B47D5]"
               >
                 <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
                 <RadixSelect.ItemIndicator className="ml-auto">
-                  <Check className="h-3.5 w-3.5 text-[#1E6ACB]" />
+                  <Check className="h-3.5 w-3.5 text-[#5B47D5]" />
                 </RadixSelect.ItemIndicator>
               </RadixSelect.Item>
             ))}
           </RadixSelect.Viewport>
 
-          <RadixSelect.ScrollDownButton className="flex h-7 cursor-default items-center justify-center border-t border-[#E8EFF7] bg-[#F8FBFE] text-[#5F7288]">
+          <RadixSelect.ScrollDownButton className="flex h-7 cursor-default items-center justify-center border-t border-[#E8EFF7] bg-[#F8FBFE] text-[#6E6D8A]">
             <ChevronDown className="h-4 w-4" />
           </RadixSelect.ScrollDownButton>
         </RadixSelect.Content>

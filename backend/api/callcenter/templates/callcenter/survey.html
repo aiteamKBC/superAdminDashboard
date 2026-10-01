@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBC Employer Feedback</title><style>
+body{font:16px/1.6 Arial,sans-serif;color:#202630;background:#f6f8fa;margin:0;padding:24px}
+main{max-width:560px;margin:48px auto}h1{font-size:24px}fieldset{border:0;padding:0;display:flex;gap:20px;flex-wrap:wrap}
+textarea{box-sizing:border-box;width:100%;min-height:140px;margin:12px 0;padding:12px;font:inherit;border:1px solid #aab3bc;border-radius:4px}
+button{background:#173f58;color:white;padding:12px 24px;border:0;border-radius:4px;font:inherit;cursor:pointer}
+label{display:inline-block}input{accent-color:#173f58}
+</style></head><body><main><h1>Kent Business College</h1><h2>Employer Feedback</h2>
+{% if message %}<p role="status">{{ message }}</p>{% else %}
+<form method="post">{% csrf_token %}<p>How satisfied are you with your experience?</p>
+<fieldset><legend>1 = Poor, 5 = Excellent</legend>{% for score in scores %}
+<label><input type="radio" name="score" value="{{ score }}" required {% if selected == score|stringformat:"s" %}checked{% endif %}> {{ score }}</label>
+{% endfor %}</fieldset><label for="comment">Your feedback (optional)</label><textarea id="comment" name="comment" maxlength="5000"></textarea>
+<button type="submit">Submit feedback</button></form>{% endif %}</main></body></html>

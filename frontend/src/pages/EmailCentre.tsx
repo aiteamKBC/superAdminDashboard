@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from "react";
+﻿import { useRef, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import AppLayout from "@/components/AppLayout";
@@ -495,7 +495,7 @@ const createEmailEvidenceImage = async ({
 
   ctx.restore();
 
-  ctx.fillStyle = "#71849A";
+  ctx.fillStyle = "#6E6D8A";
   ctx.font = "600 13px Arial, Helvetica, sans-serif";
   ctx.fillText(`Sent to ${learnerName || "learner"}${learnerEmail ? ` <${learnerEmail}>` : ""}`, emailX, emailY + 1052);
 
@@ -1113,7 +1113,7 @@ export default function EmailCentre() {
                       : "/otj-hours/tickets"
               )
             }
-            className="mb-4 inline-flex items-center gap-1.5 text-[0px] font-semibold text-[#1E6ACB] hover:underline">
+            className="mb-4 inline-flex items-center gap-1.5 text-[0px] font-semibold text-[#5B47D5] hover:underline">
             <span className="text-sm">
               ← Back to {isFromAttendanceTicket ? "Attendance" : isFromPrTicket ? "PR" : isFromMcmTicket ? "MCM" : "OTJH"} Tickets
             </span>
@@ -1231,8 +1231,8 @@ export default function EmailCentre() {
                 />
               </div>
 
-              <div className="rounded-xl border border-[#D7E5F3] bg-[#F8FBFE] p-3">
-                <p className="text-xs font-semibold text-[#14264A]">Coach CC</p>
+              <div className="rounded-xl border border-[#E2DCF8] bg-[#F8FBFE] p-3">
+                <p className="text-xs font-semibold text-[#1D1050]">Coach CC</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {previewCoachCcEmail
                     ? `${previewCoachName} will be copied on this email: ${previewCoachCcEmail}`
@@ -1325,7 +1325,7 @@ export default function EmailCentre() {
                       value={String(absenceWeeks)}
                       onValueChange={(value) => setAbsenceWeeks(Number(value) as AbsenceWeeksFilter)}
                     >
-                      <SelectTrigger className="h-11 w-full rounded-xl border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#14264A] shadow-sm focus:ring-[#E7DAF4] sm:w-[310px]">
+                      <SelectTrigger className="h-11 w-full rounded-xl border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#1D1050] shadow-sm focus:ring-[#E7DAF4] sm:w-[310px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent
@@ -1336,7 +1336,7 @@ export default function EmailCentre() {
                           <SelectItem
                             key={week}
                             value={String(week)}
-                            className="rounded-lg py-2.5 pl-8 pr-3 text-sm font-medium text-[#14264A] focus:bg-[#EEF7FF] focus:text-[#1E6ACB] data-[state=checked]:bg-[#EEF7FF] data-[state=checked]:text-[#1E6ACB]"
+                            className="rounded-lg py-2.5 pl-8 pr-3 text-sm font-medium text-[#1D1050] focus:bg-[#EEF2FF] focus:text-[#5B47D5] data-[state=checked]:bg-[#EEF2FF] data-[state=checked]:text-[#5B47D5]"
                           >
                             {getAbsenceWindowLabel(week as 0 | 1 | 2 | 3)}
                           </SelectItem>
@@ -1348,7 +1348,7 @@ export default function EmailCentre() {
                       value={prPeriodFilter}
                       onValueChange={(value) => setPrPeriodFilter(value as PrPeriodFilter)}
                     >
-                      <SelectTrigger className="h-11 w-full rounded-xl border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#14264A] shadow-sm focus:ring-[#E7DAF4] sm:w-[210px]">
+                      <SelectTrigger className="h-11 w-full rounded-xl border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#1D1050] shadow-sm focus:ring-[#E7DAF4] sm:w-[210px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent
@@ -1359,7 +1359,7 @@ export default function EmailCentre() {
                           <SelectItem
                             key={period}
                             value={period}
-                            className="rounded-lg py-2.5 pl-8 pr-3 text-sm font-medium text-[#14264A] focus:bg-[#EEF7FF] focus:text-[#1E6ACB] data-[state=checked]:bg-[#EEF7FF] data-[state=checked]:text-[#1E6ACB]"
+                            className="rounded-lg py-2.5 pl-8 pr-3 text-sm font-medium text-[#1D1050] focus:bg-[#EEF2FF] focus:text-[#5B47D5] data-[state=checked]:bg-[#EEF2FF] data-[state=checked]:text-[#5B47D5]"
                           >
                             {prPeriodLabels[period]}
                           </SelectItem>
@@ -1367,7 +1367,7 @@ export default function EmailCentre() {
                       </SelectContent>
                     </Select>
                   ) : selectedTemplate.kpiCategory === "coaching-due" ? (
-                    <div className="inline-flex h-11 w-full items-center justify-between rounded-xl border border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#14264A] shadow-sm sm:w-[240px]">
+                    <div className="inline-flex h-11 w-full items-center justify-between rounded-xl border border-[#D8C9EE] bg-white px-4 text-sm font-semibold text-[#1D1050] shadow-sm sm:w-[240px]">
                       {getMcmMonthLabel(-1)}
                     </div>
                   ) : (

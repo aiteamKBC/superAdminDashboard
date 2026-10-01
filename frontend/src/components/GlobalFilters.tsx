@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -313,22 +313,22 @@ export default function GlobalFilters({
     filters.status !== DEFAULT_STATUS;
 
   return (
-    <div className="border-b border-[#DDE7F0] bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
+    <div className="border-b border-[#E2DCF8] bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
       <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <p className="text-xs font-bold uppercase text-[#2D73D5]">
             Engagment Dashboard
           </p>
-          <h2 className="mt-1 text-xl font-bold tracking-normal text-[#14264A]">
+          <h2 className="mt-1 text-xl font-bold tracking-normal text-[#1D1050]">
             Learner Risk & Actions
           </h2>
-          <p className="mt-1 text-sm text-[#71849A]">
+          <p className="mt-1 text-sm text-[#6E6D8A]">
             Filter the live cohort, then open a KPI to see the learners behind each signal.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-[#DDE7F0] bg-[#F8FBFE] px-3 py-1.5 text-xs font-semibold text-[#5F748B]">
+          <span className="rounded-full border border-[#E2DCF8] bg-[#F8FBFE] px-3 py-1.5 text-xs font-semibold text-[#5F748B]">
             Last refreshed:{" "}
             {lastRefreshed.toLocaleTimeString([], {
               hour: "2-digit",
@@ -339,7 +339,7 @@ export default function GlobalFilters({
           <Button
             size="sm"
             variant="outline"
-            className="h-9 gap-1.5 rounded-lg border-[#BFD4E7] bg-white text-[#24486D] hover:bg-[#EEF7FF] hover:text-[#14264A]"
+            className="h-9 gap-1.5 rounded-lg border-[#BFD4E7] bg-white text-[#3730A3] hover:bg-[#EEF2FF] hover:text-[#1D1050]"
             disabled={loading || refreshing}
             onClick={handleRefresh}
           >
@@ -350,7 +350,7 @@ export default function GlobalFilters({
           <Button
             size="sm"
             variant="outline"
-            className="h-9 gap-1.5 rounded-lg border-[#BFD4E7] bg-[#EEF7FF] text-[#1E6ACB] hover:bg-[#DFF0FF] hover:text-[#184D91]"
+            className="h-9 gap-1.5 rounded-lg border-[#BFD4E7] bg-[#EEF2FF] text-[#5B47D5] hover:bg-[#DFF0FF] hover:text-[#4338CA]"
             onClick={() => setThresholdsOpen(true)}
           >
             <Settings2 className="h-3.5 w-3.5" />
@@ -364,7 +364,7 @@ export default function GlobalFilters({
           value={filters.programme}
           onValueChange={(v) => onChange({ ...filters, programme: v })}
         >
-          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[240px]">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm text-[#1D1050] sm:w-[240px]">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
@@ -380,7 +380,7 @@ export default function GlobalFilters({
           value={filters.coach}
           onValueChange={(v) => onChange({ ...filters, coach: v })}
         >
-          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[200px]">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm text-[#1D1050] sm:w-[200px]">
             <SelectValue placeholder={loading ? "Loading..." : undefined} />
           </SelectTrigger>
           <SelectContent>
@@ -396,7 +396,7 @@ export default function GlobalFilters({
           value={filters.organisation}
           onValueChange={(v) => onChange({ ...filters, organisation: v })}
         >
-          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[210px]">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm text-[#1D1050] sm:w-[210px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -412,7 +412,7 @@ export default function GlobalFilters({
           value={filters.status}
           onValueChange={(v) => onChange({ ...filters, status: v })}
         >
-          <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[180px]">
+          <SelectTrigger className="h-10 w-full rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm text-[#1D1050] sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -425,8 +425,8 @@ export default function GlobalFilters({
         </Select>
 
         {showPrMonthFilter && onPrMonthOffsetChange && getPrMonthLabel && (
-          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] px-3">
-            <span className="text-xs font-bold text-[#184D91]">
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#C4B8F0] bg-[#EEF2FF] px-3">
+            <span className="text-xs font-bold text-[#4338CA]">
               PR Quarter
             </span>
             <Select
@@ -435,7 +435,7 @@ export default function GlobalFilters({
                 onPrMonthOffsetChange(v === "last12weeks" ? "last12weeks" : Number(v))
               }
             >
-              <SelectTrigger className="h-7 w-[165px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
+              <SelectTrigger className="h-7 w-[165px] border-0 bg-transparent p-0 text-xs font-semibold text-[#1D1050] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -451,15 +451,15 @@ export default function GlobalFilters({
         )}
 
         {showPrStatusFilter && onPrStatusFilterChange && (
-          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] px-3">
-            <span className="text-xs font-bold text-[#184D91]">
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#C4B8F0] bg-[#EEF2FF] px-3">
+            <span className="text-xs font-bold text-[#4338CA]">
               PR Status
             </span>
             <Select
               value={prStatusFilter}
               onValueChange={(v) => onPrStatusFilterChange(v)}
             >
-              <SelectTrigger className="h-7 w-[140px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
+              <SelectTrigger className="h-7 w-[140px] border-0 bg-transparent p-0 text-xs font-semibold text-[#1D1050] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -482,7 +482,7 @@ export default function GlobalFilters({
                 onAbsenceWeeksChange(v === "all" ? "all" : (Number(v) as 0 | 1 | 2 | 3))
               }
             >
-              <SelectTrigger className="h-7 w-[210px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
+              <SelectTrigger className="h-7 w-[210px] border-0 bg-transparent p-0 text-xs font-semibold text-[#1D1050] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -497,15 +497,15 @@ export default function GlobalFilters({
         )}
 
         {showMcrMonthFilter && onMcrMonthOffsetChange && (
-          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] px-3">
-            <span className="text-xs font-bold text-[#184D91]">
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#C4B8F0] bg-[#EEF2FF] px-3">
+            <span className="text-xs font-bold text-[#4338CA]">
               MCM Period
             </span>
             <Select
               value={String(mcrMonthOffset)}
               onValueChange={(v) => onMcrMonthOffsetChange(Number(v))}
             >
-              <SelectTrigger className="h-7 w-[170px] border-0 bg-transparent p-0 text-xs font-semibold text-[#14264A] shadow-none focus:ring-0">
+              <SelectTrigger className="h-7 w-[170px] border-0 bg-transparent p-0 text-xs font-semibold text-[#1D1050] shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -525,7 +525,7 @@ export default function GlobalFilters({
           <Button
             size="sm"
             variant="ghost"
-            className="h-10 rounded-lg px-3 text-xs font-bold text-[#1E6ACB] hover:bg-[#EEF7FF] hover:text-[#184D91]"
+            className="h-10 rounded-lg px-3 text-xs font-bold text-[#5B47D5] hover:bg-[#EEF2FF] hover:text-[#4338CA]"
             onClick={() =>
               onChange({
                 ...filters,
@@ -542,16 +542,16 @@ export default function GlobalFilters({
       </div>
 
       <Dialog open={thresholdsOpen} onOpenChange={setThresholdsOpen}>
-        <DialogContent className="max-w-xl rounded-lg border-[#DDE7F0]">
+        <DialogContent className="max-w-xl rounded-lg border-[#E2DCF8]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#14264A]">
+            <DialogTitle className="text-base font-semibold text-[#1D1050]">
               Dashboard Thresholds
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] p-3">
-              <p className="font-semibold text-[#184D91]">Progress Review</p>
+            <div className="rounded-lg border border-[#C4B8F0] bg-[#EEF2FF] p-3">
+              <p className="font-semibold text-[#4338CA]">Progress Review</p>
               <ul className="mt-2 space-y-1 text-xs text-[#5F748B]">
                 <li>Review required is based on the selected PR period.</li>
                 <li>Last 12 Weeks excludes Personal Support Plan and Gateway Review.</li>
@@ -559,8 +559,8 @@ export default function GlobalFilters({
               </ul>
             </div>
 
-            <div className="rounded-lg border border-[#DDE7F0] bg-white p-3">
-              <p className="font-semibold text-[#24486D]">Monthly Coaching Meeting</p>
+            <div className="rounded-lg border border-[#E2DCF8] bg-white p-3">
+              <p className="font-semibold text-[#3730A3]">Monthly Coaching Meeting</p>
               <ul className="mt-2 space-y-1 text-xs text-[#5F748B]">
                 <li>Last 30 days includes today.</li>
                 <li>Required counts learners with matching MCM activity in the selected period.</li>

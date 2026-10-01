@@ -1,0 +1,40 @@
+[Unit]
+# Persistent Call Centre worker: one loop runs the whole pipeline every INTERVAL
+# seconds (Zoom sync incl. recordings, case generation, evidence resolution,
+# call matching, AI analysis, and email processing). A DB-level lock makes
+# overlapping runs and restarts safe.
+Description=KBC Call Centre worker (run_callcentre_cycle --loop)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# --- EDIT THESE FOUR FOR YOUR SERVER ---
+# The Linux user that owns the deploy (never root).
+User=REPLACE_WITH_DEPLOY_USER
+# Absolute path to the backend directory (the one containing manage.py).
+WorkingDirectory=/REPLACE/PATH/TO/superAdminDashboard/backend
+# Absolute path to the Python inside your virtualenv.
+# Find it on the server with:  which python   (after activating the venv)
+ExecStart=/REPLACE/PATH/TO/venv/bin/python manage.py run_callcentre_cycle --loop --interval 300
+# The .env the backend reads (same file Django uses).
+EnvironmentFile=/REPLACE/PATH/TO/superAdminDashboard/backend/.env
+# ----------------------------------------
+
+# Keep it alive forever: restart on any exit, wait 10s between tries.
+Restart=always
+RestartSec=10
+# Give the DB lock time to release on stop before SIGKILL.
+TimeoutStopSec=30
+# Logs go to the journal (view with: journalctl -u callcentre-worker -f).
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=callcentre-worker
+
+# Light hardening (optional, safe defaults).
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

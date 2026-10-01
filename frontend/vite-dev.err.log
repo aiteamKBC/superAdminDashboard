@@ -1,3 +1,2601 @@
 Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+3:04:10 PM [vite] http proxy error: /api/zoom/calls/?from=2026-09-01&to=2026-09-30&account=office&direction=outbound&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:04:14 PM [vite] http proxy error: /api/auth/session/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:04:56 PM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:04:57 PM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:04:58 PM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:05:03 PM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:05:04 PM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+3:05:05 PM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:10:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:11:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:12:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:13:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:14:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:15:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:16:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:17:50 PM [vite] http proxy error: /api/callcentre/performance/?from=2026-06-08&to=2026-09-30
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:18:25 PM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:18:25 PM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:18:28 PM [vite] http proxy error: /api/coaches/all
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:18:28 PM [vite] http proxy error: /api/progress-review-summary/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:18:28 PM [vite] http proxy error: /api/mcr-summary/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:18:28 PM [vite] http proxy error: /api/otj-at-risk/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:22:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:23:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:24:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:25:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:26:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:27:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:28:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:29:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:30:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:31:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:32:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:33:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:34:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:35:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:36:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:37:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:38:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:39:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:40:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:41:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:25 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:25 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:25 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:30 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:30 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:30 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:35 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:35 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:35 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:40 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:40 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:40 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:45 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:45 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:45 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:50 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:50 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:50 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:55 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:55 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:42:55 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:00 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:00 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:00 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:05 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:05 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:05 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:10 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:10 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:10 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:15 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:15 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:15 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:20 PM [vite] http proxy error: /api/kbc-attendance/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:20 PM [vite] http proxy error: /api/learner-contact-actions/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+4:43:20 PM [vite] http proxy error: /api/attendance-tickets/?archived=false&lookup=true
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+7:56:49 PM [vite] http proxy error: /api/zoom/calls/?from=2026-09-01&to=2026-09-30&account=all&direction=outbound&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+8:10:49 PM [vite] http proxy error: /api/zoom/calls/?from=2026-09-01&to=2026-09-30&account=all&direction=outbound&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:31:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:31:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:31:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:32:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:32:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:32:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:33:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:33:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:33:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:34:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:34:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:34:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:35:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:35:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:35:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:36:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:36:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:36:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:37:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:37:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:37:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:38:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:38:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:38:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:39:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:39:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:39:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:40:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:40:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:40:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:41:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:41:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:41:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:42:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:42:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:42:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:43:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:43:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:43:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:44:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:44:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:44:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:45:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:45:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:45:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:46:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:46:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:46:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:47:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:47:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:47:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:48:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:48:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:48:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:49:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:49:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:49:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:50:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:50:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:50:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:51:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:51:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:51:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:52:33 AM [vite] http proxy error: /api/callcentre/tickets/1771/?event_page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:52:33 AM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:52:33 AM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:52:41 AM [vite] http proxy error: /api/auth/session/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:53:59 AM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+12:54:00 AM [vite] http proxy error: /api/auth/login/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+2:45:09 PM [vite] http proxy error: /api/callcentre/config/
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)
+2:45:09 PM [vite] http proxy error: /api/callcentre/queue/?q=&coach=&source_type=&status=&claimed=&due=&view=queue&page=1
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1705:16)

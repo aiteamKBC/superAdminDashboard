@@ -1,4 +1,4 @@
-// src/pages/Index.tsx
+﻿// src/pages/Index.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3 } from "lucide-react";
 
@@ -3851,7 +3851,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-[#F4F8FC] text-[#20344D]">
+      <div className="min-h-screen bg-[#F5F4FB] text-[#1D1050]">
         <GlobalFilters
           rows={rows}
           loading={loading}
@@ -3896,15 +3896,15 @@ export default function Dashboard() {
           </div>
 
           {activeKpi === "coach-marking-overdue" && (
-            <div className="rounded-lg border border-[#DDE7F0] bg-white p-4 shadow-[0_10px_28px_rgba(20,38,74,0.06)] sm:p-5">
+            <div className="rounded-lg border border-[#E2DCF8] bg-white p-4 shadow-[0_10px_28px_rgba(29,16,80,0.06)] sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase text-[#1E6ACB]">Coach evidence</p>
-                  <h3 className="mt-1 text-base font-bold text-[#14264A] sm:text-lg">
+                  <p className="text-xs font-bold uppercase text-[#5B47D5]">Coach evidence</p>
+                  <h3 className="mt-1 text-base font-bold text-[#1D1050] sm:text-lg">
                     {kpiCards.find((c) => c.id === activeKpi)?.title}
                   </h3>
                 </div>
-                <span className="rounded-full bg-[#EEF7FF] px-3 py-1 text-xs font-bold text-[#184D91]">
+                <span className="rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-bold text-[#4338CA]">
                   {coachMarkingRows.length} coach{coachMarkingRows.length !== 1 ? "es" : ""}
                 </span>
               </div>
@@ -3914,27 +3914,27 @@ export default function Dashboard() {
           )}
 
           {activeKpi && activeKpi !== "coach-marking-overdue" && (
-            <div className="rounded-lg border border-[#DDE7F0] bg-white p-4 shadow-[0_10px_28px_rgba(20,38,74,0.06)] sm:p-5">
+            <div className="rounded-lg border border-[#E2DCF8] bg-white p-4 shadow-[0_10px_28px_rgba(29,16,80,0.06)] sm:p-5">
               <div className="mb-4 space-y-3">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase text-[#1E6ACB]">Learner detail</p>
-                    <h3 className="mt-1 text-base font-bold text-[#14264A] sm:text-lg">
+                    <p className="text-xs font-bold uppercase text-[#5B47D5]">Learner detail</p>
+                    <h3 className="mt-1 text-base font-bold text-[#1D1050] sm:text-lg">
                       {activeCardTitle}
                     </h3>
-                    <p className="text-sm text-[#71849A]">
+                    <p className="text-sm text-[#6E6D8A]">
                       {filteredLearners.length} learner{filteredLearners.length !== 1 ? "s" : ""} match the current filters
                     </p>
                   </div>
                 </div>
 
                 {detailContext && (detailContext.chips.length > 0 || detailContext.rules.length > 0 || activeKpi === "review-due" || activeKpi === "coaching-due") && (
-                  <div className="rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
+                  <div className="rounded-lg border border-[#E2DCF8] bg-[#F8FBFE] px-3 py-2">
                     <div className="flex flex-wrap gap-2">
                       {detailContext.chips.map((chip) => (
                         <span
                           key={chip}
-                          className="inline-flex min-h-9 items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold leading-none text-[#184D91] ring-1 ring-[#B8D7F2]"
+                          className="inline-flex min-h-9 items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold leading-none text-[#4338CA] ring-1 ring-[#C4B8F0]"
                         >
                           {chip}
                         </span>
@@ -3945,7 +3945,7 @@ export default function Dashboard() {
                           className={`inline-flex min-h-9 items-center rounded-full px-4 py-2 text-sm font-bold ring-2 transition-colors ${
                             prOverdueFilter
                               ? "bg-[#B42332] text-white ring-[#B42332]"
-                              : "bg-[#14264A] text-white ring-[#14264A] hover:bg-[#1E3A6E]"
+                              : "bg-[#1D1050] text-white ring-[#1D1050] hover:bg-[#1E3A6E]"
                           }`}
                         >
                           Overdue
@@ -3957,7 +3957,7 @@ export default function Dashboard() {
                           className={`inline-flex min-h-9 items-center rounded-full px-4 py-2 text-sm font-bold ring-2 transition-colors ${
                             mcrOverdueFilter
                               ? "bg-[#B42332] text-white ring-[#B42332]"
-                              : "bg-[#14264A] text-white ring-[#14264A] hover:bg-[#1E3A6E]"
+                              : "bg-[#1D1050] text-white ring-[#1D1050] hover:bg-[#1E3A6E]"
                           }`}
                         >
                           Overdue
@@ -3990,14 +3990,14 @@ export default function Dashboard() {
           )}
 
           {!activeKpi && (
-            <div className="rounded-lg border border-dashed border-[#B8D7F2] bg-white px-4 py-10 text-center shadow-[0_8px_22px_rgba(20,38,74,0.05)] sm:px-6 sm:py-12">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-[#EEF7FF] text-[#184D91]">
+            <div className="rounded-lg border border-dashed border-[#C4B8F0] bg-white px-4 py-10 text-center shadow-[0_8px_22px_rgba(29,16,80,0.05)] sm:px-6 sm:py-12">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#4338CA]">
                 <BarChart3 className="h-5 w-5" />
               </div>
-              <p className="text-base font-bold text-[#14264A] sm:text-lg">
+              <p className="text-base font-bold text-[#1D1050] sm:text-lg">
                 KPI details are ready
               </p>
-              <p className="mx-auto mt-1 max-w-md text-sm text-[#71849A]">
+              <p className="mx-auto mt-1 max-w-md text-sm text-[#6E6D8A]">
                 Open any KPI card above to load the matching learner list, actions, and export tools.
               </p>
             </div>

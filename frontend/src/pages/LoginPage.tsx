@@ -181,26 +181,43 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#F4F8FC_0%,#EEF7FF_48%,#E8F1FA_100%)] p-4">
-      <Card className="grid w-full max-w-[920px] overflow-hidden rounded-2xl border-[#DDE7F0] bg-white shadow-[0_24px_80px_rgba(20,38,74,0.16)] md:grid-cols-[1fr_1.08fr]">
-        <section className="relative hidden min-h-[560px] flex-col justify-between bg-gradient-to-b from-[#14264A] via-[#184D91] to-[#1E6ACB] p-8 text-white md:flex">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.22),transparent_28%),linear-gradient(135deg,rgba(28,155,122,0.22),transparent_44%)]" />
+    <main className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#F5F4FB_0%,#EEEAFF_48%,#E8E4FA_100%)] p-4">
+      <Card className="grid w-full max-w-[920px] overflow-hidden rounded-2xl border-[#E2DCF8] bg-white shadow-[0_24px_80px_rgba(29,16,80,0.16)] md:grid-cols-[1fr_1.08fr]">
+        <section className="relative hidden min-h-[560px] flex-col justify-between bg-gradient-to-b from-[#1D1050] via-[#2D1863] to-[#5B47D5] p-8 text-white md:flex">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.18),transparent_32%),radial-gradient(circle_at_80%_85%,rgba(123,92,240,0.35),transparent_44%)]" />
           <div className="relative">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/14 ring-1 ring-white/24">
               <GraduationCap className="h-7 w-7" />
             </div>
             <h1 className="mt-6 text-3xl font-bold leading-tight">Kent Business College</h1>
-            <p className="mt-2 max-w-[280px] text-sm font-medium text-[#D7EAFB]">
+            <p className="mt-2 max-w-[280px] text-sm font-medium text-[#D0C8F0]">
               Engagement workspace for learner risk, reviews, and actions.
             </p>
+
+            <div className="mt-8 space-y-3">
+              {[
+                "Learner risk & attendance tracking",
+                "Progress reviews & coaching sessions",
+                "Off-the-job hours management",
+              ].map((feature) => (
+                <div key={feature} className="flex items-center gap-2.5">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-white/80">{feature}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="relative rounded-2xl border border-white/18 bg-white/10 p-4 backdrop-blur">
+          <div className="relative rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-[#BFEDE4]" />
+              <ShieldCheck className="h-5 w-5 text-[#C4B8F0]" />
               <div>
                 <p className="text-sm font-bold">KBC authenticated access</p>
-                <p className="mt-0.5 text-xs text-white/72">Accounts are checked against auth_user.</p>
+                <p className="mt-0.5 text-xs text-white/65">Accounts are checked against auth_user.</p>
               </div>
             </div>
           </div>
@@ -209,33 +226,33 @@ export default function LoginPage() {
         <section className="p-6 sm:p-9">
           <div className="mx-auto max-w-[410px]">
             <div className="mb-7 flex items-center gap-3 md:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#184D91] text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#7B5CF0] to-[#5B47D5] text-white shadow-[0_4px_14px_rgba(91,71,213,0.4)]">
                 <GraduationCap className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-bold text-[#14264A]">Kent Business College</p>
-                <p className="text-xs text-[#71849A]">Engagement Workspace</p>
+                <p className="font-bold text-[#1D1050]">Kent Business College</p>
+                <p className="text-xs text-[#7B6EA8]">Engagement Workspace</p>
               </div>
             </div>
 
             <div className="mb-7">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#1E6ACB]">Sign in</p>
-              <h2 className="mt-2 text-2xl font-bold text-[#14264A]">Access your dashboard</h2>
-              <p className="mt-2 text-sm text-[#5F7288]">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#5B47D5]">Sign in</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#1D1050]">Access your dashboard</h2>
+              <p className="mt-2 text-sm text-[#6E6D8A]">
                 Use your KBC Microsoft email or your existing dashboard account.
               </p>
             </div>
 
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="identifier">Username or Email</Label>
+                <Label htmlFor="identifier" className="text-[#1D1050] font-medium">Username or Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7EA6CF]" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B87D8]" />
                   <Input
                     id="identifier"
                     value={identifier}
                     onChange={(event) => setIdentifier(event.target.value)}
-                    className="h-12 rounded-xl border-[#DDE7F0] bg-[#F8FBFE] pl-10 text-[#20344D] placeholder:text-[#8AA0B6] focus-visible:ring-[#1E6ACB]"
+                    className="h-12 rounded-xl border-[#E2DCF8] bg-[#FAF9FF] pl-10 text-[#1D1050] placeholder:text-[#9B94C8] focus-visible:ring-[#5B47D5]"
                     placeholder="Enter your username or email"
                     autoComplete="username"
                   />
@@ -243,14 +260,14 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-[#1D1050] font-medium">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7EA6CF]" />
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B87D8]" />
                   <Input
                     id="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="h-12 rounded-xl border-[#DDE7F0] bg-[#F8FBFE] pl-10 pr-11 text-[#20344D] placeholder:text-[#8AA0B6] focus-visible:ring-[#1E6ACB]"
+                    className="h-12 rounded-xl border-[#E2DCF8] bg-[#FAF9FF] pl-10 pr-11 text-[#1D1050] placeholder:text-[#9B94C8] focus-visible:ring-[#5B47D5]"
                     placeholder="Enter your password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
@@ -258,7 +275,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#7EA6CF] transition hover:bg-[#EEF7FF] hover:text-[#1E6ACB] focus:outline-none focus:ring-2 focus:ring-[#1E6ACB] focus:ring-offset-2"
+                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#9B87D8] transition hover:bg-[#EEF2FF] hover:text-[#5B47D5] focus:outline-none focus:ring-2 focus:ring-[#5B47D5] focus:ring-offset-2"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -274,7 +291,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="h-12 w-full rounded-xl bg-[#14264A] text-base font-bold text-white hover:bg-[#184D91]"
+                className="h-12 w-full rounded-xl bg-gradient-to-r from-[#5B47D5] to-[#7B5CF0] text-base font-bold text-white shadow-[0_4px_14px_rgba(91,71,213,0.35)] hover:from-[#4338CA] hover:to-[#5B47D5] hover:shadow-[0_6px_20px_rgba(91,71,213,0.45)] transition-all"
                 disabled={submitting || microsoftLoading}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -283,15 +300,15 @@ export default function LoginPage() {
             </form>
 
             <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-[#DDE7F0]" />
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#71849A]">or</span>
-              <div className="h-px flex-1 bg-[#DDE7F0]" />
+              <div className="h-px flex-1 bg-[#E2DCF8]" />
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9B87D8]">or</span>
+              <div className="h-px flex-1 bg-[#E2DCF8]" />
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="h-12 w-full rounded-xl border-[#B8D7F2] bg-white text-sm font-bold text-[#14264A] hover:bg-[#EEF7FF]"
+              className="h-12 w-full rounded-xl border-[#DDD8F0] bg-white text-sm font-bold text-[#1D1050] hover:bg-[#F5F2FF] hover:border-[#C4B8F0]"
               onClick={handleMicrosoftLogin}
               disabled={submitting || microsoftLoading}
             >
@@ -308,7 +325,7 @@ export default function LoginPage() {
               Continue with Microsoft Teams
             </Button>
 
-            <p className="mt-5 text-center text-xs text-[#71849A]">
+            <p className="mt-5 text-center text-xs text-[#9B87D8]">
               Microsoft sign-in only opens accounts already registered in KBC auth_user.
             </p>
           </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle, Archive, CalendarClock, CheckCircle2, ChevronDown,
@@ -158,29 +158,29 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 border-b border-[#DDE7F0] px-4 py-3">
-          {img ? <ImageIcon className="h-4 w-4 shrink-0 text-[#1E6ACB]" /> : <FileIcon className="h-4 w-4 shrink-0 text-[#1E6ACB]" />}
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#14264A]">{target.name}</span>
-          <a href={target.url} download={target.name} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg p-1.5 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Download className="h-4 w-4" /></a>
-          <button onClick={onClose} className="shrink-0 rounded-lg p-1.5 text-[#71849A] hover:bg-[#F0F4F8]"><X className="h-4 w-4" /></button>
+        <div className="flex items-center gap-3 border-b border-[#E2DCF8] px-4 py-3">
+          {img ? <ImageIcon className="h-4 w-4 shrink-0 text-[#5B47D5]" /> : <FileIcon className="h-4 w-4 shrink-0 text-[#5B47D5]" />}
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#1D1050]">{target.name}</span>
+          <a href={target.url} download={target.name} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg p-1.5 text-[#5B47D5] hover:bg-[#EEF2FF]"><Download className="h-4 w-4" /></a>
+          <button onClick={onClose} className="shrink-0 rounded-lg p-1.5 text-[#6E6D8A] hover:bg-[#F0F4F8]"><X className="h-4 w-4" /></button>
         </div>
-        <div className={`flex-1 overflow-auto bg-[#F4F8FC] ${img ? "flex items-center justify-center p-4" : "p-4"}`}>
+        <div className={`flex-1 overflow-auto bg-[#F5F4FB] ${img ? "flex items-center justify-center p-4" : "p-4"}`}>
           {img && <img src={target.url} alt={target.name} className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-md" />}
-          {pdf && <iframe src={target.url} title={target.name} className="h-[72vh] w-full rounded-lg border border-[#DDE7F0]" />}
-          {csv && (textLoading ? <div className="flex h-40 items-center justify-center text-sm text-[#71849A]">Loading…</div> : csvRows ? (
-            <div className="overflow-auto rounded-xl border border-[#DDE7F0] bg-white">
+          {pdf && <iframe src={target.url} title={target.name} className="h-[72vh] w-full rounded-lg border border-[#E2DCF8]" />}
+          {csv && (textLoading ? <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div> : csvRows ? (
+            <div className="overflow-auto rounded-xl border border-[#E2DCF8] bg-white">
               <table className="min-w-full text-xs">
-                <thead><tr className="border-b border-[#DDE7F0] bg-[#F0F6FF]">{csvRows[0].map((c, i) => <th key={i} className="px-3 py-2 text-left font-semibold text-[#14264A]">{c}</th>)}</tr></thead>
+                <thead><tr className="border-b border-[#E2DCF8] bg-[#F0F6FF]">{csvRows[0].map((c, i) => <th key={i} className="px-3 py-2 text-left font-semibold text-[#1D1050]">{c}</th>)}</tr></thead>
                 <tbody>{csvRows.slice(1).map((row, ri) => <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-[#F9FBFD]"}>{row.map((c, ci) => <td key={ci} className="px-3 py-2 text-[#3A506B]">{c}</td>)}</tr>)}</tbody>
               </table>
             </div>
           ) : <p className="text-sm text-[#A0B0C0]">Could not load CSV.</p>)}
-          {txt && (textLoading ? <div className="flex h-40 items-center justify-center text-sm text-[#71849A]">Loading…</div> : textContent ? <pre className="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded-xl border border-[#DDE7F0] bg-white p-4 font-mono text-xs text-[#14264A]">{textContent}</pre> : <p className="text-sm text-[#A0B0C0]">Could not load file.</p>)}
+          {txt && (textLoading ? <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div> : textContent ? <pre className="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded-xl border border-[#E2DCF8] bg-white p-4 font-mono text-xs text-[#1D1050]">{textContent}</pre> : <p className="text-sm text-[#A0B0C0]">Could not load file.</p>)}
           {!img && !pdf && !csv && !txt && (
             <div className="flex flex-col items-center gap-4 py-10">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#EEF7FF]"><FileIcon className="h-10 w-10 text-[#1E6ACB]" /></div>
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#EEF2FF]"><FileIcon className="h-10 w-10 text-[#5B47D5]" /></div>
               <p className="text-xs text-[#A0B0C0]">Preview not available for this file type</p>
-              <a href={target.url} download={target.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-[#14264A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1E3A6A]"><Download className="h-4 w-4" />Download file</a>
+              <a href={target.url} download={target.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-[#1D1050] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1E3A6A]"><Download className="h-4 w-4" />Download file</a>
             </div>
           )}
         </div>
@@ -203,32 +203,32 @@ function EvidenceUploadZone({ ticketId, existingFiles, pendingFiles, onAddPendin
     <>
       <div className="space-y-3">
         <div onClick={() => inputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const f = Array.from(e.dataTransfer.files); if (f.length) onAddPending(f); }}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 transition-colors ${dragging ? "border-[#1E6ACB] bg-[#EEF7FF]" : "border-[#D7E5F3] bg-[#F8FBFE] hover:border-[#1E6ACB] hover:bg-[#EEF7FF]"}`}>
-          <UploadCloud className={`h-8 w-8 ${dragging ? "text-[#1E6ACB]" : "text-[#A0B8D0]"}`} />
-          <p className="text-sm font-semibold text-[#14264A]">{uploading ? "Uploading…" : "Click to upload or drag & drop"}</p>
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 transition-colors ${dragging ? "border-[#5B47D5] bg-[#EEF2FF]" : "border-[#E2DCF8] bg-[#F8FBFE] hover:border-[#5B47D5] hover:bg-[#EEF2FF]"}`}>
+          <UploadCloud className={`h-8 w-8 ${dragging ? "text-[#5B47D5]" : "text-[#A0B8D0]"}`} />
+          <p className="text-sm font-semibold text-[#1D1050]">{uploading ? "Uploading…" : "Click to upload or drag & drop"}</p>
           <input ref={inputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" onChange={(e) => { const f = Array.from(e.target.files || []); if (f.length) onAddPending(f); e.target.value = ""; }} className="hidden" />
         </div>
         {totalCount > 0 && (
           <div className="space-y-2">
             {existingFiles.map((f) => (
-              <div key={f.id} className="group flex items-center gap-3 rounded-lg border border-[#DDE7F0] bg-white p-2.5">
+              <div key={f.id} className="group flex items-center gap-3 rounded-lg border border-[#E2DCF8] bg-white p-2.5">
                 <button type="button" onClick={() => setPreview({ url: f.url, name: f.name, mime: f.mimeType, revoke: false })} className="relative shrink-0 overflow-hidden rounded-md">
-                  {isImage(f.mimeType, f.name) ? <img src={f.url} alt={f.name} className="h-10 w-10 object-cover" /> : <div className="flex h-10 w-10 items-center justify-center bg-[#EEF7FF]"><FileIcon className="h-5 w-5 text-[#1E6ACB]" /></div>}
+                  {isImage(f.mimeType, f.name) ? <img src={f.url} alt={f.name} className="h-10 w-10 object-cover" /> : <div className="flex h-10 w-10 items-center justify-center bg-[#EEF2FF]"><FileIcon className="h-5 w-5 text-[#5B47D5]" /></div>}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100"><ZoomIn className="h-4 w-4 text-white" /></div>
                 </button>
-                <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#14264A]">{f.name}</p><p className="text-[11px] text-[#71849A]">{fmtDate(f.uploadedAt)}</p></div>
-                <button type="button" onClick={() => setPreview({ url: f.url, name: f.name, mime: f.mimeType, revoke: false })} className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Eye className="h-4 w-4" /></button>
-                <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Download className="h-4 w-4" /></a>
+                <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#1D1050]">{f.name}</p><p className="text-[11px] text-[#6E6D8A]">{fmtDate(f.uploadedAt)}</p></div>
+                <button type="button" onClick={() => setPreview({ url: f.url, name: f.name, mime: f.mimeType, revoke: false })} className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"><Eye className="h-4 w-4" /></button>
+                <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"><Download className="h-4 w-4" /></a>
                 <button type="button" onClick={() => onDeleteExisting(f.id)} className="shrink-0 rounded p-1 text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
               </div>
             ))}
             {pendingFiles.map((f, i) => (
-              <div key={`p-${i}`} className="group flex items-center gap-3 rounded-lg border border-dashed border-[#B8D7F2] bg-[#F0F8FF] p-2.5">
+              <div key={`p-${i}`} className="group flex items-center gap-3 rounded-lg border border-dashed border-[#C4B8F0] bg-[#F0F8FF] p-2.5">
                 <button type="button" onClick={() => { const url = URL.createObjectURL(f); setPreview({ url, name: f.name, mime: f.type || "", size: f.size, revoke: true }); }} className="relative shrink-0 overflow-hidden rounded-md">
-                  {f.type.startsWith("image/") ? <img src={URL.createObjectURL(f)} alt={f.name} className="h-10 w-10 object-cover" /> : <div className="flex h-10 w-10 items-center justify-center bg-[#EEF7FF]"><FileIcon className="h-5 w-5 text-[#1E6ACB]" /></div>}
+                  {f.type.startsWith("image/") ? <img src={URL.createObjectURL(f)} alt={f.name} className="h-10 w-10 object-cover" /> : <div className="flex h-10 w-10 items-center justify-center bg-[#EEF2FF]"><FileIcon className="h-5 w-5 text-[#5B47D5]" /></div>}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100"><ZoomIn className="h-4 w-4 text-white" /></div>
                 </button>
-                <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#14264A]">{f.name}</p><p className="text-[11px] text-[#71849A]">{(f.size / 1024).toFixed(0)} KB · Pending upload</p></div>
+                <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#1D1050]">{f.name}</p><p className="text-[11px] text-[#6E6D8A]">{(f.size / 1024).toFixed(0)} KB · Pending upload</p></div>
                 <button type="button" onClick={() => onRemovePending(i)} className="shrink-0 rounded p-1 text-red-400 hover:bg-red-50"><X className="h-4 w-4" /></button>
               </div>
             ))}
@@ -259,44 +259,44 @@ function PRTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open:
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#DDE7F0]">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#E2DCF8]">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-[#14264A]">{ticketId ? "Edit PR Ticket" : "Create PR Ticket"}</DialogTitle>
+          <DialogTitle className="text-base font-semibold text-[#1D1050]">{ticketId ? "Edit PR Ticket" : "Create PR Ticket"}</DialogTitle>
         </DialogHeader>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {([["learnerEmail", "Learner Email *", "learner@example.com"], ["learnerName", "Learner Name *", "Full name"], ["learnerPhone", "Phone", "07700 000000"], ["organisation", "Organisation", "Organisation name"], ["programme", "Programme", "e.g. Team Leader"]] as const).map(([key, label, placeholder]) => (
             <div key={key} className="space-y-1.5">
-              <Label className="text-xs font-semibold text-[#24486D]">{label}</Label>
-              <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" disabled={key === "learnerEmail" && !!ticketId} />
+              <Label className="text-xs font-semibold text-[#3730A3]">{label}</Label>
+              <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" disabled={key === "learnerEmail" && !!ticketId} />
             </div>
           ))}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Last actual completed</Label>
-            <Input value={form.lastActuallyCompletedPr} onChange={(e) => set("lastActuallyCompletedPr", e.target.value)} placeholder="09-03-2026 (Completed)" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+            <Label className="text-xs font-semibold text-[#3730A3]">Last actual completed</Label>
+            <Input value={form.lastActuallyCompletedPr} onChange={(e) => set("lastActuallyCompletedPr", e.target.value)} placeholder="09-03-2026 (Completed)" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Last PR</Label>
-            <Input value={form.lastProgressReview} onChange={(e) => set("lastProgressReview", e.target.value)} placeholder="30-04-2026 (Scheduled)" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+            <Label className="text-xs font-semibold text-[#3730A3]">Last PR</Label>
+            <Input value={form.lastProgressReview} onChange={(e) => set("lastProgressReview", e.target.value)} placeholder="30-04-2026 (Scheduled)" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Next PR Date</Label>
-            <Input type="date" value={form.nextPrDate} onChange={(e) => set("nextPrDate", e.target.value)} className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+            <Label className="text-xs font-semibold text-[#3730A3]">Next PR Date</Label>
+            <Input type="date" value={form.nextPrDate} onChange={(e) => set("nextPrDate", e.target.value)} className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Overdue PRs</Label>
-            <Input type="number" min={0} value={form.overdueCount} onChange={(e) => set("overdueCount", Number(e.target.value))} className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+            <Label className="text-xs font-semibold text-[#3730A3]">Overdue PRs</Label>
+            <Input type="number" min={0} value={form.overdueCount} onChange={(e) => set("overdueCount", Number(e.target.value))} className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Risk Level</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Risk Level</Label>
             <Select value={form.risk} onValueChange={(v) => set("risk", v as PRRisk)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="green">Green</SelectItem><SelectItem value="amber">Amber</SelectItem><SelectItem value="red">Red</SelectItem></SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Status</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Status</Label>
             <Select value={form.status} onValueChange={(v) => set("status", v as PRStatus)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="new">New</SelectItem><SelectItem value="open">Open</SelectItem>
                 <SelectItem value="pr_scheduled">PR Scheduled</SelectItem><SelectItem value="pr_completed">PR Completed</SelectItem>
@@ -305,9 +305,9 @@ function PRTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open:
             </Select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">Action Taken</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Action Taken</Label>
             <Select value={form.action || undefined} onValueChange={(v) => set("action", v as PRAction)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm">
+              <SelectTrigger className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm">
                 <SelectValue placeholder="Select an action..." />
               </SelectTrigger>
 
@@ -321,24 +321,24 @@ function PRTicketFormModal({ open, onClose, onSave, initial, ticketId }: { open:
             </Select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">Notes</Label>
-            <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Add any relevant notes…" className="min-h-[80px] rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+            <Label className="text-xs font-semibold text-[#3730A3]">Notes</Label>
+            <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Add any relevant notes…" className="min-h-[80px] rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">Evidence <span className="font-normal text-[#71849A]">— images, PDFs, or documents</span></Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Evidence <span className="font-normal text-[#6E6D8A]">— images, PDFs, or documents</span></Label>
             <EvidenceUploadZone ticketId={ticketId} existingFiles={existingFiles} pendingFiles={pendingFiles}
               onAddPending={(f) => setPendingFiles((p) => [...p, ...f])} onRemovePending={(i) => setPendingFiles((p) => p.filter((_, idx) => idx !== i))}
               onDeleteExisting={async (id) => { await fetch(`/api/pr-tickets/${ticketId}/files/${id}/`, { method: "DELETE" }); setExistingFiles((p) => p.filter((f) => f.id !== id)); }} />
           </div>
           <div className="flex items-center gap-2 sm:col-span-2">
-            <input type="checkbox" id="pr-escalated" checked={form.escalated} onChange={(e) => set("escalated", e.target.checked)} className="h-4 w-4 rounded border-[#D7E5F3] accent-[#14264A]" />
-            <label htmlFor="pr-escalated" className="text-sm font-medium text-[#14264A]">Mark as Escalated</label>
+            <input type="checkbox" id="pr-escalated" checked={form.escalated} onChange={(e) => set("escalated", e.target.checked)} className="h-4 w-4 rounded border-[#E2DCF8] accent-[#1D1050]" />
+            <label htmlFor="pr-escalated" className="text-sm font-medium text-[#1D1050]">Mark as Escalated</label>
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">Cancel</Button>
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#E2DCF8]">Cancel</Button>
           <Button onClick={async () => { if (!form.learnerEmail.trim() || !form.learnerName.trim()) return; setSaving(true); try { await onSave(form, pendingFiles); onClose(); } finally { setSaving(false); } }}
-            disabled={saving || !form.learnerEmail.trim() || !form.learnerName.trim()} className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]">
+            disabled={saving || !form.learnerEmail.trim() || !form.learnerName.trim()} className="rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]">
             {saving ? "Saving…" : ticketId ? "Save Changes" : "Create Ticket"}
           </Button>
         </div>
@@ -354,26 +354,26 @@ function PRTicketActionsMenu({ ticket, onAddNote, onAddEvidence, onEmail, onQuic
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="rounded-lg p-1.5 text-[#71849A] hover:bg-[#F0F4F8] focus:outline-none"><MoreHorizontal className="h-4 w-4" /></button>
+        <button className="rounded-lg p-1.5 text-[#6E6D8A] hover:bg-[#F0F4F8] focus:outline-none"><MoreHorizontal className="h-4 w-4" /></button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60 overflow-hidden rounded-xl border-[#DDE7F0] p-0 shadow-xl" style={{ maxHeight: "min(80vh, 480px)" }}>
-        <div className="border-b border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
-          <p className="text-[11px] font-bold text-[#14264A]">Ticket Actions</p>
-          <p className="truncate text-[10px] text-[#71849A]">{ticket.ticketRef} · {ticket.learnerName}</p>
+      <DropdownMenuContent align="end" className="w-60 overflow-hidden rounded-xl border-[#E2DCF8] p-0 shadow-xl" style={{ maxHeight: "min(80vh, 480px)" }}>
+        <div className="border-b border-[#E2DCF8] bg-[#F8FBFE] px-3 py-2">
+          <p className="text-[11px] font-bold text-[#1D1050]">Ticket Actions</p>
+          <p className="truncate text-[10px] text-[#6E6D8A]">{ticket.ticketRef} · {ticket.learnerName}</p>
         </div>
         <div className="overflow-y-auto" style={{ maxHeight: "calc(min(80vh, 480px) - 88px)" }}>
           <div className="space-y-0.5 p-1.5">
             <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Notes</p>
-            <DropdownMenuItem onClick={onAddNote} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><FileText className="h-4 w-4 text-[#5F7288]" />Add Note</DropdownMenuItem>
-            <DropdownMenuItem onClick={onAddEvidence} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><Paperclip className="h-4 w-4 text-[#1E6ACB]" />Add Evidence</DropdownMenuItem>
+            <DropdownMenuItem onClick={onAddNote} className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8]"><FileText className="h-4 w-4 text-[#6E6D8A]" />Add Note</DropdownMenuItem>
+            <DropdownMenuItem onClick={onAddEvidence} className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8]"><Paperclip className="h-4 w-4 text-[#5B47D5]" />Add Evidence</DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
             <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Schedule</p>
-            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_scheduled" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><CalendarClock className="h-4 w-4 text-[#5F7288]" />Schedule PR</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_completed" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><ClipboardCheck className="h-4 w-4 text-green-600" />Mark PR Completed</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_scheduled" })} className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8]"><CalendarClock className="h-4 w-4 text-[#6E6D8A]" />Schedule PR</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "pr_completed" })} className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8]"><ClipboardCheck className="h-4 w-4 text-green-600" />Mark PR Completed</DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
             <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Status</p>
-            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { escalated: true, risk: "red" })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><Flag className="h-4 w-4 text-amber-500" />Flag for Attention</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "open", escalated: false })} className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8]"><RefreshCw className="h-4 w-4 text-green-600" />Reopen / Set Active</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { escalated: true, risk: "red" })} className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8]"><Flag className="h-4 w-4 text-amber-500" />Flag for Attention</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "open", escalated: false })} className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8]"><RefreshCw className="h-4 w-4 text-green-600" />Reopen / Set Active</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onQuickAction(ticket.id, { status: "resolved" })} className="cursor-pointer gap-2 rounded-lg text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-600"><XCircle className="h-4 w-4" />Close Ticket</DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
             <p className="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wide text-[#A0B0C0]">Action Taken</p>
@@ -383,10 +383,10 @@ function PRTicketActionsMenu({ ticket, onAddNote, onAddEvidence, onEmail, onQuic
               return (
                 <DropdownMenuItem key={o.value}
                   onClick={() => isEmailed ? onEmail() : onQuickAction(ticket.id, { action: o.value })}
-                  className={`cursor-pointer gap-2 rounded-lg hover:bg-[#F0F4F8] ${isActive ? "bg-[#EEF7FF] font-semibold text-[#1E6ACB]" : "text-[#14264A]"}`}>
+                  className={`cursor-pointer gap-2 rounded-lg hover:bg-[#F0F4F8] ${isActive ? "bg-[#EEF2FF] font-semibold text-[#5B47D5]" : "text-[#1D1050]"}`}>
                   {isEmailed
-                    ? <Mail className={`h-4 w-4 shrink-0 ${isActive ? "text-[#1E6ACB]" : "text-[#5F7288]"}`} />
-                    : <CheckCircle2 className={`h-4 w-4 shrink-0 ${isActive ? "text-[#1E6ACB]" : "text-[#C5D5E3]"}`} />}
+                    ? <Mail className={`h-4 w-4 shrink-0 ${isActive ? "text-[#5B47D5]" : "text-[#6E6D8A]"}`} />
+                    : <CheckCircle2 className={`h-4 w-4 shrink-0 ${isActive ? "text-[#5B47D5]" : "text-[#C5D5E3]"}`} />}
                   {o.label}
                   {isEmailed && <span className="ml-auto text-[10px] text-[#A0B0C0]">→ Email Centre</span>}
                 </DropdownMenuItem>
@@ -394,9 +394,9 @@ function PRTicketActionsMenu({ ticket, onAddNote, onAddEvidence, onEmail, onQuic
             })}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#5F7288]"><MessageSquare className="h-2.5 w-2.5" />{noteCount}</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#5F7288]"><Paperclip className="h-2.5 w-2.5" />{ticket.evidenceCount}</span>
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-[#E2DCF8] bg-[#F8FBFE] px-3 py-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#6E6D8A]"><MessageSquare className="h-2.5 w-2.5" />{noteCount}</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#6E6D8A]"><Paperclip className="h-2.5 w-2.5" />{ticket.evidenceCount}</span>
           <span className="ml-auto">{statusBadge(ticket.status)}</span>
         </div>
       </DropdownMenuContent>
@@ -421,12 +421,12 @@ function AddNoteModal({ ticket, onClose, onSaved }: { ticket: PRTicket; onClose:
   };
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md rounded-xl border-[#DDE7F0]">
-        <DialogHeader><DialogTitle className="text-sm font-semibold text-[#14264A]">Add Note · {ticket.learnerName}</DialogTitle></DialogHeader>
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Type your note here…" className="mt-3 min-h-[100px] rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" autoFocus />
+      <DialogContent className="max-w-md rounded-xl border-[#E2DCF8]">
+        <DialogHeader><DialogTitle className="text-sm font-semibold text-[#1D1050]">Add Note · {ticket.learnerName}</DialogTitle></DialogHeader>
+        <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Type your note here…" className="mt-3 min-h-[100px] rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" autoFocus />
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || !text.trim()} className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]">{saving ? "Saving…" : "Add Note"}</Button>
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#E2DCF8]">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || !text.trim()} className="rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]">{saving ? "Saving…" : "Add Note"}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -462,8 +462,8 @@ function AddEvidenceModal({ ticket, onClose, onSaved }: { ticket: PRTicket; onCl
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md rounded-xl border-[#DDE7F0]">
-        <DialogHeader><DialogTitle className="text-sm font-semibold text-[#14264A]">Add Evidence · {ticket.learnerName}</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-md rounded-xl border-[#E2DCF8]">
+        <DialogHeader><DialogTitle className="text-sm font-semibold text-[#1D1050]">Add Evidence · {ticket.learnerName}</DialogTitle></DialogHeader>
         <div className="mt-3">
           <EvidenceUploadZone
             ticketId={ticket.id} existingFiles={existingFiles} pendingFiles={pendingFiles}
@@ -474,8 +474,8 @@ function AddEvidenceModal({ ticket, onClose, onSaved }: { ticket: PRTicket; onCl
           />
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">Cancel</Button>
-          <Button onClick={handleSave} disabled={uploading || !pendingFiles.length} className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]">{uploading ? "Uploading…" : "Upload Files"}</Button>
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#E2DCF8]">Cancel</Button>
+          <Button onClick={handleSave} disabled={uploading || !pendingFiles.length} className="rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]">{uploading ? "Uploading…" : "Upload Files"}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -729,15 +729,15 @@ export default function PRTicketsPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/progress-review" label="Progress Review" />
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">PR Ticket System</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Manage progress review support tickets</p>
+              <h1 className="text-xl font-bold text-[#1D1050]">PR Ticket System</h1>
+              <p className="mt-0.5 text-sm text-[#6E6D8A]">Manage progress review support tickets</p>
             </div>
-            <Button onClick={() => setCreateOpen(true)} className="h-9 gap-1.5 rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]">
+            <Button onClick={() => setCreateOpen(true)} className="h-9 gap-1.5 rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]">
               <Plus className="h-4 w-4" /> Create Ticket
             </Button>
           </div>
@@ -747,13 +747,13 @@ export default function PRTicketsPage() {
           {/* Controls */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets, learners, email…" className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets, learners, email…" className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowArchived((v) => !v)} className={`h-10 gap-1.5 rounded-lg border-[#DDE7F0] ${showArchived ? "bg-[#14264A] text-white" : "bg-white text-[#24486D]"}`}>
+            <Button variant="outline" size="sm" onClick={() => setShowArchived((v) => !v)} className={`h-10 gap-1.5 rounded-lg border-[#E2DCF8] ${showArchived ? "bg-[#1D1050] text-white" : "bg-white text-[#3730A3]"}`}>
               <Archive className="h-4 w-4" />{showArchived ? "Back to Active" : "Archived"}
             </Button>
-            <Button variant="outline" size="sm" onClick={exportCsv} className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+            <Button variant="outline" size="sm" onClick={exportCsv} className="h-10 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
               <Download className="h-4 w-4" /> Export CSV
             </Button>
           </div>
@@ -761,9 +761,9 @@ export default function PRTicketsPage() {
           {/* Summary cards */}
           <div className="mb-5 grid grid-cols-3 gap-3">
             {([
-              { key: "all" as const, label: "All Tickets", sub: "Every case", count: allCount, defaultCls: "border-[#DDE7F0] bg-white text-[#14264A]", activeCls: "border-[#14264A] bg-[#14264A] text-white shadow-md" },
+              { key: "all" as const, label: "All Tickets", sub: "Every case", count: allCount, defaultCls: "border-[#E2DCF8] bg-white text-[#1D1050]", activeCls: "border-[#1D1050] bg-[#1D1050] text-white shadow-md" },
               { key: "open" as const, label: "Open Tickets", sub: "Active cases", count: openCount, defaultCls: "border-green-300 bg-green-50 text-green-900", activeCls: "border-green-600 bg-green-600 text-white shadow-md" },
-              { key: "resolved" as const, label: "Resolved", sub: "Resolved cases", count: resolvedCount, defaultCls: "border-[#DDE7F0] bg-white text-[#14264A]", activeCls: "border-violet-600 bg-violet-600 text-white shadow-md" },
+              { key: "resolved" as const, label: "Resolved", sub: "Resolved cases", count: resolvedCount, defaultCls: "border-[#E2DCF8] bg-white text-[#1D1050]", activeCls: "border-violet-600 bg-violet-600 text-white shadow-md" },
             ] as const).map(({ key, label, sub, count, defaultCls, activeCls }) => {
               const isActive = cardFilter === key;
               return (
@@ -778,31 +778,31 @@ export default function PRTicketsPage() {
 
           {/* RAG filter */}
           <div className="mb-5 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-[#5F7288]">RISK FILTER</span>
+            <span className="text-xs font-semibold text-[#6E6D8A]">RISK FILTER</span>
             {(["all", "red", "amber", "green"] as const).map((r) => {
               const cnt = r === "all" ? openCount : tickets.filter((t) => t.risk === r && t.status !== "resolved").length;
               const active = ragFilter === r;
-              const colors: Record<string, string> = { all: "bg-[#14264A] text-white border-[#14264A]", red: "bg-red-600 text-white border-red-600", amber: "bg-amber-500 text-white border-amber-500", green: "bg-green-600 text-white border-green-600" };
-              return <button key={r} onClick={() => setRagFilter(r)} className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all ${active ? colors[r] : "border-[#DDE7F0] bg-white text-[#5F7288] hover:bg-[#EEF7FF]"}`}>{r === "all" ? `All ${cnt}` : `${r.charAt(0).toUpperCase() + r.slice(1)} ${cnt}`}</button>;
+              const colors: Record<string, string> = { all: "bg-[#1D1050] text-white border-[#1D1050]", red: "bg-red-600 text-white border-red-600", amber: "bg-amber-500 text-white border-amber-500", green: "bg-green-600 text-white border-green-600" };
+              return <button key={r} onClick={() => setRagFilter(r)} className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all ${active ? colors[r] : "border-[#E2DCF8] bg-white text-[#6E6D8A] hover:bg-[#EEF2FF]"}`}>{r === "all" ? `All ${cnt}` : `${r.charAt(0).toUpperCase() + r.slice(1)} ${cnt}`}</button>;
             })}
             {escalatedCount > 0 && <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">{escalatedCount} Escalated</span>}
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading tickets…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading tickets…</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]"><CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" /><p>No tickets found</p></div>
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]"><CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" /><p>No tickets found</p></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Ticket</th>
-                      <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Ticket</th>
+                      <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Learner</th>
                       {["Risk", "Status", "Assigned owner", "Last actual completed", "Last PR", "Next PR", "Overdue", "Days Open", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                           {h === "Days Open" ? <DaysCreatedHeader /> : h}
                         </th>
                       ))}
@@ -811,14 +811,14 @@ export default function PRTicketsPage() {
                   <tbody>
                     {filtered.map((t) => (
                       <tr key={t.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                        <td className="px-3 py-3"><span className="font-mono text-xs font-semibold text-[#1E6ACB]">{t.ticketRef}</span></td>
-                        <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]"><p className="font-semibold text-[#14264A]">{t.learnerName}</p><p className="text-xs text-[#71849A]">{t.learnerEmail}</p></td>
+                        <td className="px-3 py-3"><span className="font-mono text-xs font-semibold text-[#5B47D5]">{t.ticketRef}</span></td>
+                        <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]"><p className="font-semibold text-[#1D1050]">{t.learnerName}</p><p className="text-xs text-[#6E6D8A]">{t.learnerEmail}</p></td>
                         <td className="px-3 py-3">{riskBadge(t.risk)}</td>
                         <td className="px-3 py-3">{statusBadge(t.status)}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">—</span>}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{getLastActuallyCompleted(t)}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{getLastProgressReview(t)}</td>
-                        <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtDate(t.nextPrDate)}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">—</span>}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{getLastActuallyCompleted(t)}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{getLastProgressReview(t)}</td>
+                        <td className="px-3 py-3 text-xs font-semibold text-[#1D1050]">{fmtDate(t.nextPrDate)}</td>
                         <td className="px-3 py-3">
                           {(() => {
                             const overdueItems = getOverdueItems(t);
@@ -834,19 +834,19 @@ export default function PRTicketsPage() {
                               <TooltipProvider delayDuration={120}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>{badge}</TooltipTrigger>
-                                  <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#14264A] shadow-lg">
+                                  <TooltipContent side="left" align="center" className="max-w-xs border-red-100 bg-white p-3 text-[#1D1050] shadow-lg">
                                     <p className="mb-2 text-xs font-bold text-red-700">Overdue meetings</p>
                                     {overdueItems.length > 0 ? (
                                       <div className="space-y-1.5">
                                         {overdueItems.map((item) => (
                                           <div key={`${t.id}-${item.date}-${item.status}`} className="grid grid-cols-[5.5rem_1fr] gap-2 text-xs">
-                                            <span className="font-semibold text-[#14264A]">{fmtDate(item.date)}</span>
-                                            <span className="text-[#5F7288]">{item.status || "Not completed"}</span>
+                                            <span className="font-semibold text-[#1D1050]">{fmtDate(item.date)}</span>
+                                            <span className="text-[#6E6D8A]">{item.status || "Not completed"}</span>
                                           </div>
                                         ))}
                                       </div>
                                     ) : (
-                                      <p className="text-xs leading-relaxed text-[#5F7288]">
+                                      <p className="text-xs leading-relaxed text-[#6E6D8A]">
                                         This ticket was archived with {overdueCount} overdue PR{overdueCount === 1 ? "" : "s"}. Live date details are no longer available in the current PR summary.
                                       </p>
                                     )}
@@ -856,7 +856,7 @@ export default function PRTicketsPage() {
                             );
                           })()}
                         </td>
-                        <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{daysSince(t.createdAt)}</td>
+                        <td className="px-3 py-3 text-xs font-semibold text-[#1D1050]">{daysSince(t.createdAt)}</td>
                         <td className="px-3 py-3">
                           {(() => { const count = ticketNoteCount(t.notes); return count > 0 ? <button onClick={() => setQuickNotesTicket(t)} className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 hover:bg-green-100"><MessageSquare className="h-3 w-3" />{count}</button> : <span className="text-xs text-[#A0B0C0]">—</span>; })()}
                         </td>
@@ -870,16 +870,16 @@ export default function PRTicketsPage() {
                             <PRTicketActionsMenu ticket={t} onAddNote={() => setAddNoteTicket(t)} onAddEvidence={() => setAddEvidenceTicket(t)} onEmail={() => handleEmailTicket(t)} onQuickAction={handleQuickAction} />
                           </div>
                         </td>
-                        <td className="px-3 py-3"><button onClick={() => setEditTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">Edit</button></td>
+                        <td className="px-3 py-3"><button onClick={() => setEditTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#5B47D5] hover:bg-[#EEF2FF]">Edit</button></td>
                         <td className="px-3 py-3">
                           <button onClick={async () => { await fetch(`/api/pr-tickets/${t.id}/archive/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ archive: !t.isArchived }) }); await loadTickets(); }}
-                            className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold ${t.isArchived ? "text-green-700 hover:bg-green-50" : "text-[#5F7288] hover:bg-[#F0F4F8]"}`}>
+                            className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold ${t.isArchived ? "text-green-700 hover:bg-green-50" : "text-[#6E6D8A] hover:bg-[#F0F4F8]"}`}>
                             <Archive className="h-3.5 w-3.5" />{t.isArchived ? "Restore" : "Archive"}
                           </button>
                           {t.isArchived && <button onClick={() => setDeleteConfirm(t)} className="mt-1 flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Delete</button>}
                         </td>
                         <td className="px-3 py-3">
-                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">
+                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#5B47D5] hover:bg-[#EEF2FF]">
                             View
                           </button>
                         </td>
@@ -899,18 +899,18 @@ export default function PRTicketsPage() {
 
       {/* View Modal */}
       <Dialog open={Boolean(viewTicket)} onOpenChange={(o) => !o && setViewTicket(null)}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-2xl border-[#DDE7F0] bg-[#F8FBFE] p-0 shadow-2xl">
-          <div className="h-1 bg-[#315D93]" />
-          <DialogHeader className="border-b border-[#DDE7F0] bg-white px-6 py-5">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-2xl border-[#E2DCF8] bg-[#F8FBFE] p-0 shadow-2xl">
+          <div className="h-1 bg-[#4338CA]" />
+          <DialogHeader className="border-b border-[#E2DCF8] bg-white px-6 py-5">
             <DialogTitle className="flex flex-wrap items-start justify-between gap-4 text-left">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#EEF3FB] px-2.5 py-1 font-mono text-xs font-bold text-[#1E6ACB]">{viewTicket?.ticketRef}</span>
+                  <span className="rounded-full bg-[#EEF3FB] px-2.5 py-1 font-mono text-xs font-bold text-[#5B47D5]">{viewTicket?.ticketRef}</span>
                   {viewTicket && riskBadge(viewTicket.risk)}
                   {viewTicket && statusBadge(viewTicket.status)}
                 </div>
-                <p className="mt-3 truncate text-lg font-bold text-[#14264A]">{viewTicket?.learnerName || "PR Ticket"}</p>
-                <p className="mt-1 truncate text-xs font-medium text-[#71849A]">{viewTicket?.learnerEmail}</p>
+                <p className="mt-3 truncate text-lg font-bold text-[#1D1050]">{viewTicket?.learnerName || "PR Ticket"}</p>
+                <p className="mt-1 truncate text-xs font-medium text-[#6E6D8A]">{viewTicket?.learnerEmail}</p>
               </div>
               {viewTicket?.escalated && (
                 <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">Escalated</span>
@@ -919,43 +919,43 @@ export default function PRTicketsPage() {
           </DialogHeader>
           {viewTicket && (
             <div className="space-y-5 p-6 text-sm">
-              <div className="grid grid-cols-1 gap-3 rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-sm sm:grid-cols-3">
                 <div>
-                  <p className="text-xs font-semibold text-[#71849A]">Assigned owner</p>
-                  <p className="mt-1 text-sm font-semibold text-[#14264A]">{viewTicket.assignedOwner || "Unassigned"}</p>
+                  <p className="text-xs font-semibold text-[#6E6D8A]">Assigned owner</p>
+                  <p className="mt-1 text-sm font-semibold text-[#1D1050]">{viewTicket.assignedOwner || "Unassigned"}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#71849A]">Overdue PRs</p>
-                  <p className="mt-1 text-sm font-semibold text-[#14264A]">{viewTicket.overdueCount}</p>
+                  <p className="text-xs font-semibold text-[#6E6D8A]">Overdue PRs</p>
+                  <p className="mt-1 text-sm font-semibold text-[#1D1050]">{viewTicket.overdueCount}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#71849A]">Created By</p>
-                  <p className="mt-1 text-sm font-semibold text-[#14264A]">{viewTicket.createdBy} - {fmtDate(viewTicket.createdAt)}</p>
+                  <p className="text-xs font-semibold text-[#6E6D8A]">Created By</p>
+                  <p className="mt-1 text-sm font-semibold text-[#1D1050]">{viewTicket.createdBy} - {fmtDate(viewTicket.createdAt)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[["Phone", viewTicket.learnerPhone || "-"], ["Organisation", viewTicket.organisation || "-"], ["Programme", viewTicket.programme || "-"], ["Last actual completed", getLastActuallyCompleted(viewTicket)], ["Last PR", getLastProgressReview(viewTicket)], ["Next PR Date", fmtDate(viewTicket.nextPrDate)], ["Action Taken", (viewTicket.action && viewTicket.action !== "no_action") ? (ACTION_OPTIONS.find((o) => o.value === viewTicket.action)?.label ?? "") : ""]].map(([k, v]) => (
-                  <div key={k} className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
-                    <p className="text-xs font-semibold text-[#71849A]">{k}</p>
-                    {v ? <p className="mt-1 text-sm font-medium text-[#14264A]">{v}</p> : <p className="mt-1 text-sm italic text-[#A0B0C0]">{k === "Action Taken" ? "No actions yet" : "-"}</p>}
+                  <div key={k} className="rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-[#6E6D8A]">{k}</p>
+                    {v ? <p className="mt-1 text-sm font-medium text-[#1D1050]">{v}</p> : <p className="mt-1 text-sm italic text-[#A0B0C0]">{k === "Action Taken" ? "No actions yet" : "-"}</p>}
                   </div>
                 ))}
               </div>
-              {cleanTicketNotes(viewTicket.notes) && <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm"><p className="mb-2 text-xs font-semibold text-[#71849A]">Notes</p><p className="whitespace-pre-wrap text-xs leading-relaxed text-[#14264A]">{cleanTicketNotes(viewTicket.notes)}</p></div>}
+              {cleanTicketNotes(viewTicket.notes) && <div className="rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-sm"><p className="mb-2 text-xs font-semibold text-[#6E6D8A]">Notes</p><p className="whitespace-pre-wrap text-xs leading-relaxed text-[#1D1050]">{cleanTicketNotes(viewTicket.notes)}</p></div>}
               {viewFiles.length > 0 && (
-                <div className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
-                  <p className="mb-2 text-xs font-semibold text-[#71849A]">Evidence Files ({viewFiles.length})</p>
+                <div className="rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-sm">
+                  <p className="mb-2 text-xs font-semibold text-[#6E6D8A]">Evidence Files ({viewFiles.length})</p>
                   <div className="space-y-2">
                     {viewFiles.map((f) => (
-                      <div key={f.id} className="flex items-center gap-3 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] p-2.5">
+                      <div key={f.id} className="flex items-center gap-3 rounded-lg border border-[#E2DCF8] bg-[#F8FBFE] p-2.5">
                         <button type="button" onClick={() => setViewPreview({ url: f.url, name: f.name, mime: f.mimeType })} className="relative shrink-0 overflow-hidden rounded-md">
                           {isImage(f.mimeType, f.name)
                             ? <img src={f.url} alt={f.name} className="h-10 w-10 object-cover" />
-                            : <div className="flex h-10 w-10 items-center justify-center bg-[#EEF7FF]"><FileIcon className="h-5 w-5 text-[#1E6ACB]" /></div>}
+                            : <div className="flex h-10 w-10 items-center justify-center bg-[#EEF2FF]"><FileIcon className="h-5 w-5 text-[#5B47D5]" /></div>}
                         </button>
-                        <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#14264A]">{f.name}</p><p className="text-[11px] text-[#71849A]">{fmtDate(f.uploadedAt)}</p></div>
-                        <button type="button" onClick={() => setViewPreview({ url: f.url, name: f.name, mime: f.mimeType })} className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Eye className="h-4 w-4" /></button>
-                        <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Download className="h-4 w-4" /></a>
+                        <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#1D1050]">{f.name}</p><p className="text-[11px] text-[#6E6D8A]">{fmtDate(f.uploadedAt)}</p></div>
+                        <button type="button" onClick={() => setViewPreview({ url: f.url, name: f.name, mime: f.mimeType })} className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"><Eye className="h-4 w-4" /></button>
+                        <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"><Download className="h-4 w-4" /></a>
                       </div>
                     ))}
                   </div>
@@ -972,17 +972,17 @@ export default function PRTicketsPage() {
 
       {/* Quick Notes Modal */}
       <Dialog open={Boolean(quickNotesTicket)} onOpenChange={(o) => !o && setQuickNotesTicket(null)}>
-        <DialogContent className="max-w-md rounded-xl border-[#DDE7F0]">
+        <DialogContent className="max-w-md rounded-xl border-[#E2DCF8]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-[#14264A]">
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-[#1D1050]">
               <MessageSquare className="h-4 w-4 text-green-600" />
               Notes · {quickNotesTicket?.learnerName}
-              <span className="ml-1 font-mono text-xs text-[#71849A]">{quickNotesTicket?.ticketRef}</span>
+              <span className="ml-1 font-mono text-xs text-[#6E6D8A]">{quickNotesTicket?.ticketRef}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="mt-2 max-h-[60vh] overflow-y-auto">
             {quickNotesTicket && cleanTicketNotes(quickNotesTicket.notes)
-              ? <p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#14264A]">{cleanTicketNotes(quickNotesTicket.notes)}</p>
+              ? <p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#1D1050]">{cleanTicketNotes(quickNotesTicket.notes)}</p>
               : <p className="text-xs text-[#A0B0C0]">No notes yet.</p>}
           </div>
         </DialogContent>
@@ -990,27 +990,27 @@ export default function PRTicketsPage() {
 
       {/* Quick Evidence Modal */}
       <Dialog open={Boolean(quickEvidenceTicket)} onOpenChange={(o) => !o && setQuickEvidenceTicket(null)}>
-        <DialogContent className="max-w-lg rounded-xl border-[#DDE7F0]">
+        <DialogContent className="max-w-lg rounded-xl border-[#E2DCF8]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-[#14264A]">
-              <Paperclip className="h-4 w-4 text-[#1E6ACB]" />
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-[#1D1050]">
+              <Paperclip className="h-4 w-4 text-[#5B47D5]" />
               Evidence · {quickEvidenceTicket?.learnerName}
-              <span className="ml-1 font-mono text-xs text-[#71849A]">{quickEvidenceTicket?.ticketRef}</span>
+              <span className="ml-1 font-mono text-xs text-[#6E6D8A]">{quickEvidenceTicket?.ticketRef}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="mt-2 max-h-[60vh] space-y-2 overflow-y-auto">
             {quickEvidenceFiles.length === 0
               ? <p className="text-xs text-[#A0B0C0]">No files uploaded.</p>
               : quickEvidenceFiles.map((f) => (
-                <div key={f.id} className="flex items-center gap-3 rounded-lg border border-[#DDE7F0] bg-white p-2.5">
+                <div key={f.id} className="flex items-center gap-3 rounded-lg border border-[#E2DCF8] bg-white p-2.5">
                   <div className="shrink-0">
                     {isImage(f.mimeType, f.name)
                       ? <img src={f.url} alt={f.name} className="h-10 w-10 rounded-md object-cover" />
-                      : <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#EEF7FF]"><FileIcon className="h-5 w-5 text-[#1E6ACB]" /></div>}
+                      : <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#EEF2FF]"><FileIcon className="h-5 w-5 text-[#5B47D5]" /></div>}
                   </div>
-                  <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#14264A]">{f.name}</p><p className="text-[11px] text-[#71849A]">{fmtDate(f.uploadedAt)}</p></div>
-                  <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Eye className="h-4 w-4" /></a>
-                  <a href={f.url} download={f.name} className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"><Download className="h-4 w-4" /></a>
+                  <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#1D1050]">{f.name}</p><p className="text-[11px] text-[#6E6D8A]">{fmtDate(f.uploadedAt)}</p></div>
+                  <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"><Eye className="h-4 w-4" /></a>
+                  <a href={f.url} download={f.name} className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"><Download className="h-4 w-4" /></a>
                 </div>
               ))}
           </div>
@@ -1018,9 +1018,9 @@ export default function PRTicketsPage() {
       </Dialog>
 
       <Dialog open={Boolean(deleteConfirm)} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
-        <DialogContent className="max-w-sm rounded-xl border-[#DDE7F0]">
-          <DialogHeader><DialogTitle className="text-base font-semibold text-[#14264A]">Permanently Delete Ticket?</DialogTitle></DialogHeader>
-          <p className="mt-2 text-sm text-[#5F7288]">This will permanently delete <strong>{deleteConfirm?.ticketRef}</strong> and all attached files.</p>
+        <DialogContent className="max-w-sm rounded-xl border-[#E2DCF8]">
+          <DialogHeader><DialogTitle className="text-base font-semibold text-[#1D1050]">Permanently Delete Ticket?</DialogTitle></DialogHeader>
+          <p className="mt-2 text-sm text-[#6E6D8A]">This will permanently delete <strong>{deleteConfirm?.ticketRef}</strong> and all attached files.</p>
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="rounded-lg">Cancel</Button>
             <Button onClick={async () => { if (!deleteConfirm) return; await fetch(`/api/pr-tickets/${deleteConfirm.id}/`, { method: "DELETE" }); setDeleteConfirm(null); await loadTickets(); }} className="rounded-lg bg-red-600 text-white hover:bg-red-700">

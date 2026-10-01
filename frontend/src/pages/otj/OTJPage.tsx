@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { BriefcaseBusiness, Ticket, Clock } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
@@ -11,7 +11,7 @@ const CARDS = [
     icon: Clock,
     path: "/otj-hours/track",
     iconBg: "bg-[#E5F0F7]",
-    iconColor: "text-[#24557F]",
+    iconColor: "text-[#3730A3]",
     border: "border-[#C7DCEB] hover:border-[#7198B7]",
   },
   {
@@ -21,7 +21,7 @@ const CARDS = [
     icon: Ticket,
     path: "/otj-hours/tickets",
     iconBg: "bg-[#EBF2F9]",
-    iconColor: "text-[#315D93]",
+    iconColor: "text-[#4338CA]",
     border: "border-[#CDDCEB] hover:border-[#7899BC]",
   },
 ];
@@ -31,16 +31,16 @@ export default function OTJPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/" label="Home" />
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F0F7]">
-              <BriefcaseBusiness className="h-5 w-5 text-[#24557F]" />
+              <BriefcaseBusiness className="h-5 w-5 text-[#3730A3]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">Off The Job Hours</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Monitor and manage learner OTJH</p>
+              <h1 className="text-xl font-bold text-[#1D1050]">Off The Job Hours</h1>
+              <p className="mt-0.5 text-sm text-[#6E6D8A]">Monitor and manage learner OTJH</p>
             </div>
           </div>
         </div>
@@ -57,8 +57,8 @@ export default function OTJPage() {
                   <Icon className={`h-6 w-6 ${iconColor}`} />
                 </div>
                 <div>
-                  <p className="text-base font-bold text-[#14264A] group-hover:text-[#24557F]">{title}</p>
-                  <p className="mt-1 text-sm text-[#5F7288]">{description}</p>
+                  <p className="text-base font-bold text-[#1D1050] group-hover:text-[#3730A3]">{title}</p>
+                  <p className="mt-1 text-sm text-[#6E6D8A]">{description}</p>
                 </div>
               </button>
             ))}

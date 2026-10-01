@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock, Download,
@@ -278,20 +278,20 @@ export default function TrackOTJPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
+      <div className="min-h-full bg-[#F5F4FB]">
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/otj-hours" label="OTJH" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F0F7]">
-                <Clock className="h-5 w-5 text-[#24557F]" />
+                <Clock className="h-5 w-5 text-[#3730A3]" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">Track OTJH</h1>
+                <h1 className="text-xl font-bold text-[#1D1050]">Track OTJH</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-[#5F7288]">Learners behind on off-the-job hours</p>
-                  <span className="inline-flex items-center rounded-full bg-[#14264A] px-3 py-1 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
+                  <p className="text-sm text-[#6E6D8A]">Learners behind on off-the-job hours</p>
+                  <span className="inline-flex items-center rounded-full bg-[#1D1050] px-3 py-1 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
                     Active learners: {activeLearnersLoading ? "..." : activeLearnersCount}
                   </span>
                 </div>
@@ -303,7 +303,7 @@ export default function TrackOTJPage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Creating tickets...
                 </span>
               )}
-              <Button onClick={() => navigate("/otj-hours/tickets")} className="h-9 gap-1.5 rounded-lg bg-[#24557F] text-white hover:bg-[#1B466B]">
+              <Button onClick={() => navigate("/otj-hours/tickets")} className="h-9 gap-1.5 rounded-lg bg-[#3730A3] text-white hover:bg-[#1B466B]">
                 <Ticket className="h-4 w-4" /> OTJH Tickets
               </Button>
             </div>
@@ -355,45 +355,45 @@ export default function TrackOTJPage() {
                 {loading ? "..." : `${atRiskPct}% of ${cardTotal} ${scopedLabel}`}
               </p>
             </button>
-            <div className="rounded-xl border border-[#DDE7F0] bg-white p-4">
+            <div className="rounded-xl border border-[#E2DCF8] bg-white p-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[#5F7288]" />
-                <span className="text-xs font-semibold text-[#5F7288]">Coaches Affected</span>
+                <Clock className="h-4 w-4 text-[#6E6D8A]" />
+                <span className="text-xs font-semibold text-[#6E6D8A]">Coaches Affected</span>
               </div>
-              <p className="mt-1 text-2xl font-bold text-[#14264A]">{loading ? "..." : coachesAffected}</p>
-              <p className="text-xs text-[#71849A]">with at-risk learners</p>
+              <p className="mt-1 text-2xl font-bold text-[#1D1050]">{loading ? "..." : coachesAffected}</p>
+              <p className="text-xs text-[#6E6D8A]">with at-risk learners</p>
             </div>
           </div>
 
           {/* Controls */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation..." className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, organisation..." className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
             <Select value={coachFilter} onValueChange={setCoachFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
+              <SelectTrigger className="h-10 w-auto min-w-[160px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="max-h-72 rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="max-h-72 rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="all">All Coaches</SelectItem>
                 {coaches.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={load} className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+            <Button variant="outline" size="sm" onClick={load} className="h-10 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
-            <Button variant="outline" size="sm" onClick={exportCsv} className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+            <Button variant="outline" size="sm" onClick={exportCsv} className="h-10 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
               <Download className="h-4 w-4" /> Export CSV
             </Button>
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading learners...</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading learners...</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <BriefcaseBusiness className="h-8 w-8 text-[#C5D5E3]" />
                 <p>No learners found</p>
               </div>
@@ -401,10 +401,10 @@ export default function TrackOTJPage() {
               <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 320px)" }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Learner</th>
                       {["Organisation", "Programme", "Coach", "Planned Hours", "Completed", "Target Now", "Req. to Submit", "Progress", "Status", "Follow-up"].map((h) => (
-                        <th key={h} className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -424,16 +424,16 @@ export default function TrackOTJPage() {
                       const ticketId = ticketMap[emailKey(l.email)];
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
-                            <p className="whitespace-nowrap font-semibold text-[#14264A]">{l.fullName}</p>
-                            <p className="text-xs text-[#71849A]">{l.email}</p>
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
+                            <p className="whitespace-nowrap font-semibold text-[#1D1050]">{l.fullName}</p>
+                            <p className="text-xs text-[#6E6D8A]">{l.email}</p>
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.organizationName || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.programName || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.ownerName || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
-                          <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtHoursMin(l.otjPlanned)}</td>
-                          <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtHoursMin(l.otjCompleted)}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtHoursMin(targetNow)}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.organizationName || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.programName || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.ownerName || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
+                          <td className="px-3 py-3 text-xs font-semibold text-[#1D1050]">{fmtHoursMin(l.otjPlanned)}</td>
+                          <td className="px-3 py-3 text-xs font-semibold text-[#1D1050]">{fmtHoursMin(l.otjCompleted)}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{fmtHoursMin(targetNow)}</td>
                           <td className="px-3 py-3 text-xs font-semibold text-red-600">
                             {reqToSubmit(l.progressHours) > 0 ? fmtHoursMin(reqToSubmit(l.progressHours)) : <span className="text-green-600">—</span>}
                           </td>
@@ -466,7 +466,7 @@ export default function TrackOTJPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => openTicket(l)}
-                                className="h-7 whitespace-nowrap gap-1 rounded-lg border-[#D7E5F3] px-2 text-xs font-semibold text-[#24557F] hover:bg-[#EEF7FF]"
+                                className="h-7 whitespace-nowrap gap-1 rounded-lg border-[#E2DCF8] px-2 text-xs font-semibold text-[#3730A3] hover:bg-[#EEF2FF]"
                               >
                                 <Ticket className="h-3 w-3" /> Open Ticket
                               </Button>

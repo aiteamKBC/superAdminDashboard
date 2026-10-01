@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
+import ZoomCallsReport from "@/components/ZoomCallsReport";
+import AgentPerformance from "@/components/callcenter/AgentPerformance";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -179,7 +182,7 @@ function findLearnerFromIndex(
   );
 }
 
-export default function ActivityReport() {
+function LegacyActivityReport() {
   const [apiData, setApiData] = useState<KbcCoach[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -368,34 +371,30 @@ export default function ActivityReport() {
   ];
 
   const stats = [
-    { label: "Total Calls", value: totals.calls, icon: Phone },
-    { label: "Answered", value: totals.answered, icon: PhoneCall },
-    { label: "Not Answered", value: totals.notAnswered, icon: PhoneOff },
-    { label: "Escalated (LM)", value: totals.escalatedLM, icon: AlertTriangle },
-    { label: "Escalated (HR)", value: totals.escalatedHR, icon: AlertTriangle },
-    { label: "Appointments Booked", value: totals.appointments, icon: Calendar },
-    { label: "Emails Sent", value: totals.emails, icon: Mail },
+    { label: "Total Calls", value: totals.calls, icon: Phone, iconBg: "#EEF2FF", iconColor: "#5B47D5" },
+    { label: "Answered", value: totals.answered, icon: PhoneCall, iconBg: "#ECFAF6", iconColor: "#1C9B7A" },
+    { label: "Not Answered", value: totals.notAnswered, icon: PhoneOff, iconBg: "#FFF1F3", iconColor: "#E05C68" },
+    { label: "Escalated (LM)", value: totals.escalatedLM, icon: AlertTriangle, iconBg: "#FFF8E8", iconColor: "#E4A11B" },
+    { label: "Escalated (HR)", value: totals.escalatedHR, icon: AlertTriangle, iconBg: "#FFF1F3", iconColor: "#E05C68" },
+    { label: "Appointments", value: totals.appointments, icon: Calendar, iconBg: "#F3F0FF", iconColor: "#7A61D1" },
+    { label: "Emails Sent", value: totals.emails, icon: Mail, iconBg: "#EEF5FF", iconColor: "#2D73D5" },
   ];
 
   return (
-    <AppLayout>
-      <div className="p-4 sm:p-5 lg:p-6 space-y-5">
-        <div className="flex items-center justify-between">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">
-              Engagement Activity Report
-            </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm font-semibold text-[#1D1050]">
               Activity for {formatMonthLabel(selectedMonth)}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="secondary">Monthly View</Badge>
+            <Badge variant="secondary" className="bg-[#EEF2FF] text-[#5B47D5]">Monthly View</Badge>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="h-10 w-[190px] rounded-lg border-[#D7E5F3] bg-white text-sm font-semibold text-[#14264A]">
+              <SelectTrigger className="h-10 w-[190px] rounded-xl border-[#E2DCF8] bg-white text-sm font-semibold text-[#1D1050] focus:ring-[#5B47D5]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] bg-white shadow-xl">
+              <SelectContent className="rounded-xl border-[#E2DCF8] bg-white shadow-xl">
                 {monthOptions.map((month) => (
                   <SelectItem key={month.value} value={month.value} className="rounded-lg">
                     {month.label}
@@ -412,250 +411,174 @@ export default function ActivityReport() {
           </Card>
         )}
 
+        {/* KPI Stat Cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           {stats.map((s) => (
-            <Card key={s.label} className="p-4 text-center">
-              <s.icon className="mx-auto mb-2 h-4 w-4 text-muted-foreground" />
-              <p className="text-2xl font-bold text-foreground">
-                {loading ? "..." : s.value}
+            <Card key={s.label} className="rounded-xl border border-[#E2DCF8] p-4 shadow-[0_4px_16px_rgba(29,16,80,0.06)]">
+              <div
+                className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg"
+                style={{ backgroundColor: s.iconBg }}
+              >
+                <s.icon className="h-[18px] w-[18px]" style={{ color: s.iconColor }} />
+              </div>
+              <p className="text-2xl font-bold text-[#1D1050] tabular-nums">
+                {loading ? <span className="text-[#C4B8F0]">…</span> : s.value}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-[11px] font-medium text-[#6E6D8A]">
                 {s.label}
               </p>
             </Card>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-2">
-            <p className="mb-4 text-sm font-medium text-foreground">
-              Calls by Day
-            </p>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={dailyActivity}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(214,32%,91%)"
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={formatApiDate}
-                />
-                <YAxis tick={{ fontSize: 11 }} />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <Card className="rounded-xl border border-[#E2DCF8] p-5 shadow-[0_4px_16px_rgba(29,16,80,0.06)] lg:col-span-2">
+            <p className="mb-1 text-sm font-bold text-[#1D1050]">Calls by Day</p>
+            <p className="mb-4 text-xs text-[#6E6D8A]">Answered vs not answered</p>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={dailyActivity} barCategoryGap="35%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEEAFF" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9B94C8" }} tickFormatter={formatApiDate} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#9B94C8" }} axisLine={false} tickLine={false} />
                 <Tooltip
                   labelFormatter={(value) => formatTableDate(String(value))}
+                  contentStyle={{ borderRadius: "10px", border: "1px solid #E2DCF8", boxShadow: "0 8px 24px rgba(29,16,80,0.12)", fontSize: "12px" }}
                 />
-                <Bar
-                  dataKey="answered"
-                  stackId="a"
-                  fill="hsl(142,71%,45%)"
-                  name="Answered"
-                  radius={[0, 0, 0, 0]}
-                />
-                <Bar
-                  dataKey="notAnswered"
-                  stackId="a"
-                  fill="hsl(0,72%,51%)"
-                  name="Not Answered"
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="answered" stackId="a" fill="#1C9B7A" name="Answered" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="notAnswered" stackId="a" fill="#E05C68" name="Not Answered" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-5">
-            <p className="mb-4 text-sm font-medium text-foreground">
-              Outcomes Breakdown
-            </p>
-            <ResponsiveContainer width="100%" height={280}>
+          <Card className="rounded-xl border border-[#E2DCF8] p-5 shadow-[0_4px_16px_rgba(29,16,80,0.06)]">
+            <p className="mb-1 text-sm font-bold text-[#1D1050]">Outcomes</p>
+            <p className="mb-4 text-xs text-[#6E6D8A]">Breakdown by result</p>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={90}
-                  dataKey="value"
-                  paddingAngle={2}
-                >
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" paddingAngle={3}>
                   {pieData.map((_, i) => (
                     <Cell key={i} fill={pieColors[i]} />
                   ))}
                 </Pie>
                 <Legend wrapperStyle={{ fontSize: "11px" }} />
-                <Tooltip />
+                <Tooltip contentStyle={{ borderRadius: "10px", border: "1px solid #E2DCF8", fontSize: "12px" }} />
               </PieChart>
             </ResponsiveContainer>
           </Card>
         </div>
 
-        <Card>
-          <div className="border-b p-4">
-            <p className="text-sm font-medium text-foreground">
-              Daily Activity Log
-            </p>
+        <Card className="rounded-xl border border-[#E2DCF8] shadow-[0_4px_16px_rgba(29,16,80,0.06)]">
+          <div className="flex items-center justify-between border-b border-[#F0EDF9] px-5 py-4">
+            <p className="text-sm font-bold text-[#1D1050]">Daily Activity Log</p>
           </div>
           <div className="overflow-x-auto">
-          <table className="min-w-[640px] w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Date
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Calls
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Answered
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Not Answered
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Escalated LM
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Escalated HR
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Appts Booked
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Emails Sent
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {dailyActivity
-                .slice()
-                .reverse()
-                .map((d) => (
-                  <tr key={d.date} className="border-b">
-                    <td className="p-3 font-medium text-foreground">
-                      {formatTableDate(d.date)}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.callsMade}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.answered}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.notAnswered}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.escalatedLM}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.escalatedHR}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.appointmentsBooked}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {d.emailsSent}
-                    </td>
+            <table className="min-w-[640px] w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#F0EDF9] bg-[#FAF9FF]">
+                  {["Date","Calls","Answered","Not Answered","Escalated LM","Escalated HR","Appts Booked","Emails Sent"].map((h, i) => (
+                    <th key={h} className={`px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#9B94C8] ${i > 0 ? "text-right" : "text-left"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dailyActivity.slice().reverse().map((d) => (
+                  <tr key={d.date} className="border-b border-[#F5F3FC] transition-colors hover:bg-[#FAF9FF]">
+                    <td className="px-4 py-3 font-semibold text-[#1D1050]">{formatTableDate(d.date)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-[#5B47D5] tabular-nums">{d.callsMade}</td>
+                    <td className="px-4 py-3 text-right tabular-nums"><span className="font-semibold text-[#1C9B7A]">{d.answered}</span></td>
+                    <td className="px-4 py-3 text-right tabular-nums"><span className="font-semibold text-[#E05C68]">{d.notAnswered}</span></td>
+                    <td className="px-4 py-3 text-right text-[#6E6D8A] tabular-nums">{d.escalatedLM}</td>
+                    <td className="px-4 py-3 text-right text-[#6E6D8A] tabular-nums">{d.escalatedHR}</td>
+                    <td className="px-4 py-3 text-right text-[#6E6D8A] tabular-nums">{d.appointmentsBooked}</td>
+                    <td className="px-4 py-3 text-right text-[#6E6D8A] tabular-nums">{d.emailsSent}</td>
                   </tr>
                 ))}
-
-              {!loading && dailyActivity.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="p-6 text-center text-sm text-muted-foreground"
-                  >
-                    No activity data found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                {!loading && dailyActivity.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-[#9B94C8]">No activity data found</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </Card>
 
-        <Card>
-          <div className="border-b p-4">
-            <p className="text-sm font-medium text-foreground">
-              Recent Call Details
-            </p>
+        <Card className="rounded-xl border border-[#E2DCF8] shadow-[0_4px_16px_rgba(29,16,80,0.06)]">
+          <div className="flex items-center justify-between border-b border-[#F0EDF9] px-5 py-4">
+            <p className="text-sm font-bold text-[#1D1050]">Recent Call Details</p>
+            <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-semibold text-[#5B47D5]">
+              {flatCalls.length} calls
+            </span>
           </div>
           <div className="overflow-x-auto">
-          <table className="min-w-[700px] w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Date
-                </th>
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Learner
-                </th>
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Learner Email
-                </th>
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Coach
-                </th>
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Phone Number
-                </th>
-                <th className="p-3 text-right font-medium text-muted-foreground">
-                  Calls
-                </th>
-                <th className="p-3 text-left font-medium text-muted-foreground">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {flatCalls
-                .slice()
-                .reverse()
-                .slice(0, 30)
-                .map((row) => (
-                  <tr key={row.id} className="border-b">
-                    <td className="p-3 font-medium text-foreground">
-                      {formatTableDate(row.date)}
-                    </td>
-                    <td className="p-3 text-muted-foreground">
-                      {row.learnerName}
-                    </td>
-                    <td className="p-3 text-muted-foreground">
-                      {row.learnerEmail}
-                    </td>
-                    <td className="p-3 text-muted-foreground">
-                      {row.coachName}
-                    </td>
-                    <td className="p-3 text-muted-foreground">
-                      {row.phoneNumber}
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {row.calls}
-                    </td>
-                    <td className="p-3 text-muted-foreground">
-                      {row.rawResult === "connected"
-                        ? "Answered"
-                        : row.rawResult === "hang_up"
-                          ? "Not Answered"
-                          : row.rawResult || "-"}
+            <table className="min-w-[700px] w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#F0EDF9] bg-[#FAF9FF]">
+                  {["Date","Learner","Email","Coach","Phone","Calls","Status"].map((h, i) => (
+                    <th key={h} className={`px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#9B94C8] ${i === 5 ? "text-right" : "text-left"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {flatCalls.slice().reverse().slice(0, 30).map((row) => (
+                  <tr key={row.id} className="border-b border-[#F5F3FC] transition-colors hover:bg-[#FAF9FF]">
+                    <td className="px-4 py-3 font-semibold text-[#1D1050]">{formatTableDate(row.date)}</td>
+                    <td className="px-4 py-3 font-medium text-[#1D1050]">{row.learnerName}</td>
+                    <td className="px-4 py-3 text-[#6E6D8A]">{row.learnerEmail}</td>
+                    <td className="px-4 py-3 text-[#6E6D8A]">{row.coachName}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-[#6E6D8A]">{row.phoneNumber}</td>
+                    <td className="px-4 py-3 text-right text-[#6E6D8A] tabular-nums">{row.calls}</td>
+                    <td className="px-4 py-3">
+                      {row.rawResult === "connected" ? (
+                        <span className="inline-flex items-center rounded-full bg-[#ECFAF6] px-2.5 py-0.5 text-[11px] font-semibold text-[#0F6F57]">Answered</span>
+                      ) : row.rawResult === "hang_up" ? (
+                        <span className="inline-flex items-center rounded-full bg-[#FFF1F3] px-2.5 py-0.5 text-[11px] font-semibold text-[#B42332]">Not Answered</span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-[#F5F3FC] px-2.5 py-0.5 text-[11px] font-semibold text-[#6E6D8A]">{row.rawResult || "—"}</span>
+                      )}
                     </td>
                   </tr>
                 ))}
-
-              {!loading && flatCalls.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="p-6 text-center text-sm text-muted-foreground"
-                  >
-                    No call details found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                {!loading && flatCalls.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9B94C8]">No call details found</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </Card>
+      </div>
+  );
+}
+
+export default function ActivityReport() {
+  return (
+    <AppLayout>
+      <div className="min-w-0">
+        {/* Page Header */}
+        <div className="border-b border-[#E2DCF8] bg-white px-6 py-5">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[#9B87D8]">Reporting</p>
+          <h1 className="text-2xl font-extrabold text-[#1D1050]">Activity Report</h1>
+          <p className="mt-1 text-sm text-[#6E6D8A]">Call logs, Zoom activity, and agent performance</p>
+        </div>
+
+        <div className="p-4 sm:p-5 lg:p-6">
+          <Tabs defaultValue="zoom">
+            <div className="mb-5 overflow-x-auto">
+              <TabsList className="w-max rounded-xl bg-[#EEF2FF] p-1">
+                <TabsTrigger value="zoom" className="rounded-lg px-5 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#5B47D5] data-[state=active]:shadow-sm">
+                  Zoom calls
+                </TabsTrigger>
+                <TabsTrigger value="activity" className="rounded-lg px-5 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#5B47D5] data-[state=active]:shadow-sm">
+                  Activity log
+                </TabsTrigger>
+                <TabsTrigger value="agents" className="rounded-lg px-5 text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#5B47D5] data-[state=active]:shadow-sm">
+                  Agent performance
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="zoom"><ZoomCallsReport /></TabsContent>
+            <TabsContent value="activity"><LegacyActivityReport /></TabsContent>
+            <TabsContent value="agents"><AgentPerformance /></TabsContent>
+          </Tabs>
+        </div>
       </div>
     </AppLayout>
   );

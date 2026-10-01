@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Learner, KpiCategory } from "@/types/dashboard";
 import { Input } from "@/components/ui/input";
@@ -140,7 +140,7 @@ const getLearnerStatusPillStyle = (status: unknown) => {
   if (s.includes("break")) return { bg: "#FFF8E8", color: "#94610A" };
   if (s.includes("withdraw")) return { bg: "#FFF1F3", color: "#B42332" };
   if (s.includes("ready") || s.includes("boarding") || s.includes("review")) {
-    return { bg: "#EEF7FF", color: "#184D91" };
+    return { bg: "#EEF2FF", color: "#4338CA" };
   }
   return { bg: "#F3F6FA", color: "#5F748B" };
 };
@@ -908,7 +908,7 @@ export default function LearnerTable({
       case "green":
         return "bg-[#ECFAF6] text-[#0F6F57] ring-[#BCEBDE]";
       case "blue":
-        return "bg-[#EEF7FF] text-[#184D91] ring-[#B8D7F2]";
+        return "bg-[#EEF2FF] text-[#4338CA] ring-[#C4B8F0]";
       case "red":
         return "bg-[#FFF1F3] text-[#B42332] ring-[#FFD4DA]";
       case "amber":
@@ -937,11 +937,11 @@ export default function LearnerTable({
   const evidenceItems = evidenceLearner ? getLearnerEvidenceItems(evidenceLearner) : [];
 
   return (
-    <div className="animate-fade-in rounded-lg border border-[#DDE7F0] bg-white p-3 shadow-[0_8px_22px_rgba(20,38,74,0.05)] sm:p-4">
+    <div className="animate-fade-in rounded-lg border border-[#E2DCF8] bg-white p-3 shadow-[0_8px_22px_rgba(29,16,80,0.05)] sm:p-4">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:max-w-[360px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71849A]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6E6D8A]" />
             <Input
               type="search"
               name="learner_lookup"
@@ -952,13 +952,13 @@ export default function LearnerTable({
               placeholder="Search by name, employer, email, phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] pl-10 pr-4 text-sm text-[#20344D] placeholder:text-[#8FA1B4] focus-visible:border-[#1E6ACB] focus-visible:ring-2 focus-visible:ring-[#1E6ACB]/20"
+              className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] pl-10 pr-4 text-sm text-[#1D1050] placeholder:text-[#8FA1B4] focus-visible:border-[#5B47D5] focus-visible:ring-2 focus-visible:ring-[#5B47D5]/20"
             />
           </div>
 
           {kpiCategory === "review-due" && (
             <Select value={sortPresetValue} onValueChange={handleSortPresetChange}>
-              <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[230px]">
+              <SelectTrigger className="h-10 w-full rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm text-[#1D1050] sm:w-[230px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -972,7 +972,7 @@ export default function LearnerTable({
 
           {kpiCategory === "coaching-due" && !isPastMcrMonth && (
             <Select value={sortPresetValue} onValueChange={handleSortPresetChange}>
-              <SelectTrigger className="h-10 w-full rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm text-[#20344D] sm:w-[240px]">
+              <SelectTrigger className="h-10 w-full rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm text-[#1D1050] sm:w-[240px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -991,8 +991,8 @@ export default function LearnerTable({
               onClick={() => setTicketFilter((value) => (value === "open" ? "all" : "open"))}
               className={`h-10 flex-1 rounded-lg px-3 text-sm font-bold sm:flex-none ${
                 ticketFilter === "open"
-                  ? "border-[#14264A] bg-[#14264A] text-white shadow-[0_8px_18px_rgba(20,38,74,0.22)] hover:bg-[#0D1B36] hover:text-white"
-                  : "border-[#184D91] bg-[#184D91] text-white shadow-[0_8px_18px_rgba(24,77,145,0.18)] hover:bg-[#14264A] hover:text-white"
+                  ? "border-[#1D1050] bg-[#1D1050] text-white shadow-[0_8px_18px_rgba(29,16,80,0.22)] hover:bg-[#0D1B36] hover:text-white"
+                  : "border-[#4338CA] bg-[#4338CA] text-white shadow-[0_8px_18px_rgba(24,77,145,0.18)] hover:bg-[#1D1050] hover:text-white"
               }`}
             >
               Open Ticket
@@ -1025,7 +1025,7 @@ export default function LearnerTable({
             size="sm"
             variant="outline"
             onClick={() => handleExport()}
-            className="h-10 gap-1.5 rounded-lg border-[#BFD4E7] bg-[#EEF7FF] text-[#1E6ACB] hover:bg-[#DFF0FF] hover:text-[#184D91]"
+            className="h-10 gap-1.5 rounded-lg border-[#BFD4E7] bg-[#EEF2FF] text-[#5B47D5] hover:bg-[#DFF0FF] hover:text-[#4338CA]"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
@@ -1048,8 +1048,8 @@ export default function LearnerTable({
       )}
 
       {selected.size > 0 && (
-        <div className="mb-3 flex flex-col gap-2 rounded-lg border border-[#B8D7F2] bg-[#EEF7FF] p-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="px-2 text-sm font-semibold text-[#184D91]">
+        <div className="mb-3 flex flex-col gap-2 rounded-lg border border-[#C4B8F0] bg-[#EEF2FF] p-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="px-2 text-sm font-semibold text-[#4338CA]">
             {selected.size} selected
           </div>
 
@@ -1058,7 +1058,7 @@ export default function LearnerTable({
               size="sm"
               variant="outline"
               onClick={() => handleEmailSelected(selectedRows)}
-              className="h-9 gap-1.5 rounded-lg border-[#D7E5F3] bg-white text-[#184D91] hover:bg-[#F8FBFE] hover:text-[#14264A]"
+              className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#4338CA] hover:bg-[#F8FBFE] hover:text-[#1D1050]"
             >
               <Mail className="h-3.5 w-3.5" />
               Email
@@ -1068,7 +1068,7 @@ export default function LearnerTable({
               size="sm"
               variant="outline"
               onClick={() => { setCallOutcome(""); setCallNotes(""); setShowCallModal(true); }}
-              className="h-9 gap-1.5 rounded-lg border-[#D7E5F3] bg-white text-[#94610A] hover:bg-[#FFF8E8] hover:text-[#94610A]"
+              className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#94610A] hover:bg-[#FFF8E8] hover:text-[#94610A]"
             >
               <Phone className="h-3.5 w-3.5" />
               Call
@@ -1078,7 +1078,7 @@ export default function LearnerTable({
               size="sm"
               variant="outline"
               onClick={() => handleExport(selectedRows, "selected-learners")}
-              className="h-9 gap-1.5 rounded-lg border-[#D7E5F3] bg-white text-[#1E6ACB] hover:bg-[#F8FBFE] hover:text-[#184D91]"
+              className="h-9 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#5B47D5] hover:bg-[#F8FBFE] hover:text-[#4338CA]"
             >
               <Download className="h-3.5 w-3.5" />
               Export selected
@@ -1088,7 +1088,7 @@ export default function LearnerTable({
               size="sm"
               variant="ghost"
               onClick={() => setSelected(new Set())}
-              className="h-9 gap-1.5 rounded-lg text-[#71849A] hover:bg-white hover:text-[#20344D]"
+              className="h-9 gap-1.5 rounded-lg text-[#6E6D8A] hover:bg-white hover:text-[#1D1050]"
             >
               <X className="h-3.5 w-3.5" />
               Clear
@@ -1097,15 +1097,15 @@ export default function LearnerTable({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-[#DDE7F0] bg-white">
+      <div className="overflow-hidden rounded-lg border border-[#E2DCF8] bg-white">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
           <table className="min-w-[1120px] w-full text-sm">
             <thead>
-              <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+              <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
                 <th className="sticky left-0 top-0 z-50 w-12 bg-[#F8FBFE] p-3" aria-label="Select learners" />
 
                 <th
-                  className="sticky left-12 top-0 z-50 min-w-[180px] cursor-pointer bg-[#F8FBFE] p-3 text-left font-semibold text-[#5F748B] shadow-[6px_0_12px_-10px_rgba(20,38,74,0.45),1px_0_0_#DDE7F0]"
+                  className="sticky left-12 top-0 z-50 min-w-[180px] cursor-pointer bg-[#F8FBFE] p-3 text-left font-semibold text-[#5F748B] shadow-[6px_0_12px_-10px_rgba(29,16,80,0.45),1px_0_0_#E2DCF8]"
                   onClick={() => toggleSort("lastName")}
                 >
                   <span className="flex items-center gap-1">
@@ -1245,7 +1245,7 @@ export default function LearnerTable({
                         />
                       </td>
 
-                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#20344D] shadow-[6px_0_12px_-10px_rgba(20,38,74,0.35),1px_0_0_#DDE7F0] transition-colors group-hover:bg-[#F8FBFE]">
+                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#1D1050] shadow-[6px_0_12px_-10px_rgba(29,16,80,0.35),1px_0_0_#E2DCF8] transition-colors group-hover:bg-[#F8FBFE]">
                         <div className="flex items-center gap-2">
                           {l.firstName} {l.lastName}
                           {(l as any).isResolved && (
@@ -1337,7 +1337,7 @@ export default function LearnerTable({
 
                       <td className="p-3 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
                         {Boolean((l as any).anyBooked) && String((l as any).anyBookedSessionDate || "").trim() ? (
-                          <Badge className="pointer-events-none rounded-full border-0 bg-[#EEF7FF] px-3 py-1 text-[11px] font-medium text-[#184D91]">
+                          <Badge className="pointer-events-none rounded-full border-0 bg-[#EEF2FF] px-3 py-1 text-[11px] font-medium text-[#4338CA]">
                             {String((l as any).anyBookedSessionDate)}
                           </Badge>
                         ) : (
@@ -1373,7 +1373,7 @@ export default function LearnerTable({
                             return (
                               <button
                                 onClick={() => onFollowUp?.(l, ticket)}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF7FF] px-2.5 py-1.5 text-xs font-semibold text-[#1E6ACB] transition-colors hover:bg-[#DAEEFF]"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF2FF] px-2.5 py-1.5 text-xs font-semibold text-[#5B47D5] transition-colors hover:bg-[#DAEEFF]"
                               >
                                 <ExternalLink className="h-3 w-3" />
                                 View Ticket
@@ -1383,7 +1383,7 @@ export default function LearnerTable({
                           return (
                             <button
                               onClick={() => onFollowUp?.(l, undefined)}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#14264A] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1E3A6A]"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#1D1050] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1E3A6A]"
                             >
                               <Plus className="h-3 w-3" />
                               Open Ticket
@@ -1412,7 +1412,7 @@ export default function LearnerTable({
                           }}
                         />
                       </td>
-                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#20344D] shadow-[6px_0_12px_-10px_rgba(20,38,74,0.35),1px_0_0_#DDE7F0] transition-colors group-hover:bg-[#F8FBFE]">
+                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#1D1050] shadow-[6px_0_12px_-10px_rgba(29,16,80,0.35),1px_0_0_#E2DCF8] transition-colors group-hover:bg-[#F8FBFE]">
                         {l.firstName} {l.lastName}
                       </td>
                       <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
@@ -1444,7 +1444,7 @@ export default function LearnerTable({
                               : stL.includes("awaiting signature")
                               ? { bg: "#F3F0FF", color: "#5440A3" }
                               : stL.includes("scheduled") && !stL.includes("not")
-                              ? { bg: "#EEF7FF", color: "#184D91" }
+                              ? { bg: "#EEF2FF", color: "#4338CA" }
                               : { bg: "#F3F6FA", color: "#5F748B" };
                           return (
                             <span
@@ -1477,7 +1477,7 @@ export default function LearnerTable({
                           }}
                         />
                       </td>
-                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#20344D] shadow-[6px_0_12px_-10px_rgba(20,38,74,0.35),1px_0_0_#DDE7F0] transition-colors group-hover:bg-[#F8FBFE]">
+                      <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#1D1050] shadow-[6px_0_12px_-10px_rgba(29,16,80,0.35),1px_0_0_#E2DCF8] transition-colors group-hover:bg-[#F8FBFE]">
                         {l.firstName} {l.lastName}
                       </td>
                       <td className="p-3 text-muted-foreground">{l.phone || "N/A"}</td>
@@ -1509,7 +1509,7 @@ export default function LearnerTable({
                               : stL.includes("awaiting signature")
                               ? { bg: "#F3F0FF", color: "#5440A3" }
                               : (stL.includes("scheduled") && !stL.includes("not"))
-                              ? { bg: "#EEF7FF", color: "#184D91" }
+                              ? { bg: "#EEF2FF", color: "#4338CA" }
                               : { bg: "#F3F6FA", color: "#5F748B" };
                           return (
                             <span
@@ -1542,7 +1542,7 @@ export default function LearnerTable({
                       />
                     </td>
 
-                    <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#20344D] shadow-[6px_0_12px_-10px_rgba(20,38,74,0.35),1px_0_0_#DDE7F0] transition-colors group-hover:bg-[#F8FBFE]">
+                    <td className="sticky left-12 z-10 min-w-[180px] bg-white px-4 py-3.5 font-medium text-[#1D1050] shadow-[6px_0_12px_-10px_rgba(29,16,80,0.35),1px_0_0_#E2DCF8] transition-colors group-hover:bg-[#F8FBFE]">
                       <div className="flex items-center gap-2">
                         {l.firstName} {l.lastName}
                         {(l as any).isResolved && (
@@ -1612,7 +1612,7 @@ export default function LearnerTable({
 
                         <td className="p-3 min-w-[140px]">
                           {(l as any).bookedPrDate && (l as any).bookedPrDate !== "N/A" ? (
-                            <Badge className="pointer-events-none rounded-full border-0 bg-[#EEF7FF] px-3 py-1 text-[11px] font-medium text-[#184D91]">
+                            <Badge className="pointer-events-none rounded-full border-0 bg-[#EEF2FF] px-3 py-1 text-[11px] font-medium text-[#4338CA]">
                               {(l as any).bookedPrDate}
                             </Badge>
                           ) : (
@@ -1724,8 +1724,8 @@ export default function LearnerTable({
                 <tr>
                   <td colSpan={colSpan} className="p-10 text-center">
                     <div className="mx-auto max-w-sm">
-                      <p className="text-sm font-semibold text-[#14264A]">No learners found</p>
-                      <p className="mt-1 text-xs text-[#71849A]">
+                      <p className="text-sm font-semibold text-[#1D1050]">No learners found</p>
+                      <p className="mt-1 text-xs text-[#6E6D8A]">
                         Try changing the period, coach, status, or search filters.
                       </p>
                     </div>
@@ -1736,7 +1736,7 @@ export default function LearnerTable({
           </table>
         </div>
 
-        <p className="mt-3 text-xs text-[#71849A]">
+        <p className="mt-3 text-xs text-[#6E6D8A]">
           {filtered.length} learner{filtered.length !== 1 ? "s" : ""} | {selected.size} selected
         </p>
       </div>
@@ -1747,8 +1747,8 @@ export default function LearnerTable({
           if (!open) setEvidenceLearner(null);
         }}
       >
-        <DialogContent className="overflow-hidden rounded-2xl border-[#DDE7F0] p-0 sm:max-w-lg [&>button]:hidden">
-          <div className="bg-[#14264A] px-5 py-4 text-white">
+        <DialogContent className="overflow-hidden rounded-2xl border-[#E2DCF8] p-0 sm:max-w-lg [&>button]:hidden">
+          <div className="bg-[#1D1050] px-5 py-4 text-white">
             <DialogHeader className="pr-10">
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-white">
                 <FileText className="h-4 w-4" />
@@ -1776,24 +1776,24 @@ export default function LearnerTable({
               evidenceItems.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-4"
+                  className="rounded-xl border border-[#E2DCF8] bg-[#F8FBFE] p-4"
                 >
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#EEF7FF] px-2.5 py-1 text-xs font-bold text-[#184D91]">
+                    <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-bold text-[#4338CA]">
                       {item.title}
                     </span>
-                    <span className="text-xs text-[#71849A]">{item.meta}</span>
+                    <span className="text-xs text-[#6E6D8A]">{item.meta}</span>
                     <span className="ml-auto rounded-full bg-[#ECFAF6] px-2 py-0.5 text-[11px] font-semibold text-[#0F6F57]">
                       {item.source}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-[#20344D]">
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-[#1D1050]">
                     {item.body}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#71849A]">No evidence recorded for this learner yet.</p>
+              <p className="text-sm text-[#6E6D8A]">No evidence recorded for this learner yet.</p>
             )}
           </div>
         </DialogContent>
@@ -1801,16 +1801,16 @@ export default function LearnerTable({
 
       {/* Call log modal */}
       <Dialog open={showCallModal} onOpenChange={(o) => { if (!o) setShowCallModal(false); }}>
-        <DialogContent className="max-w-md rounded-lg border-[#DDE7F0]">
+        <DialogContent className="max-w-md rounded-lg border-[#E2DCF8]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#14264A]">
+            <DialogTitle className="text-base font-semibold text-[#1D1050]">
               Log Call - {selected.size} learner{selected.size !== 1 ? "s" : ""}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 pt-1">
             {(() => { const sel = filtered.filter((l) => selected.has(l.id)); return sel.length > 0 && (
-              <div className="max-h-24 overflow-y-auto rounded-lg bg-[#F8FBFE] px-3 py-2 text-xs text-[#20344D] space-y-0.5">
+              <div className="max-h-24 overflow-y-auto rounded-lg bg-[#F8FBFE] px-3 py-2 text-xs text-[#1D1050] space-y-0.5">
                 {sel.map((l) => (
                   <div key={l.id}>{l.firstName} {l.lastName} - {l.email}</div>
                 ))}
@@ -1820,7 +1820,7 @@ export default function LearnerTable({
             <div>
               <label className="text-xs font-medium text-[#5F748B] block mb-1">Outcome <span className="text-[#B42332]">*</span></label>
               <Select value={callOutcome} onValueChange={setCallOutcome}>
-                <SelectTrigger className="h-9 rounded-lg border-[#D7E5F3] text-sm">
+                <SelectTrigger className="h-9 rounded-lg border-[#E2DCF8] text-sm">
                   <SelectValue placeholder="Select outcome..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1842,14 +1842,14 @@ export default function LearnerTable({
                 onChange={(e) => setCallNotes(e.target.value)}
                 rows={3}
                 placeholder="Add any notes..."
-                className="resize-none rounded-lg border-[#D7E5F3] text-sm"
+                className="resize-none rounded-lg border-[#E2DCF8] text-sm"
               />
             </div>
 
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setShowCallModal(false)}
-                className="flex-1 h-9 rounded-lg border border-[#D7E5F3] text-sm text-[#5F748B] hover:bg-[#F8FBFE]"
+                className="flex-1 h-9 rounded-lg border border-[#E2DCF8] text-sm text-[#5F748B] hover:bg-[#F8FBFE]"
               >
                 Cancel
               </button>
@@ -1857,7 +1857,7 @@ export default function LearnerTable({
                 disabled={!callOutcome || callSaving}
                 onClick={() => handleSaveCallLog(filtered.filter((l) => selected.has(l.id)))}
                 className="flex-1 h-9 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
-                style={{ background: "#1E6ACB" }}
+                style={{ background: "#5B47D5" }}
               >
                 {callSaving ? "Saving..." : "Save Log"}
               </button>

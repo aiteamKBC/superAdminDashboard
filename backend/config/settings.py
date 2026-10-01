@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     "api",
+    'api.callcenter.apps.CallCenterConfig',
 ]
 
 MIDDLEWARE = [
@@ -129,6 +130,10 @@ CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174',
+).split(',') if origin.strip()]
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -156,6 +161,8 @@ LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
 
+ZOOM_REPORT_TIME_ZONE = os.getenv('ZOOM_REPORT_TIME_ZONE', 'Europe/London')
+
 USE_I18N = True
 
 USE_TZ = True
@@ -173,3 +180,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 KBC_API_KEY = os.getenv("KBC_API_KEY", "")
 KBC_API_BASE_URL = os.getenv("KBC_API_BASE_URL", "https://api.kentbusinesscollege.net")
 N8N_EMAIL_WEBHOOK = os.getenv("N8N_EMAIL_WEBHOOK", "https://n8n.srv943390.hstgr.cloud/webhook/email_sender")
+
+# Call Centre integrations stay disabled/dry-run until explicitly configured.
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+OPENAI_MODEL = os.getenv('OPENAI_MODEL', '')
+OPENAI_TRANSCRIPTION_MODEL = os.getenv('OPENAI_TRANSCRIPTION_MODEL', 'gpt-transcribe')
+ZOOM_AI_TRANSCRIPTION_ENABLED = os.getenv('ZOOM_AI_TRANSCRIPTION_ENABLED', '').lower() in ('1', 'true', 'yes')
+ZOOM_AI_TRANSCRIPTS_PER_SYNC = max(0, min(50, int(os.getenv('ZOOM_AI_TRANSCRIPTS_PER_SYNC', '10'))))
+CALLCENTRE_EMAIL_MODE = os.getenv('CALLCENTRE_EMAIL_MODE', 'dry_run')
+CALLCENTRE_EMAIL_DAILY_CAP = int(os.getenv('CALLCENTRE_EMAIL_DAILY_CAP', '2'))
+CALLCENTRE_PUBLIC_URL = os.getenv('CALLCENTRE_PUBLIC_URL', '').rstrip('/')
+CALLCENTRE_ESCALATION_EMAIL = os.getenv('CALLCENTRE_ESCALATION_EMAIL', '')
+CALLCENTRE_HOLIDAYS = [s.strip() for s in os.getenv('CALLCENTRE_HOLIDAYS', '').split(',') if s.strip()]

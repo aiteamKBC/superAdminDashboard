@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
@@ -322,13 +322,13 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-[#DDE7F0] px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-[#E2DCF8] px-4 py-3">
           {img ? (
-            <ImageIcon className="h-4 w-4 shrink-0 text-[#1E6ACB]" />
+            <ImageIcon className="h-4 w-4 shrink-0 text-[#5B47D5]" />
           ) : (
-            <FileIcon className="h-4 w-4 shrink-0 text-[#1E6ACB]" />
+            <FileIcon className="h-4 w-4 shrink-0 text-[#5B47D5]" />
           )}
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#14264A]">{target.name}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#1D1050]">{target.name}</span>
           {target.size !== undefined && (
             <span className="shrink-0 text-xs text-[#A0B0C0]">{(target.size / 1024).toFixed(0)} KB</span>
           )}
@@ -337,7 +337,7 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
             download={target.name}
             target="_blank"
             rel="noreferrer"
-            className="shrink-0 rounded-lg p-1.5 text-[#1E6ACB] hover:bg-[#EEF7FF]"
+            className="shrink-0 rounded-lg p-1.5 text-[#5B47D5] hover:bg-[#EEF2FF]"
             title="Download"
             onClick={(e) => e.stopPropagation()}
           >
@@ -345,14 +345,14 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
           </a>
           <button
             onClick={onClose}
-            className="shrink-0 rounded-lg p-1.5 text-[#71849A] hover:bg-[#F0F4F8]"
+            className="shrink-0 rounded-lg p-1.5 text-[#6E6D8A] hover:bg-[#F0F4F8]"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className={`flex-1 overflow-auto bg-[#F4F8FC] ${img ? "flex items-center justify-center p-4" : "p-4"}`}>
+        <div className={`flex-1 overflow-auto bg-[#F5F4FB] ${img ? "flex items-center justify-center p-4" : "p-4"}`}>
           {/* Image */}
           {img && (
             <img
@@ -367,21 +367,21 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
             <iframe
               src={target.url}
               title={target.name}
-              className="h-[72vh] w-full rounded-lg border border-[#DDE7F0] bg-white"
+              className="h-[72vh] w-full rounded-lg border border-[#E2DCF8] bg-white"
             />
           )}
 
           {/* CSV — table */}
           {csv && (
             textLoading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#71849A]">Loading…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div>
             ) : csvRows ? (
-              <div className="overflow-auto rounded-xl border border-[#DDE7F0] bg-white">
+              <div className="overflow-auto rounded-xl border border-[#E2DCF8] bg-white">
                 <table className="min-w-full text-xs">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F0F6FF]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F0F6FF]">
                       {csvRows[0].map((cell, ci) => (
-                        <th key={ci} className="px-3 py-2 text-left font-semibold text-[#14264A]">
+                        <th key={ci} className="px-3 py-2 text-left font-semibold text-[#1D1050]">
                           {cell}
                         </th>
                       ))}
@@ -389,7 +389,7 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
                   </thead>
                   <tbody>
                     {csvRows.slice(1).map((row, ri) => (
-                      <tr key={ri} className={`border-b border-[#F4F8FC] ${ri % 2 === 0 ? "bg-white" : "bg-[#F9FBFD]"}`}>
+                      <tr key={ri} className={`border-b border-[#F5F4FB] ${ri % 2 === 0 ? "bg-white" : "bg-[#F9FBFD]"}`}>
                         {row.map((cell, ci) => (
                           <td key={ci} className="px-3 py-2 text-[#3A506B]">
                             {cell}
@@ -399,7 +399,7 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
                     ))}
                   </tbody>
                 </table>
-                <p className="border-t border-[#DDE7F0] px-3 py-2 text-[11px] text-[#A0B0C0]">
+                <p className="border-t border-[#E2DCF8] px-3 py-2 text-[11px] text-[#A0B0C0]">
                   {csvRows.length - 1} rows · {csvRows[0]?.length ?? 0} columns
                 </p>
               </div>
@@ -411,9 +411,9 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
           {/* Plain text / TXT */}
           {txt && (
             textLoading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#71849A]">Loading…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div>
             ) : textContent ? (
-              <pre className="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded-xl border border-[#DDE7F0] bg-white p-4 font-mono text-xs leading-relaxed text-[#14264A]">
+              <pre className="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded-xl border border-[#E2DCF8] bg-white p-4 font-mono text-xs leading-relaxed text-[#1D1050]">
                 {textContent}
               </pre>
             ) : (
@@ -424,12 +424,12 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
           {/* Unsupported */}
           {!img && !pdf && !csv && !txt && (
             <div className="flex flex-col items-center gap-4 py-10">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#EEF7FF]">
-                <FileIcon className="h-10 w-10 text-[#1E6ACB]" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#EEF2FF]">
+                <FileIcon className="h-10 w-10 text-[#5B47D5]" />
               </div>
-              <p className="text-base font-semibold text-[#14264A]">{target.name}</p>
+              <p className="text-base font-semibold text-[#1D1050]">{target.name}</p>
               {target.size !== undefined && (
-                <p className="text-sm text-[#71849A]">{(target.size / 1024).toFixed(1)} KB</p>
+                <p className="text-sm text-[#6E6D8A]">{(target.size / 1024).toFixed(1)} KB</p>
               )}
               <p className="text-xs text-[#A0B0C0]">Preview not available for this file type</p>
               <a
@@ -437,7 +437,7 @@ function FilePreviewModal({ target, onClose }: { target: PreviewTarget | null; o
                 download={target.name}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#14264A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1E3A6A]"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1D1050] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1E3A6A]"
               >
                 <Download className="h-4 w-4" />
                 Download file
@@ -510,16 +510,16 @@ function EvidenceUploadZone({
           onDrop={handleDrop}
           className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 transition-colors ${
             dragging
-              ? "border-[#1E6ACB] bg-[#EEF7FF]"
-              : "border-[#D7E5F3] bg-[#F8FBFE] hover:border-[#1E6ACB] hover:bg-[#EEF7FF]"
+              ? "border-[#5B47D5] bg-[#EEF2FF]"
+              : "border-[#E2DCF8] bg-[#F8FBFE] hover:border-[#5B47D5] hover:bg-[#EEF2FF]"
           }`}
         >
-          <UploadCloud className={`h-8 w-8 ${dragging ? "text-[#1E6ACB]" : "text-[#A0B8D0]"}`} />
+          <UploadCloud className={`h-8 w-8 ${dragging ? "text-[#5B47D5]" : "text-[#A0B8D0]"}`} />
           <div className="text-center">
-            <p className="text-sm font-semibold text-[#14264A]">
+            <p className="text-sm font-semibold text-[#1D1050]">
               {uploading ? "Uploading…" : "Click to upload or drag & drop"}
             </p>
-            <p className="mt-0.5 text-xs text-[#71849A]">Images, PDFs, Word docs, Excel, etc.</p>
+            <p className="mt-0.5 text-xs text-[#6E6D8A]">Images, PDFs, Word docs, Excel, etc.</p>
           </div>
           <input
             ref={inputRef}
@@ -536,7 +536,7 @@ function EvidenceUploadZone({
           <div className="space-y-2">
             {/* Existing uploaded files */}
             {existingFiles.map((f) => (
-              <div key={f.id} className="group flex items-center gap-3 rounded-lg border border-[#DDE7F0] bg-white p-2.5">
+              <div key={f.id} className="group flex items-center gap-3 rounded-lg border border-[#E2DCF8] bg-white p-2.5">
                 {/* Thumbnail — click to preview */}
                 <button
                   type="button"
@@ -547,8 +547,8 @@ function EvidenceUploadZone({
                   {isImage(f.mimeType, f.name) ? (
                     <img src={f.url} alt={f.name} className="h-10 w-10 object-cover" />
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center bg-[#EEF7FF]">
-                      <FileIcon className="h-5 w-5 text-[#1E6ACB]" />
+                    <div className="flex h-10 w-10 items-center justify-center bg-[#EEF2FF]">
+                      <FileIcon className="h-5 w-5 text-[#5B47D5]" />
                     </div>
                   )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
@@ -557,19 +557,19 @@ function EvidenceUploadZone({
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-[#14264A]">{f.name}</p>
-                  <p className="text-[11px] text-[#71849A]">{fmtDate(f.uploadedAt)}</p>
+                  <p className="truncate text-xs font-semibold text-[#1D1050]">{f.name}</p>
+                  <p className="text-[11px] text-[#6E6D8A]">{fmtDate(f.uploadedAt)}</p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => openExistingPreview(f)}
-                  className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                  className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"
                   title="Preview"
                 >
                   <Eye className="h-4 w-4" />
                 </button>
-                <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]" title="Download">
+                <a href={f.url} target="_blank" rel="noreferrer" className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]" title="Download">
                   <Download className="h-4 w-4" />
                 </a>
                 <button
@@ -587,7 +587,7 @@ function EvidenceUploadZone({
             {pendingFiles.map((f, i) => {
               const thumbUrl = f.type.startsWith("image/") ? URL.createObjectURL(f) : null;
               return (
-                <div key={`pending-${i}`} className="group flex items-center gap-3 rounded-lg border border-dashed border-[#B8D7F2] bg-[#F0F8FF] p-2.5">
+                <div key={`pending-${i}`} className="group flex items-center gap-3 rounded-lg border border-dashed border-[#C4B8F0] bg-[#F0F8FF] p-2.5">
                   {/* Thumbnail — click to preview */}
                   <button
                     type="button"
@@ -598,8 +598,8 @@ function EvidenceUploadZone({
                     {thumbUrl ? (
                       <img src={thumbUrl} alt={f.name} className="h-10 w-10 object-cover" />
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center bg-[#EEF7FF]">
-                        <FileIcon className="h-5 w-5 text-[#1E6ACB]" />
+                      <div className="flex h-10 w-10 items-center justify-center bg-[#EEF2FF]">
+                        <FileIcon className="h-5 w-5 text-[#5B47D5]" />
                       </div>
                     )}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
@@ -608,8 +608,8 @@ function EvidenceUploadZone({
                   </button>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-[#14264A]">{f.name}</p>
-                    <p className="text-[11px] text-[#71849A]">
+                    <p className="truncate text-xs font-semibold text-[#1D1050]">{f.name}</p>
+                    <p className="text-[11px] text-[#6E6D8A]">
                       {(f.size / 1024).toFixed(0)} KB · Pending upload
                     </p>
                   </div>
@@ -617,7 +617,7 @@ function EvidenceUploadZone({
                   <button
                     type="button"
                     onClick={() => openPendingPreview(f)}
-                    className="shrink-0 rounded p-1 text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                    className="shrink-0 rounded p-1 text-[#5B47D5] hover:bg-[#EEF2FF]"
                     title="Preview"
                   >
                     <Eye className="h-4 w-4" />
@@ -705,54 +705,54 @@ function TicketFormModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#DDE7F0]">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#E2DCF8]">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-[#14264A]">
+          <DialogTitle className="text-base font-semibold text-[#1D1050]">
             {ticketId ? "Edit Ticket" : "Create Attendance Ticket"}
           </DialogTitle>
         </DialogHeader>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Learner Email *</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Learner Email *</Label>
             <Input value={form.learnerEmail} onChange={(e) => set("learnerEmail", e.target.value)}
-              placeholder="learner@example.com" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="learner@example.com" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Learner Name *</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Learner Name *</Label>
             <Input value={form.learnerName} onChange={(e) => set("learnerName", e.target.value)}
-              placeholder="Full name" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="Full name" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Phone</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Phone</Label>
             <Input value={form.learnerPhone} onChange={(e) => set("learnerPhone", e.target.value)}
-              placeholder="07700 000000" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="07700 000000" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Organisation</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Organisation</Label>
             <Input value={form.organisation} onChange={(e) => set("organisation", e.target.value)}
-              placeholder="Organisation name" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="Organisation name" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Programme</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Programme</Label>
             <Input value={form.programme} onChange={(e) => set("programme", e.target.value)}
-              placeholder="e.g. Team Leader" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="e.g. Team Leader" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Attendance Date</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Attendance Date</Label>
             <Input type="date" value={form.attendanceDate} onChange={(e) => set("attendanceDate", e.target.value)}
-              className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Risk Level</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Risk Level</Label>
             <Select value={form.risk} onValueChange={(v) => set("risk", v as TicketRisk)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="green">Green</SelectItem>
                 <SelectItem value="amber">Amber</SelectItem>
@@ -762,9 +762,9 @@ function TicketFormModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-[#24486D]">Status</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Status</Label>
             <Select value={form.status} onValueChange={(v) => set("status", v as TicketStatus)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="open">Open</SelectItem>
@@ -778,15 +778,15 @@ function TicketFormModal({
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">Assigned Owner</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Assigned Owner</Label>
             <Input value={form.assignedOwner} onChange={(e) => set("assignedOwner", e.target.value)}
-              placeholder="Coach or staff name" className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="Coach or staff name" className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">Action Taken</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Action Taken</Label>
             <Select value={form.action} onValueChange={(v) => set("action", v as TicketAction)}>
-              <SelectTrigger className="h-10 rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"><SelectValue placeholder="Select an action…" /></SelectTrigger>
+              <SelectTrigger className="h-10 rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm"><SelectValue placeholder="Select an action…" /></SelectTrigger>
               <SelectContent>
                 {ACTION_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value || "__none__"}>{o.label}</SelectItem>
@@ -796,16 +796,16 @@ function TicketFormModal({
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">Notes</Label>
+            <Label className="text-xs font-semibold text-[#3730A3]">Notes</Label>
             <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)}
-              placeholder="Add any relevant notes…" className="min-h-[80px] rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm" />
+              placeholder="Add any relevant notes…" className="min-h-[80px] rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm" />
           </div>
 
           {/* Evidence — file upload */}
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs font-semibold text-[#24486D]">
+            <Label className="text-xs font-semibold text-[#3730A3]">
               Evidence
-              <span className="ml-1 font-normal text-[#71849A]">— images, PDFs, or documents</span>
+              <span className="ml-1 font-normal text-[#6E6D8A]">— images, PDFs, or documents</span>
             </Label>
             <EvidenceUploadZone
               ticketId={ticketId}
@@ -817,7 +817,7 @@ function TicketFormModal({
               uploading={uploading}
             />
             {!ticketId && pendingFiles.length > 0 && (
-              <p className="text-[11px] text-[#71849A]">
+              <p className="text-[11px] text-[#6E6D8A]">
                 Files will be uploaded after the ticket is created.
               </p>
             )}
@@ -826,19 +826,19 @@ function TicketFormModal({
           <div className="flex items-center gap-2 sm:col-span-2">
             <input type="checkbox" id="escalated" checked={form.escalated}
               onChange={(e) => set("escalated", e.target.checked)}
-              className="h-4 w-4 rounded border-[#D7E5F3] accent-[#14264A]" />
-            <label htmlFor="escalated" className="text-sm font-medium text-[#14264A]">
+              className="h-4 w-4 rounded border-[#E2DCF8] accent-[#1D1050]" />
+            <label htmlFor="escalated" className="text-sm font-medium text-[#1D1050]">
               Mark as Escalated
             </label>
           </div>
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">Cancel</Button>
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#E2DCF8]">Cancel</Button>
           <Button
             onClick={handleSave}
             disabled={saving || !form.learnerEmail.trim() || !form.learnerName.trim()}
-            className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]"
+            className="rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]"
           >
             {saving ? "Saving…" : ticketId ? "Save Changes" : "Create Ticket"}
           </Button>
@@ -862,7 +862,7 @@ function EvidenceViewer({ ticketId }: { ticketId: number }) {
       .catch(() => setLoading(false));
   }, [ticketId]);
 
-  if (loading) return <p className="text-xs text-[#71849A]">Loading files…</p>;
+  if (loading) return <p className="text-xs text-[#6E6D8A]">Loading files…</p>;
   if (!files.length) return <p className="text-xs italic text-[#A0B0C0]">No evidence files attached</p>;
 
   return (
@@ -873,19 +873,19 @@ function EvidenceViewer({ ticketId }: { ticketId: number }) {
             key={f.id}
             type="button"
             onClick={() => setPreview({ url: f.url, name: f.name, mime: f.mimeType, revoke: false })}
-            className="group relative overflow-hidden rounded-lg border border-[#DDE7F0] bg-white text-left transition hover:shadow-md focus:outline-none"
+            className="group relative overflow-hidden rounded-lg border border-[#E2DCF8] bg-white text-left transition hover:shadow-md focus:outline-none"
           >
             {isImage(f.mimeType, f.name) ? (
               <img src={f.url} alt={f.name} className="h-28 w-full object-cover" />
             ) : (
               <div className="flex h-28 flex-col items-center justify-center gap-1 bg-[#F8FBFE]">
-                <FileIcon className="h-8 w-8 text-[#1E6ACB]" />
-                <span className="px-2 text-center text-[11px] font-medium text-[#5F7288] line-clamp-2">{f.name}</span>
+                <FileIcon className="h-8 w-8 text-[#5B47D5]" />
+                <span className="px-2 text-center text-[11px] font-medium text-[#6E6D8A] line-clamp-2">{f.name}</span>
               </div>
             )}
-            <div className="border-t border-[#DDE7F0] px-2 py-1.5">
-              <p className="truncate text-[11px] font-semibold text-[#14264A]">{f.name}</p>
-              <p className="text-[10px] text-[#71849A]">{fmtDate(f.uploadedAt)}</p>
+            <div className="border-t border-[#E2DCF8] px-2 py-1.5">
+              <p className="truncate text-[11px] font-semibold text-[#1D1050]">{f.name}</p>
+              <p className="text-[10px] text-[#6E6D8A]">{fmtDate(f.uploadedAt)}</p>
             </div>
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
               <Eye className="h-6 w-6 text-white" />
@@ -930,9 +930,9 @@ function AddNoteModal({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md rounded-xl border-[#DDE7F0]">
+      <DialogContent className="max-w-md rounded-xl border-[#E2DCF8]">
         <DialogHeader>
-          <DialogTitle className="text-sm font-semibold text-[#14264A]">
+          <DialogTitle className="text-sm font-semibold text-[#1D1050]">
             Add Note · {ticket.learnerName}
           </DialogTitle>
         </DialogHeader>
@@ -941,18 +941,18 @@ function AddNoteModal({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Type your note here…"
-            className="min-h-[100px] rounded-lg border-[#D7E5F3] bg-[#F8FBFE] text-sm"
+            className="min-h-[100px] rounded-lg border-[#E2DCF8] bg-[#F8FBFE] text-sm"
             autoFocus
           />
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#E2DCF8]">
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={saving || !text.trim()}
-            className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]"
+            className="rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]"
           >
             {saving ? "Saving…" : "Add Note"}
           </Button>
@@ -999,9 +999,9 @@ function QuickEvidenceModal({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg rounded-xl border-[#DDE7F0]">
+      <DialogContent className="max-w-lg rounded-xl border-[#E2DCF8]">
         <DialogHeader>
-          <DialogTitle className="text-sm font-semibold text-[#14264A]">
+          <DialogTitle className="text-sm font-semibold text-[#1D1050]">
             Add Evidence · {ticket.learnerName}
           </DialogTitle>
         </DialogHeader>
@@ -1021,13 +1021,13 @@ function QuickEvidenceModal({
           />
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#DDE7F0]">
+          <Button variant="outline" onClick={onClose} className="rounded-lg border-[#E2DCF8]">
             Cancel
           </Button>
           <Button
             onClick={handleUpload}
             disabled={!pendingFiles.length || uploading}
-            className="rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]"
+            className="rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]"
           >
             {uploading
               ? "Uploading…"
@@ -1059,19 +1059,19 @@ function TicketActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="rounded-lg p-1.5 text-[#71849A] hover:bg-[#F0F4F8] focus:outline-none">
+        <button className="rounded-lg p-1.5 text-[#6E6D8A] hover:bg-[#F0F4F8] focus:outline-none">
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-60 overflow-hidden rounded-xl border-[#DDE7F0] p-0 shadow-xl"
+        className="w-60 overflow-hidden rounded-xl border-[#E2DCF8] p-0 shadow-xl"
         style={{ maxHeight: "min(80vh, 520px)" }}
       >
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
-          <p className="text-[11px] font-bold text-[#14264A]">Ticket Actions</p>
-          <p className="truncate text-[10px] text-[#71849A]">
+        <div className="border-b border-[#E2DCF8] bg-[#F8FBFE] px-3 py-2">
+          <p className="text-[11px] font-bold text-[#1D1050]">Ticket Actions</p>
+          <p className="truncate text-[10px] text-[#6E6D8A]">
             {ticket.ticketRef} · {ticket.learnerName}
           </p>
         </div>
@@ -1087,15 +1087,15 @@ function TicketActionsMenu({
           </p>
           <DropdownMenuItem
             onClick={onAddNote}
-            className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+            className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
           >
-            <FileText className="h-4 w-4 text-[#5F7288]" /> Add Note
+            <FileText className="h-4 w-4 text-[#6E6D8A]" /> Add Note
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onAddEvidence}
-            className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+            className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
           >
-            <Paperclip className="h-4 w-4 text-[#5F7288]" /> Add Evidence / File
+            <Paperclip className="h-4 w-4 text-[#6E6D8A]" /> Add Evidence / File
           </DropdownMenuItem>
 
           <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
@@ -1106,9 +1106,9 @@ function TicketActionsMenu({
           </p>
           <DropdownMenuItem
             onClick={() => onQuickAction(ticket.id, { status: "follow_up_scheduled" })}
-            className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+            className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
           >
-            <CalendarClock className="h-4 w-4 text-[#5F7288]" /> Schedule Follow-up
+            <CalendarClock className="h-4 w-4 text-[#6E6D8A]" /> Schedule Follow-up
           </DropdownMenuItem>
 
           <DropdownMenuSeparator className="my-1 bg-[#EEF3F8]" />
@@ -1119,19 +1119,19 @@ function TicketActionsMenu({
           </p>
           <DropdownMenuItem
             onClick={() => onQuickAction(ticket.id, { status: "under_review" })}
-            className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+            className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
           >
-            <ClipboardCheck className="h-4 w-4 text-[#5F7288]" /> Mark as Reviewed
+            <ClipboardCheck className="h-4 w-4 text-[#6E6D8A]" /> Mark as Reviewed
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => onQuickAction(ticket.id, { escalated: true, risk: "red" })}
-            className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+            className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
           >
             <Flag className="h-4 w-4 text-amber-500" /> Flag for Attention
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => onQuickAction(ticket.id, { status: "open", escalated: false })}
-            className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+            className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
           >
             <RefreshCw className="h-4 w-4 text-green-600" /> Reopen / Set Active
           </DropdownMenuItem>
@@ -1160,20 +1160,20 @@ function TicketActionsMenu({
                 }
                 className={`cursor-pointer gap-2 rounded-lg hover:bg-[#F0F4F8] ${
                   isActive
-                    ? "bg-[#EEF7FF] font-semibold text-[#1E6ACB]"
-                    : "text-[#14264A]"
+                    ? "bg-[#EEF2FF] font-semibold text-[#5B47D5]"
+                    : "text-[#1D1050]"
                 }`}
               >
                 {isEmailed ? (
                   <Mail
                     className={`h-4 w-4 shrink-0 ${
-                      isActive ? "text-[#1E6ACB]" : "text-[#5F7288]"
+                      isActive ? "text-[#5B47D5]" : "text-[#6E6D8A]"
                     }`}
                   />
                 ) : (
                   <CheckCircle2
                     className={`h-4 w-4 shrink-0 ${
-                      isActive ? "text-[#1E6ACB]" : "text-[#C5D5E3]"
+                      isActive ? "text-[#5B47D5]" : "text-[#C5D5E3]"
                     }`}
                   />
                 )}
@@ -1190,11 +1190,11 @@ function TicketActionsMenu({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-1.5 border-t border-[#DDE7F0] bg-[#F8FBFE] px-3 py-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#5F7288]">
+        <div className="flex items-center gap-1.5 border-t border-[#E2DCF8] bg-[#F8FBFE] px-3 py-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#6E6D8A]">
             <MessageSquare className="h-2.5 w-2.5" /> {noteCount}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#5F7288]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2 py-0.5 text-[10px] font-semibold text-[#6E6D8A]">
             <Paperclip className="h-2.5 w-2.5" /> {ticket.evidenceCount}
           </span>
           <span className="ml-auto">{statusBadge(ticket.status)}</span>
@@ -1219,7 +1219,7 @@ function CaseNotesModal({ ticket, onClose }: { ticket: AttTicket; onClose: () =>
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 bg-[#14264A] px-4 py-3.5">
+        <div className="flex items-center gap-3 bg-[#1D1050] px-4 py-3.5">
           <MessageSquare className="h-4 w-4 text-white/70" />
           <span className="flex-1 truncate text-sm font-semibold text-white">
             Case Notes · {ticket.learnerName}
@@ -1233,9 +1233,9 @@ function CaseNotesModal({ ticket, onClose }: { ticket: AttTicket; onClose: () =>
         <div className="max-h-72 space-y-2.5 overflow-y-auto bg-white p-4">
           {lines.length > 0 ? (
             lines.map((line, i) => (
-              <div key={i} className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-3">
-                <p className="text-sm text-[#14264A]">{line}</p>
-                <p className="mt-1.5 text-[11px] text-[#71849A]">
+              <div key={i} className="rounded-xl border border-[#E2DCF8] bg-[#F8FBFE] p-3">
+                <p className="text-sm text-[#1D1050]">{line}</p>
+                <p className="mt-1.5 text-[11px] text-[#6E6D8A]">
                   {ticket.createdBy} · {fmtDate(ticket.createdAt)}
                 </p>
               </div>
@@ -1246,12 +1246,12 @@ function CaseNotesModal({ ticket, onClose }: { ticket: AttTicket; onClose: () =>
         </div>
 
         {/* Footer */}
-        <div className="flex flex-wrap items-center gap-2 border-t border-[#DDE7F0] bg-[#F8FBFE] px-4 py-2.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#5F7288]">
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#E2DCF8] bg-[#F8FBFE] px-4 py-2.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#6E6D8A]">
             <MessageSquare className="h-3 w-3" />
             {lines.length} {lines.length === 1 ? "note" : "notes"}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#5F7288]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#6E6D8A]">
             <Paperclip className="h-3 w-3" />
             {ticket.evidenceCount} {ticket.evidenceCount === 1 ? "file" : "files"}
           </span>
@@ -1289,7 +1289,7 @@ function EvidenceFilesModal({ ticket, onClose }: { ticket: AttTicket; onClose: (
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center gap-3 bg-[#14264A] px-4 py-3.5">
+          <div className="flex items-center gap-3 bg-[#1D1050] px-4 py-3.5">
             <Paperclip className="h-4 w-4 text-white/70" />
             <span className="flex-1 truncate text-sm font-semibold text-white">
               Evidence Files · {ticket.learnerName}
@@ -1302,19 +1302,19 @@ function EvidenceFilesModal({ ticket, onClose }: { ticket: AttTicket; onClose: (
           {/* Content */}
           <div className="max-h-72 space-y-2.5 overflow-y-auto bg-white p-4">
             {loading ? (
-              <div className="py-4 text-center text-sm text-[#71849A]">Loading…</div>
+              <div className="py-4 text-center text-sm text-[#6E6D8A]">Loading…</div>
             ) : files.length > 0 ? (
               files.map((f) => (
-                <div key={f.id} className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-3">
-                  <p className="text-sm font-semibold text-[#14264A]">{f.name}</p>
+                <div key={f.id} className="rounded-xl border border-[#E2DCF8] bg-[#F8FBFE] p-3">
+                  <p className="text-sm font-semibold text-[#1D1050]">{f.name}</p>
                   <button
                     type="button"
                     onClick={() => setPreview({ url: f.url, name: f.name, mime: f.mimeType, revoke: false })}
-                    className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[#1E6ACB] hover:underline"
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[#5B47D5] hover:underline"
                   >
                     <Eye className="h-3 w-3" /> Preview
                   </button>
-                  <p className="mt-1.5 text-[11px] text-[#71849A]">
+                  <p className="mt-1.5 text-[11px] text-[#6E6D8A]">
                     {ticket.createdBy} · {fmtDate(f.uploadedAt)}
                   </p>
                 </div>
@@ -1325,12 +1325,12 @@ function EvidenceFilesModal({ ticket, onClose }: { ticket: AttTicket; onClose: (
           </div>
 
           {/* Footer */}
-          <div className="flex flex-wrap items-center gap-2 border-t border-[#DDE7F0] bg-[#F8FBFE] px-4 py-2.5">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#5F7288]">
+          <div className="flex flex-wrap items-center gap-2 border-t border-[#E2DCF8] bg-[#F8FBFE] px-4 py-2.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#6E6D8A]">
               <MessageSquare className="h-3 w-3" />
               {noteCount} {noteCount === 1 ? "note" : "notes"}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#5F7288]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#E8EFF7] px-2.5 py-1 text-xs font-semibold text-[#6E6D8A]">
               <Paperclip className="h-3 w-3" />
               {files.length} {files.length === 1 ? "file" : "files"}
             </span>
@@ -1693,11 +1693,11 @@ export default function AttendanceTicketsPage() {
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a2e; padding: 24px; }
-        header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; border-bottom: 2px solid #14264A; padding-bottom: 10px; }
-        header h1 { font-size: 18px; font-weight: 700; color: #14264A; }
+        header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; border-bottom: 2px solid #1D1050; padding-bottom: 10px; }
+        header h1 { font-size: 18px; font-weight: 700; color: #1D1050; }
         header p { font-size: 10px; color: #6b7280; }
         table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-        th { background: #14264A; color: #fff; padding: 7px 8px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
+        th { background: #1D1050; color: #fff; padding: 7px 8px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
         td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
         tr:nth-child(even) td { background: #f9fafb; }
         .risk { display: inline-block; padding: 1px 7px; border-radius: 99px; font-weight: 700; font-size: 9px; color: #fff; }
@@ -1741,16 +1741,16 @@ export default function AttendanceTicketsPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
+      <div className="min-h-full bg-[#F5F4FB]">
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/attendance" label="Attendance" />
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">Attendance Tickets</h1>
-              <p className="mt-0.5 text-sm text-[#5F7288]">Manage and track attendance support cases</p>
+              <h1 className="text-xl font-bold text-[#1D1050]">Attendance Tickets</h1>
+              <p className="mt-0.5 text-sm text-[#6E6D8A]">Manage and track attendance support cases</p>
             </div>
-            <Button onClick={() => setCreateOpen(true)} className="h-9 gap-1.5 rounded-lg bg-[#14264A] text-white hover:bg-[#184D91]">
+            <Button onClick={() => setCreateOpen(true)} className="h-9 gap-1.5 rounded-lg bg-[#1D1050] text-white hover:bg-[#4338CA]">
               <Plus className="h-4 w-4" />
               Create Ticket
             </Button>
@@ -1775,37 +1775,37 @@ export default function AttendanceTicketsPage() {
           {/* Controls */}
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search tickets, learners, email…"
-                className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+                className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowArchived((v) => !v)}
-              className={`h-10 gap-1.5 rounded-lg border-[#DDE7F0] ${showArchived ? "bg-[#14264A] text-white" : "bg-white text-[#24486D]"}`}>
+              className={`h-10 gap-1.5 rounded-lg border-[#E2DCF8] ${showArchived ? "bg-[#1D1050] text-white" : "bg-white text-[#3730A3]"}`}>
               <Archive className="h-4 w-4" />
               {showArchived ? "Back to Active" : "Archived"}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-10 gap-1.5 rounded-lg border-[#DDE7F0] bg-white text-[#24486D]">
+                <Button variant="outline" size="sm" className="h-10 gap-1.5 rounded-lg border-[#E2DCF8] bg-white text-[#3730A3]">
                   <Download className="h-4 w-4" />
                   Export
                   <ChevronDown className="h-3.5 w-3.5 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 rounded-xl border-[#DDE7F0] p-1.5 shadow-lg">
+              <DropdownMenuContent align="end" className="w-44 rounded-xl border-[#E2DCF8] p-1.5 shadow-lg">
                 <DropdownMenuItem
                   onClick={exportCsv}
-                  className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+                  className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
                 >
-                  <FileText className="h-4 w-4 text-[#5F7288]" />
+                  <FileText className="h-4 w-4 text-[#6E6D8A]" />
                   Export as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={exportPdf}
-                  className="cursor-pointer gap-2 rounded-lg text-[#14264A] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
+                  className="cursor-pointer gap-2 rounded-lg text-[#1D1050] hover:bg-[#F0F4F8] focus:bg-[#F0F4F8]"
                 >
-                  <FileIcon className="h-4 w-4 text-[#5F7288]" />
+                  <FileIcon className="h-4 w-4 text-[#6E6D8A]" />
                   Export as PDF
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -1815,11 +1815,11 @@ export default function AttendanceTicketsPage() {
           {/* Week + Module filter row */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Select value={weekFilter} onValueChange={(v) => setWeekFilter(v as typeof weekFilter)}>
-              <SelectTrigger className="h-10 w-auto min-w-[260px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
-                <CalendarClock className="mr-2 h-4 w-4 text-[#8AA0B6]" />
+              <SelectTrigger className="h-10 w-auto min-w-[260px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
+                <CalendarClock className="mr-2 h-4 w-4 text-[#9B94C8]" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="rounded-xl border-[#E2DCF8] shadow-xl">
                 {WEEK_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value} className="rounded-lg text-sm">
                     {o.label}
@@ -1829,11 +1829,11 @@ export default function AttendanceTicketsPage() {
             </Select>
 
             <Select value={moduleFilter} onValueChange={setModuleFilter}>
-              <SelectTrigger className="h-10 w-auto min-w-[200px] rounded-lg border-[#D7E5F3] bg-white text-sm font-medium text-[#14264A]">
-                <Filter className="mr-2 h-4 w-4 text-[#8AA0B6]" />
+              <SelectTrigger className="h-10 w-auto min-w-[200px] rounded-lg border-[#E2DCF8] bg-white text-sm font-medium text-[#1D1050]">
+                <Filter className="mr-2 h-4 w-4 text-[#9B94C8]" />
                 <SelectValue placeholder="All Modules / Groups" />
               </SelectTrigger>
-              <SelectContent className="max-h-72 rounded-xl border-[#DDE7F0] shadow-xl">
+              <SelectContent className="max-h-72 rounded-xl border-[#E2DCF8] shadow-xl">
                 <SelectItem value="all" className="rounded-lg text-sm">All Modules / Groups</SelectItem>
                 {moduleOptions.map((m) => (
                   <SelectItem key={m} value={m} className="rounded-lg text-sm">{m}</SelectItem>
@@ -1844,13 +1844,13 @@ export default function AttendanceTicketsPage() {
             {(weekFilter !== "all" || moduleFilter !== "all") && (
               <button
                 onClick={() => { setWeekFilter("all"); setModuleFilter("all"); }}
-                className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
+                className="flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm text-[#6E6D8A] hover:bg-[#F0F6FF]"
               >
                 <X className="h-3.5 w-3.5" /> Clear Filters
               </button>
             )}
             {(weekFilter !== "all" || moduleFilter !== "all") && (
-              <span className="ml-1 rounded-full bg-[#EEF3FB] px-3 py-1 text-xs font-semibold text-[#1E6ACB]">
+              <span className="ml-1 rounded-full bg-[#EEF3FB] px-3 py-1 text-xs font-semibold text-[#5B47D5]">
                 {allCount} ticket{allCount !== 1 ? "s" : ""}
               </span>
             )}
@@ -1865,8 +1865,8 @@ export default function AttendanceTicketsPage() {
                   label: "All Tickets",
                   sub: "Every case",
                   count: allCount,
-                  defaultCls: "border-[#DDE7F0] bg-white text-[#14264A]",
-                  activeCls: "border-[#14264A] bg-[#14264A] text-white shadow-md",
+                  defaultCls: "border-[#E2DCF8] bg-white text-[#1D1050]",
+                  activeCls: "border-[#1D1050] bg-[#1D1050] text-white shadow-md",
                 },
                 {
                   key: "open" as const,
@@ -1881,7 +1881,7 @@ export default function AttendanceTicketsPage() {
                   label: "Closed / Covered",
                   sub: "Closed cases",
                   count: resolvedCount,
-                  defaultCls: "border-[#DDE7F0] bg-white text-[#14264A]",
+                  defaultCls: "border-[#E2DCF8] bg-white text-[#1D1050]",
                   activeCls: "border-violet-600 bg-violet-600 text-white shadow-md",
                 },
               ] as const
@@ -1906,14 +1906,14 @@ export default function AttendanceTicketsPage() {
 
           {/* RAG filter */}
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-[#5F7288]">OPEN TICKET RAG</span>
+            <span className="text-xs font-semibold text-[#6E6D8A]">OPEN TICKET RAG</span>
             {(["all", "red", "amber", "green"] as const).map((r) => {
               const cnt = r === "all" ? openCount : weekScopedTickets.filter((t) => t.risk === r && !isClosedTicketStatus(t.status)).length;
               const active = ragFilter === r;
-              const colors: Record<string, string> = { all: "bg-[#14264A] text-white border-[#14264A]", red: "bg-red-600 text-white border-red-600", amber: "bg-amber-500 text-white border-amber-500", green: "bg-green-600 text-white border-green-600" };
+              const colors: Record<string, string> = { all: "bg-[#1D1050] text-white border-[#1D1050]", red: "bg-red-600 text-white border-red-600", amber: "bg-amber-500 text-white border-amber-500", green: "bg-green-600 text-white border-green-600" };
               return (
                 <button key={r} onClick={() => setRagFilter(r)}
-                  className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all ${active ? colors[r] : "border-[#DDE7F0] bg-white text-[#5F7288] hover:bg-[#EEF7FF]"}`}>
+                  className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-all ${active ? colors[r] : "border-[#E2DCF8] bg-white text-[#6E6D8A] hover:bg-[#EEF2FF]"}`}>
                   {r === "all" ? `All Tickets ${cnt}` : `${r.charAt(0).toUpperCase() + r.slice(1)} ${cnt}`}
                 </button>
               );
@@ -1922,12 +1922,12 @@ export default function AttendanceTicketsPage() {
 
           {/* Notes filter */}
           <div className="mb-5 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-[#5F7288]">NOTES / EVIDENCE</span>
+            <span className="text-xs font-semibold text-[#6E6D8A]">NOTES / EVIDENCE</span>
             {(["all", "has", "missing"] as const).map((f) => {
               const labels = { all: "All", has: `Has notes ${weekScopedTickets.filter((t) => t.notes.trim()).length}`, missing: `Missing notes ${weekScopedTickets.filter((t) => !t.notes.trim()).length}` };
               return (
                 <button key={f} onClick={() => setNotesFilter(f)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${notesFilter === f ? "border-[#14264A] bg-[#14264A] text-white" : "border-[#DDE7F0] bg-white text-[#5F7288] hover:bg-[#EEF7FF]"}`}>
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${notesFilter === f ? "border-[#1D1050] bg-[#1D1050] text-white" : "border-[#E2DCF8] bg-white text-[#6E6D8A] hover:bg-[#EEF2FF]"}`}>
                   {labels[f]}
                 </button>
               );
@@ -1943,28 +1943,28 @@ export default function AttendanceTicketsPage() {
               { label: "Green Risk", val: greenCount, icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> },
               { label: "Escalated", val: escalatedCount, icon: <AlertTriangle className="h-4 w-4 text-orange-500" /> },
             ].map(({ label, val, icon }) => (
-              <div key={label} className="flex items-center gap-3 rounded-xl border border-[#DDE7F0] bg-white p-3">
+              <div key={label} className="flex items-center gap-3 rounded-xl border border-[#E2DCF8] bg-white p-3">
                 {icon}
-                <div><p className="text-xs font-medium text-[#5F7288]">{label}</p><p className="text-xl font-bold text-[#14264A]">{val}</p></div>
+                <div><p className="text-xs font-medium text-[#6E6D8A]">{label}</p><p className="text-xl font-bold text-[#1D1050]">{val}</p></div>
               </div>
             ))}
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading tickets…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading tickets…</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" /><p>No tickets found</p>
               </div>
             ) : (
               <div className="max-h-[520px] overflow-auto">
                 <table className="w-full min-w-[1120px] text-sm">
                   <thead>
-                    <tr className="sticky top-0 z-10 border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                    <tr className="sticky top-0 z-10 border-b border-[#E2DCF8] bg-[#F8FBFE]">
                       {["Ticket", "Learner", "Attendance history", "Risk", "Status", "Group", "Absence Date", "Assigned Owner", "Created", "Days", "Notes", "Evidence", "Actions", "Edit", "Archive", "View"].map((h) => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                           {h === "Days" ? <DaysCreatedHeader /> : h}
                         </th>
                       ))}
@@ -1973,10 +1973,10 @@ export default function AttendanceTicketsPage() {
                   <tbody>
                     {filtered.map((t) => (
                       <tr key={t.id} className="border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                        <td className="px-3 py-3"><span className="font-mono text-xs font-semibold text-[#1E6ACB]">{t.ticketRef}</span></td>
+                        <td className="px-3 py-3"><span className="font-mono text-xs font-semibold text-[#5B47D5]">{t.ticketRef}</span></td>
                         <td className="px-3 py-3">
-                          <p className="font-semibold text-[#14264A]">{t.learnerName}</p>
-                          <p className="text-xs text-[#71849A]">{t.learnerEmail}</p>
+                          <p className="font-semibold text-[#1D1050]">{t.learnerName}</p>
+                          <p className="text-xs text-[#6E6D8A]">{t.learnerEmail}</p>
                         </td>
                         <td className="px-3 py-3">
                           {(() => {
@@ -1987,7 +1987,7 @@ export default function AttendanceTicketsPage() {
                                 href={attendanceHistoryUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]"
+                                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-[#5B47D5] hover:bg-[#EEF2FF]"
                               >
                                 <History className="h-3.5 w-3.5" />
                                 Attendance History
@@ -2006,19 +2006,19 @@ export default function AttendanceTicketsPage() {
                         </td>
                         <td className="px-3 py-3">{riskBadge(t.risk)}</td>
                         <td className="px-3 py-3">{statusBadge(t.status)}</td>
-                        <td className="max-w-[180px] px-3 py-3 text-xs text-[#5F7288]">
+                        <td className="max-w-[180px] px-3 py-3 text-xs text-[#6E6D8A]">
                           {t.attendanceModule ? (
                             <span className="line-clamp-2">{t.attendanceModule}</span>
                           ) : (
                             <span className="italic text-[#A0B0C0]">—</span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#14264A]">
+                        <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#1D1050]">
                           {t.attendanceDate ? fmtDate(t.attendanceDate) : <span className="font-normal italic text-[#A0B0C0]">—</span>}
                         </td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtDate(t.createdAt)}</td>
-                        <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{daysSince(t.createdAt)}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{fmtDate(t.createdAt)}</td>
+                        <td className="px-3 py-3 text-xs font-semibold text-[#1D1050]">{daysSince(t.createdAt)}</td>
                         <td className="px-3 py-3">
                           {(() => {
                             const count = t.notes.split("\n").filter((l) => l.trim()).length;
@@ -2070,11 +2070,11 @@ export default function AttendanceTicketsPage() {
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <button onClick={() => setEditTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">Edit</button>
+                          <button onClick={() => setEditTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#5B47D5] hover:bg-[#EEF2FF]">Edit</button>
                         </td>
                         <td className="px-3 py-3">
                           <button onClick={() => handleArchive(t)}
-                            className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold ${t.isArchived ? "text-green-700 hover:bg-green-50" : "text-[#5F7288] hover:bg-[#F0F4F8]"}`}>
+                            className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold ${t.isArchived ? "text-green-700 hover:bg-green-50" : "text-[#6E6D8A] hover:bg-[#F0F4F8]"}`}>
                             <Archive className="h-3.5 w-3.5" />
                             {t.isArchived ? "Restore" : "Archive"}
                           </button>
@@ -2086,7 +2086,7 @@ export default function AttendanceTicketsPage() {
                           )}
                         </td>
                         <td className="px-3 py-3">
-                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#1E6ACB] hover:bg-[#EEF7FF]">
+                          <button onClick={() => setViewTicket(t)} className="rounded px-2 py-1 text-xs font-semibold text-[#5B47D5] hover:bg-[#EEF2FF]">
                             View
                           </button>
                         </td>
@@ -2133,10 +2133,10 @@ export default function AttendanceTicketsPage() {
 
       {/* View modal */}
       <Dialog open={Boolean(viewTicket)} onOpenChange={(o) => !o && setViewTicket(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#DDE7F0]">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl border-[#E2DCF8]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold text-[#14264A]">
-              <span className="font-mono text-[#1E6ACB]">{viewTicket?.ticketRef}</span>
+            <DialogTitle className="flex items-center gap-2 text-base font-semibold text-[#1D1050]">
+              <span className="font-mono text-[#5B47D5]">{viewTicket?.ticketRef}</span>
               {viewTicket && riskBadge(viewTicket.risk)}
             </DialogTitle>
           </DialogHeader>
@@ -2155,8 +2155,8 @@ export default function AttendanceTicketsPage() {
                   ["Created By", `${viewTicket.createdBy} · ${fmtDate(viewTicket.createdAt)}`],
                 ].map(([k, v]) => (
                   <div key={k}>
-                    <p className="text-xs font-semibold text-[#71849A]">{k}</p>
-                    <p className="mt-0.5 text-sm text-[#14264A]">{v}</p>
+                    <p className="text-xs font-semibold text-[#6E6D8A]">{k}</p>
+                    <p className="mt-0.5 text-sm text-[#1D1050]">{v}</p>
                   </div>
                 ))}
               </div>
@@ -2166,12 +2166,12 @@ export default function AttendanceTicketsPage() {
               </div>
               {viewTicket.notes && (
                 <div>
-                  <p className="mb-1 text-xs font-semibold text-[#71849A]">Notes</p>
-                  <p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#14264A]">{viewTicket.notes}</p>
+                  <p className="mb-1 text-xs font-semibold text-[#6E6D8A]">Notes</p>
+                  <p className="whitespace-pre-wrap rounded-lg bg-[#F8FBFE] p-3 text-xs text-[#1D1050]">{viewTicket.notes}</p>
                 </div>
               )}
               <div>
-                <p className="mb-2 text-xs font-semibold text-[#71849A]">Evidence Files</p>
+                <p className="mb-2 text-xs font-semibold text-[#6E6D8A]">Evidence Files</p>
                 <EvidenceViewer ticketId={viewTicket.id} />
               </div>
             </div>
@@ -2205,11 +2205,11 @@ export default function AttendanceTicketsPage() {
 
       {/* Delete confirm */}
       <Dialog open={Boolean(deleteConfirm)} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
-        <DialogContent className="max-w-sm rounded-xl border-[#DDE7F0]">
+        <DialogContent className="max-w-sm rounded-xl border-[#E2DCF8]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#14264A]">Permanently Delete Ticket?</DialogTitle>
+            <DialogTitle className="text-base font-semibold text-[#1D1050]">Permanently Delete Ticket?</DialogTitle>
           </DialogHeader>
-          <p className="mt-2 text-sm text-[#5F7288]">
+          <p className="mt-2 text-sm text-[#6E6D8A]">
             This will permanently delete <strong>{deleteConfirm?.ticketRef}</strong> and all attached files. This cannot be undone.
           </p>
           <div className="mt-4 flex justify-end gap-2">

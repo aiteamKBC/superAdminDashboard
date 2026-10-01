@@ -12,6 +12,7 @@ import TrackAttendancePage from "./pages/attendance/TrackAttendancePage";
 import AttendanceTicketsPage from "./pages/attendance/AttendanceTicketsPage";
 import EmailCentre from "./pages/EmailCentre";
 import ActivityReport from "./pages/ActivityReport";
+import CallCentre from "./pages/CallCentre";
 import AdminPage from "./pages/AdminPage";
 import CalendarPage from "./pages/CalendarPage";
 import LoginPage from "./pages/LoginPage";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/attendance/tickets" element={<ProtectedRoute><AttendanceTicketsPage /></ProtectedRoute>} />
             <Route path="/email-centre" element={<ProtectedRoute><EmailCentre /></ProtectedRoute>} />
             <Route path="/activity-report" element={<ProtectedRoute><ActivityReport /></ProtectedRoute>} />
+            <Route path="/call-centre" element={<ProtectedRoute><CallCentre /></ProtectedRoute>} />
             <Route path="/administrator" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/progress-review" element={<ProtectedRoute><ProgressReviewPage /></ProtectedRoute>} />

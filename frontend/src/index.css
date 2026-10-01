@@ -4,33 +4,34 @@
 
 @layer base {
   :root {
-    --background: 207 45% 96%;
-    --foreground: 214 47% 18%;
+    /* KBC Purple Theme — matches the LMS portal */
+    --background: 246 40% 96%;
+    --foreground: 252 58% 17%;
 
     --card: 0 0% 100%;
-    --card-foreground: 214 47% 18%;
+    --card-foreground: 252 58% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 214 47% 18%;
+    --popover-foreground: 252 58% 17%;
 
-    --primary: 213 77% 46%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 251 64% 56%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 205 100% 97%;
-    --secondary-foreground: 211 61% 27%;
+    --secondary: 246 100% 97%;
+    --secondary-foreground: 251 64% 40%;
 
-    --muted: 207 40% 94%;
-    --muted-foreground: 209 25% 45%;
+    --muted: 246 35% 93%;
+    --muted-foreground: 243 15% 48%;
 
-    --accent: 205 100% 97%;
-    --accent-foreground: 213 77% 46%;
+    --accent: 246 100% 97%;
+    --accent-foreground: 251 64% 56%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 208 39% 88%;
-    --input: 208 39% 88%;
-    --ring: 213 77% 46%;
+    --border: 248 36% 88%;
+    --input: 248 36% 88%;
+    --ring: 251 64% 56%;
 
     --radius: 0.5rem;
 
@@ -51,11 +52,11 @@
     --severity-critical-bg: 0 84% 96%;
 
     --kpi-missed: 354 71% 55%;
-    --kpi-review: 213 77% 46%;
-    --kpi-coaching: 253 55% 62%;
+    --kpi-review: 251 64% 56%;
+    --kpi-coaching: 270 60% 60%;
     --kpi-otj: 39 82% 50%;
 
-    /* Legacy raw palette, kept for screens that still reference these variables. */
+    /* Legacy raw palette */
     --c-1: #F9F4EC; --c-2: #F3E9DA; --c-3: #E9D9BD; --c-4: #DDC398;
     --c-5: #CEA869; --c-6: #b27715; --c-7: #9D6912; --c-8: #80560F;
     --c-9: #64430C; --c-10: #473008;
@@ -68,65 +69,66 @@
     --c-p-300: #F8DFFF; --c-p-400: #F3CEFF; --c-p-500: #EEB7FF;
     --c-p-600: #D6A5E6; --c-p-700: #BA8FC7; --c-p-800: #9875A3; --c-p-900: #72587A;
 
-    --dashboard-bg: 207 45% 96%;
+    --dashboard-bg: 246 40% 96%;
     --dashboard-surface: 0 0% 100%;
-    --dashboard-surface-soft: 205 100% 97%;
-    --dashboard-text: 214 47% 18%;
-    --dashboard-text-soft: 209 25% 45%;
+    --dashboard-surface-soft: 246 100% 97%;
+    --dashboard-text: 252 58% 17%;
+    --dashboard-text-soft: 243 15% 48%;
 
-    --chart-1: 213 77% 46%;
+    --chart-1: 251 64% 56%;
     --chart-2: 173 73% 34%;
     --chart-3: 39 82% 50%;
-    --chart-4: 253 55% 62%;
+    --chart-4: 270 60% 60%;
     --chart-5: 354 71% 55%;
 
-    --sidebar-background: 217 71% 18%;
-    --sidebar-foreground: 210 40% 92%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 217 71% 18%;
-    --sidebar-accent: 217 71% 24%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 50% 28%;
-    --sidebar-ring: 217 91% 60%;
+    /* Sidebar — deep purple matching KBC LMS */
+    --sidebar-background: 257 67% 19%;
+    --sidebar-foreground: 248 40% 92%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 257 67% 19%;
+    --sidebar-accent: 257 55% 26%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 257 40% 30%;
+    --sidebar-ring: 251 80% 70%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    --background: 252 47% 6%;
+    --foreground: 248 40% 98%;
 
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
+    --card: 252 47% 9%;
+    --card-foreground: 248 40% 98%;
 
-    --popover: 222 47% 9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 252 47% 9%;
+    --popover-foreground: 248 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 213 77% 46%;
+    --primary: 248 40% 98%;
+    --primary-foreground: 251 64% 56%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 257 33% 17%;
+    --secondary-foreground: 248 40% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 257 33% 17%;
+    --muted-foreground: 250 20% 65%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 257 33% 17%;
+    --accent-foreground: 248 40% 98%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 213 27% 84%;
+    --border: 257 33% 17%;
+    --input: 257 33% 17%;
+    --ring: 251 27% 84%;
 
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 40% 92%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 217 33% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 252 47% 6%;
+    --sidebar-foreground: 248 40% 92%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 252 47% 6%;
+    --sidebar-accent: 257 33% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 257 33% 17%;
+    --sidebar-ring: 251 80% 70%;
   }
 }
 
@@ -159,18 +161,18 @@
 
   select option {
     background-color: #fff;
-    color: #14264A;
+    color: #1D1050;
     font-size: 0.875rem;
   }
 
   select option:checked {
-    background-color: #EEF7FF;
-    color: #1E6ACB;
+    background-color: #EEF2FF;
+    color: #5B47D5;
     font-weight: 600;
   }
 
   select option:disabled {
-    color: #8AA0B6;
+    color: #9B94C8;
   }
 
   table {
@@ -191,31 +193,31 @@
   }
 
   thead th[data-global-sortable="true"]:hover {
-    color: #1E6ACB;
+    color: #5B47D5;
   }
 
   thead th[data-global-sortable="true"]:not(:has(button))::after {
     content: "↕";
     display: inline-block;
     margin-left: 0.35rem;
-    color: #8AA0B6;
+    color: #9B94C8;
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1;
   }
 
   thead th[data-global-sort-active="true"] {
-    color: #1E6ACB;
+    color: #5B47D5;
   }
 
   thead th[data-global-sortable="true"][data-global-sort-dir="asc"]:not(:has(button))::after {
     content: "↑";
-    color: #1E6ACB;
+    color: #5B47D5;
   }
 
   thead th[data-global-sortable="true"][data-global-sort-dir="desc"]:not(:has(button))::after {
     content: "↓";
-    color: #1E6ACB;
+    color: #5B47D5;
   }
 
   td,
@@ -316,12 +318,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #B8D7F2;
+  background: #C4B8F0;
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #7EA6CF;
+  background: #9B87D8;
 }
 
 ::-webkit-scrollbar-corner {
@@ -330,13 +332,13 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #B8D7F2 transparent;
+  scrollbar-color: #C4B8F0 transparent;
 }
 
 .filter-select-viewport {
   scrollbar-gutter: stable;
   scrollbar-width: auto;
-  scrollbar-color: #6F9FCC #EEF4FA;
+  scrollbar-color: #9B87D8 #F0EDF9;
 }
 
 .filter-select-viewport::-webkit-scrollbar {
@@ -344,17 +346,17 @@
 }
 
 .filter-select-viewport::-webkit-scrollbar-track {
-  background: #EEF4FA;
+  background: #F0EDF9;
   border-radius: 999px;
 }
 
 .filter-select-viewport::-webkit-scrollbar-thumb {
   min-height: 36px;
-  background: #6F9FCC;
-  border: 2px solid #EEF4FA;
+  background: #9B87D8;
+  border: 2px solid #F0EDF9;
   border-radius: 999px;
 }
 
 .filter-select-viewport::-webkit-scrollbar-thumb:hover {
-  background: #4F82B5;
+  background: #7B5CF0;
 }

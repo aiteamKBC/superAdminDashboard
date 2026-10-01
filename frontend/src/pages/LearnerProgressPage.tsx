@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search, TrendingUp, X } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
@@ -631,32 +631,32 @@ export default function LearnerProgressPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/" label="Home" />
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D7E5F3] bg-[#EAF4FF]">
-                <TrendingUp className="h-5 w-5 text-[#1E6ACB]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#E2DCF8] bg-[#EEF2FF]">
+                <TrendingUp className="h-5 w-5 text-[#5B47D5]" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">Learner Progress</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">PR, MCR, and OTJH in one place</p>
+                <h1 className="text-xl font-bold text-[#1D1050]">Learner Progress</h1>
+                <p className="mt-0.5 text-sm text-[#6E6D8A]">PR, MCR, and OTJH in one place</p>
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative min-w-[280px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search student name..."
-                  className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm"
+                  className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm"
                 />
               </div>
               <button
                 onClick={loadOverview}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-xs font-semibold text-[#24486D] transition-colors hover:bg-[#F0F6FF]"
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 text-xs font-semibold text-[#3730A3] transition-colors hover:bg-[#F0F6FF]"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
                 Refresh
@@ -718,63 +718,63 @@ export default function LearnerProgressPage() {
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-xs font-semibold text-[#5F7288] shadow-sm transition-colors hover:bg-[#F0F6FF]"
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 text-xs font-semibold text-[#6E6D8A] shadow-sm transition-colors hover:bg-[#F0F6FF]"
               >
                 <X className="h-3.5 w-3.5" />
                 Clear
               </button>
             )}
-            <span className="ml-auto rounded-full bg-[#14264A] px-3 py-1 text-xs font-bold text-white shadow-sm">
+            <span className="ml-auto rounded-full bg-[#1D1050] px-3 py-1 text-xs font-bold text-white shadow-sm">
               {overviewRows.length} of {allOverviewRows.length}
             </span>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">
                 Loading learner progress...
               </div>
             ) : overviewRows.length === 0 ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">
                 No learners found
               </div>
             ) : (
               <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 210px)" }}>
                 <table className="w-full min-w-[1320px] text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th rowSpan={2} className="sticky left-0 top-0 z-30 border-r border-[#DDE7F0] bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th rowSpan={2} className="sticky left-0 top-0 z-30 border-r border-[#E2DCF8] bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                         Learner
                       </th>
-                      <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                      <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                         Start Date
                       </th>
-                      <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                      <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                         End Date
                       </th>
-                      <th colSpan={2} className="sticky top-0 z-20 border-r border-[#DDE7F0] bg-[#EEF7FF] px-3 py-2 text-center text-xs font-bold text-[#0369A1]">
+                      <th colSpan={2} className="sticky top-0 z-20 border-r border-[#E2DCF8] bg-[#EEF2FF] px-3 py-2 text-center text-xs font-bold text-[#5B47D5]">
                         PR
                       </th>
-                      <th colSpan={2} className="sticky top-0 z-20 border-r border-[#DDE7F0] bg-[#F1F6FC] px-3 py-2 text-center text-xs font-bold text-[#315D93]">
+                      <th colSpan={2} className="sticky top-0 z-20 border-r border-[#E2DCF8] bg-[#F1F6FC] px-3 py-2 text-center text-xs font-bold text-[#4338CA]">
                         MCR
                       </th>
                       <th colSpan={2} className="sticky top-0 z-20 bg-orange-50 px-3 py-2 text-center text-xs font-bold text-orange-800">
                         OTJH
                       </th>
-                      <th colSpan={1} className="sticky top-0 z-20 border-l border-[#DDE7F0] border-r border-[#DDE7F0] bg-[#EEF7FF] px-3 py-2 text-center text-xs font-bold text-[#0369A1]">
+                      <th colSpan={1} className="sticky top-0 z-20 border-l border-[#E2DCF8] border-r border-[#E2DCF8] bg-[#EEF2FF] px-3 py-2 text-center text-xs font-bold text-[#5B47D5]">
                         LMS Activity
                       </th>
                       <th colSpan={2} className="sticky top-0 z-20 bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-700">
                         Aptem Assignment
                       </th>
                     </tr>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
                       {["Last PR", "Next PR", "Last MCR", "Next MCR", "Hours", "Status", "Last Activity", "Pending", "Last Submit"].map((header, index) => (
                         <th
                           key={header}
-                          className={`sticky top-[37px] z-20 whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold text-[#5F7288] ${
-                            index === 1 || index === 3 || index === 5 || index === 6 ? "border-r border-[#DDE7F0]" : ""
-                          } ${index >= 7 ? "bg-slate-100" : index === 6 ? "bg-[#EEF7FF]" : index >= 4 ? "bg-orange-50" : index >= 2 ? "bg-[#F1F6FC]" : "bg-[#EEF7FF]"}`}
+                          className={`sticky top-[37px] z-20 whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold text-[#6E6D8A] ${
+                            index === 1 || index === 3 || index === 5 || index === 6 ? "border-r border-[#E2DCF8]" : ""
+                          } ${index >= 7 ? "bg-slate-100" : index === 6 ? "bg-[#EEF2FF]" : index >= 4 ? "bg-orange-50" : index >= 2 ? "bg-[#F1F6FC]" : "bg-[#EEF2FF]"}`}
                         >
                           {header}
                         </th>
@@ -795,32 +795,32 @@ export default function LearnerProgressPage() {
 
                       return (
                         <tr key={row.key} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-4 py-3 group-hover:bg-[#F8FBFE]">
-                            <p className="whitespace-nowrap font-semibold text-[#14264A]">{row.fullName || "-"}</p>
-                            <p className="text-xs text-[#71849A]">{row.email}</p>
-                            <p className="mt-1 max-w-[280px] truncate text-[11px] text-[#8AA0B6]">
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-4 py-3 group-hover:bg-[#F8FBFE]">
+                            <p className="whitespace-nowrap font-semibold text-[#1D1050]">{row.fullName || "-"}</p>
+                            <p className="text-xs text-[#6E6D8A]">{row.email}</p>
+                            <p className="mt-1 max-w-[280px] truncate text-[11px] text-[#9B94C8]">
                               {[row.organisation, row.programme, row.coach].filter(Boolean).join(" - ") || "-"}
                             </p>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#14264A]">
+                          <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#1D1050]">
                             {formatDate(row.otj?.startDate)}
                           </td>
-                          <td className="whitespace-nowrap border-r border-[#DDE7F0] px-3 py-3 text-xs font-semibold text-[#14264A]">
+                          <td className="whitespace-nowrap border-r border-[#E2DCF8] px-3 py-3 text-xs font-semibold text-[#1D1050]">
                             {formatDate(row.otj?.endDate)}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="whitespace-nowrap px-3 py-3 text-xs text-[#6E6D8A]">
                             {formatDate(row.pr?.lastActuallyCompletedPr || row.pr?.lastProgressReview)}
                           </td>
-                          <td className="border-r border-[#DDE7F0] px-3 py-3">
+                          <td className="border-r border-[#E2DCF8] px-3 py-3">
                             <span className={`inline-flex min-w-[8rem] flex-col rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${toneClass[prNextTone]}`}>
                               <span>{formatDate(row.pr?.nextPrDate)}</span>
                               <span className="mt-0.5 text-[10px] font-bold opacity-80">{prNextStatus || "No next"}</span>
                             </span>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-xs text-[#5F7288]">
+                          <td className="whitespace-nowrap px-3 py-3 text-xs text-[#6E6D8A]">
                             {formatDate(row.mcr?.lastActuallyCompletedMcm || row.mcr?.lastMcm)}
                           </td>
-                          <td className="border-r border-[#DDE7F0] px-3 py-3">
+                          <td className="border-r border-[#E2DCF8] px-3 py-3">
                             <span className={`inline-flex min-w-[8rem] flex-col rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${toneClass[mcrNextTone]}`}>
                               <span>{formatDate(row.mcr?.nextDueDate)}</span>
                               <span className="mt-0.5 text-[10px] font-bold opacity-80">{mcrNextStatus || "No next"}</span>
@@ -837,7 +837,7 @@ export default function LearnerProgressPage() {
                               {row.otj?.otjHoursStatus || "No status"}
                             </span>
                           </td>
-                          <td className="border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3">
+                          <td className="border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3">
                             <span className={`inline-flex min-w-[8rem] flex-col rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${toneClass[lmsTone]}`}>
                               <span>{formatDate(row.lms?.lastActivity)}</span>
                               <span className="mt-0.5 text-[10px] font-bold opacity-80">

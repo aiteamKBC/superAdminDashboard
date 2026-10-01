@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Archive,
@@ -127,9 +127,9 @@ function ModalShell({ title, children, onClose, wide = false }: { title: string;
         className={`max-h-[90vh] w-full overflow-hidden rounded-2xl bg-white shadow-2xl ${wide ? "max-w-3xl" : "max-w-lg"}`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#DDE7F0] bg-[#F8FBFE] px-5 py-4">
-          <h2 className="text-base font-bold text-[#14264A]">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-[#71849A] hover:bg-white hover:text-[#14264A]">
+        <div className="flex items-center justify-between border-b border-[#E2DCF8] bg-[#F8FBFE] px-5 py-4">
+          <h2 className="text-base font-bold text-[#1D1050]">{title}</h2>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-[#6E6D8A] hover:bg-white hover:text-[#1D1050]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -141,9 +141,9 @@ function ModalShell({ title, children, onClose, wide = false }: { title: string;
 
 function InfoTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-3">
-      <p className="text-[11px] font-semibold text-[#71849A]">{label}</p>
-      <div className="mt-1 text-sm font-semibold text-[#14264A]">{value || "-"}</div>
+    <div className="rounded-xl border border-[#E2DCF8] bg-[#F8FBFE] p-3">
+      <p className="text-[11px] font-semibold text-[#6E6D8A]">{label}</p>
+      <div className="mt-1 text-sm font-semibold text-[#1D1050]">{value || "-"}</div>
     </div>
   );
 }
@@ -163,9 +163,9 @@ function ViewTicketModal({ ticket, onClose }: { ticket: EPATicket; onClose: () =
         <InfoTile label="Assigned Owner" value={ticket.assignedOwner || "Unassigned"} />
         <InfoTile label="Action" value={actionLabel[ticket.action] || ticket.action || "-"} />
       </div>
-      <div className="mt-4 rounded-xl border border-[#DDE7F0] bg-white p-4">
-        <p className="text-xs font-bold text-[#71849A]">Notes</p>
-        <div className="mt-2 whitespace-pre-wrap text-sm text-[#14264A]">{ticket.notes || "No notes yet."}</div>
+      <div className="mt-4 rounded-xl border border-[#E2DCF8] bg-white p-4">
+        <p className="text-xs font-bold text-[#6E6D8A]">Notes</p>
+        <div className="mt-2 whitespace-pre-wrap text-sm text-[#1D1050]">{ticket.notes || "No notes yet."}</div>
       </div>
     </ModalShell>
   );
@@ -201,29 +201,29 @@ function EditTicketModal({ ticket, onClose, onSave }: { ticket: EPATicket; onClo
   return (
     <ModalShell title={`Edit ${ticket.ticketRef}`} onClose={onClose}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Risk
-          <select value={form.risk} onChange={(e) => setForm((p) => ({ ...p, risk: e.target.value as EPATicket["risk"] }))} className="h-10 w-full rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm">
+          <select value={form.risk} onChange={(e) => setForm((p) => ({ ...p, risk: e.target.value as EPATicket["risk"] }))} className="h-10 w-full rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm">
             <option value="red">Red</option>
             <option value="amber">Amber</option>
             <option value="green">Green</option>
           </select>
         </label>
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Status
-          <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as EPATicket["status"] }))} className="h-10 w-full rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm">
+          <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as EPATicket["status"] }))} className="h-10 w-full rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm">
             <option value="new">New</option>
             <option value="open">Open</option>
             <option value="resolved">Resolved</option>
           </select>
         </label>
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Assigned Owner
-          <Input value={form.assignedOwner} onChange={(e) => setForm((p) => ({ ...p, assignedOwner: e.target.value }))} className="h-10 rounded-lg border-[#D7E5F3]" />
+          <Input value={form.assignedOwner} onChange={(e) => setForm((p) => ({ ...p, assignedOwner: e.target.value }))} className="h-10 rounded-lg border-[#E2DCF8]" />
         </label>
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Action
-          <select value={form.action} onChange={(e) => setForm((p) => ({ ...p, action: e.target.value }))} className="h-10 w-full rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm">
+          <select value={form.action} onChange={(e) => setForm((p) => ({ ...p, action: e.target.value }))} className="h-10 w-full rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm">
             <option value="">None</option>
             <option value="called">Called</option>
             <option value="emailed">Emailed</option>
@@ -232,22 +232,22 @@ function EditTicketModal({ ticket, onClose, onSave }: { ticket: EPATicket; onClo
             <option value="no_action">No Action Required</option>
           </select>
         </label>
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           End-Date
-          <Input type="date" value={form.endDate} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="h-10 rounded-lg border-[#D7E5F3]" />
+          <Input type="date" value={form.endDate} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="h-10 rounded-lg border-[#E2DCF8]" />
         </label>
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Days Overdue
-          <Input type="number" value={form.daysOverdue} onChange={(e) => setForm((p) => ({ ...p, daysOverdue: e.target.value }))} className="h-10 rounded-lg border-[#D7E5F3]" />
+          <Input type="number" value={form.daysOverdue} onChange={(e) => setForm((p) => ({ ...p, daysOverdue: e.target.value }))} className="h-10 rounded-lg border-[#E2DCF8]" />
         </label>
       </div>
-      <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#24486D]">
+      <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#3730A3]">
         Notes
-        <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} className="min-h-28 w-full rounded-lg border border-[#D7E5F3] bg-white p-3 text-sm text-[#14264A]" />
+        <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} className="min-h-28 w-full rounded-lg border border-[#E2DCF8] bg-white p-3 text-sm text-[#1D1050]" />
       </label>
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => void save()} disabled={saving} className="bg-[#14264A] text-white hover:bg-[#1E3A6A]">
+        <Button onClick={() => void save()} disabled={saving} className="bg-[#1D1050] text-white hover:bg-[#1E3A6A]">
           {saving ? "Saving..." : "Save"}
         </Button>
       </div>
@@ -271,18 +271,18 @@ function NotesModal({ ticket, onClose, onSave }: { ticket: EPATicket; onClose: (
     <ModalShell title={`Notes - ${ticket.ticketRef}`} onClose={onClose}>
       <div className="space-y-2">
         {noteLines(ticket.notes).length ? noteLines(ticket.notes).map((line, index) => (
-          <div key={index} className="rounded-xl border border-[#DDE7F0] bg-[#F8FBFE] p-3 text-sm text-[#14264A]">{line}</div>
-        )) : <p className="rounded-xl bg-[#F8FBFE] p-4 text-sm text-[#71849A]">No notes added yet.</p>}
+          <div key={index} className="rounded-xl border border-[#E2DCF8] bg-[#F8FBFE] p-3 text-sm text-[#1D1050]">{line}</div>
+        )) : <p className="rounded-xl bg-[#F8FBFE] p-4 text-sm text-[#6E6D8A]">No notes added yet.</p>}
       </div>
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Add a note..."
-        className="mt-4 min-h-28 w-full rounded-xl border border-[#D7E5F3] bg-white p-3 text-sm text-[#14264A]"
+        className="mt-4 min-h-28 w-full rounded-xl border border-[#E2DCF8] bg-white p-3 text-sm text-[#1D1050]"
       />
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => void save()} disabled={saving || !note.trim()} className="bg-[#14264A] text-white hover:bg-[#1E3A6A]">
+        <Button onClick={() => void save()} disabled={saving || !note.trim()} className="bg-[#1D1050] text-white hover:bg-[#1E3A6A]">
           Add Note
         </Button>
       </div>
@@ -369,35 +369,35 @@ function EvidenceModal({ ticket, onClose, onUploaded, assignOwner }: { ticket: E
 
   return (
     <ModalShell title={`Evidence - ${ticket.ticketRef}`} onClose={onClose} wide>
-      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#B8D7F2] bg-[#F8FBFE] px-4 py-6 text-center hover:bg-[#EEF7FF]">
-        <UploadCloud className="h-8 w-8 text-[#315D93]" />
-        <span className="text-sm font-semibold text-[#14264A]">{uploading ? "Uploading..." : "Upload images or files"}</span>
-        <span className="text-xs text-[#71849A]">Images, PDF, Word, Excel, text and CSV files are accepted</span>
+      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#C4B8F0] bg-[#F8FBFE] px-4 py-6 text-center hover:bg-[#EEF2FF]">
+        <UploadCloud className="h-8 w-8 text-[#4338CA]" />
+        <span className="text-sm font-semibold text-[#1D1050]">{uploading ? "Uploading..." : "Upload images or files"}</span>
+        <span className="text-xs text-[#6E6D8A]">Images, PDF, Word, Excel, text and CSV files are accepted</span>
         <input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" className="hidden" onChange={(e) => void upload(e.target.files)} />
       </label>
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-sm text-[#71849A]">Loading files...</p>
+          <p className="text-sm text-[#6E6D8A]">Loading files...</p>
         ) : files.length ? files.map((file) => (
-          <div key={file.id} className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white">
+          <div key={file.id} className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white">
             <div className="flex items-center gap-3 p-3">
-              <Paperclip className="h-4 w-4 shrink-0 text-[#315D93]" />
+              <Paperclip className="h-4 w-4 shrink-0 text-[#4338CA]" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#14264A]">{file.name}</p>
-                <p className="text-[11px] text-[#71849A]">{fmtDate(file.uploadedAt)}</p>
+                <p className="truncate text-sm font-semibold text-[#1D1050]">{file.name}</p>
+                <p className="text-[11px] text-[#6E6D8A]">{fmtDate(file.uploadedAt)}</p>
               </div>
               <button
                 onClick={() => void togglePreview(file)}
                 title={previewFile?.id === file.id ? "Close preview" : "Preview"}
-                className={`rounded-lg p-1.5 transition-colors ${previewFile?.id === file.id ? "bg-[#EEF7FF] text-[#1E6ACB]" : "text-[#1E6ACB] hover:bg-[#EEF7FF]"}`}
+                className={`rounded-lg p-1.5 transition-colors ${previewFile?.id === file.id ? "bg-[#EEF2FF] text-[#5B47D5]" : "text-[#5B47D5] hover:bg-[#EEF2FF]"}`}
               >
                 {previewFile?.id === file.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => void downloadFile(file)}
                 title="Download"
-                className="rounded-lg p-1.5 text-[#315D93] hover:bg-[#EEF3FB]"
+                className="rounded-lg p-1.5 text-[#4338CA] hover:bg-[#EEF3FB]"
               >
                 <Download className="h-4 w-4" />
               </button>
@@ -408,7 +408,7 @@ function EvidenceModal({ ticket, onClose, onUploaded, assignOwner }: { ticket: E
 
           </div>
         )) : (
-          <p className="rounded-xl bg-[#F8FBFE] p-4 text-sm text-[#71849A]">No evidence files uploaded yet.</p>
+          <p className="rounded-xl bg-[#F8FBFE] p-4 text-sm text-[#6E6D8A]">No evidence files uploaded yet.</p>
         )}
       </div>
 
@@ -422,21 +422,21 @@ function EvidenceModal({ ticket, onClose, onUploaded, assignOwner }: { ticket: E
             onClick={(e) => e.stopPropagation()}
           >
             {/* header */}
-            <div className="flex shrink-0 items-center justify-between border-b border-[#DDE7F0] bg-[#F8FBFE] px-5 py-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#E2DCF8] bg-[#F8FBFE] px-5 py-3">
               <div className="flex min-w-0 items-center gap-2">
-                <Paperclip className="h-4 w-4 shrink-0 text-[#315D93]" />
-                <span className="truncate text-sm font-bold text-[#14264A]">{previewFile.name}</span>
+                <Paperclip className="h-4 w-4 shrink-0 text-[#4338CA]" />
+                <span className="truncate text-sm font-bold text-[#1D1050]">{previewFile.name}</span>
               </div>
               <div className="ml-3 flex shrink-0 items-center gap-2">
                 <button
                   onClick={() => void downloadFile(previewFile)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#D7E5F3] bg-white px-3 py-1.5 text-xs font-semibold text-[#315D93] hover:bg-[#EEF3FB]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 py-1.5 text-xs font-semibold text-[#4338CA] hover:bg-[#EEF3FB]"
                 >
                   <Download className="h-3.5 w-3.5" /> Download
                 </button>
                 <button
                   onClick={() => { if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); setPreviewBlobUrl(null); } setPreviewFile(null); }}
-                  className="rounded-lg p-1.5 text-[#71849A] hover:bg-slate-100 hover:text-[#14264A]"
+                  className="rounded-lg p-1.5 text-[#6E6D8A] hover:bg-slate-100 hover:text-[#1D1050]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -459,7 +459,7 @@ function EvidenceModal({ ticket, onClose, onUploaded, assignOwner }: { ticket: E
                   <p className="text-sm text-white/60">Preview not available for this file type.</p>
                   <button
                     onClick={() => void downloadFile(previewFile)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#14264A] hover:bg-[#F0F4F8]"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1D1050] hover:bg-[#F0F4F8]"
                   >
                     <Download className="h-4 w-4" /> Download to view
                   </button>
@@ -529,13 +529,13 @@ function CreateTicketModal({ onClose, onCreated, initialName = "", initialEmail 
   };
 
   const field = (label: string, key: keyof typeof form, type = "text") => (
-    <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+    <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
       {label}
       <Input
         type={type}
         value={form[key] as string}
         onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
-        className="h-10 rounded-lg border-[#D7E5F3]"
+        className="h-10 rounded-lg border-[#E2DCF8]"
       />
     </label>
   );
@@ -551,25 +551,25 @@ function CreateTicketModal({ onClose, onCreated, initialName = "", initialEmail 
         {field("Coach Name", "coachName")}
         {field("End-Date", "endDate", "date")}
         {field("Days Overdue", "daysOverdue", "number")}
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Risk
-          <select value={form.risk} onChange={(e) => setForm((p) => ({ ...p, risk: e.target.value as EPATicket["risk"] }))} className="h-10 w-full rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm">
+          <select value={form.risk} onChange={(e) => setForm((p) => ({ ...p, risk: e.target.value as EPATicket["risk"] }))} className="h-10 w-full rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm">
             <option value="red">Red</option>
             <option value="amber">Amber</option>
             <option value="green">Green</option>
           </select>
         </label>
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Status
-          <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as EPATicket["status"] }))} className="h-10 w-full rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm">
+          <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as EPATicket["status"] }))} className="h-10 w-full rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm">
             <option value="new">New</option>
             <option value="open">Open</option>
           </select>
         </label>
         {field("Assigned Owner", "assignedOwner")}
-        <label className="space-y-1.5 text-xs font-semibold text-[#24486D]">
+        <label className="space-y-1.5 text-xs font-semibold text-[#3730A3]">
           Action
-          <select value={form.action} onChange={(e) => setForm((p) => ({ ...p, action: e.target.value }))} className="h-10 w-full rounded-lg border border-[#D7E5F3] bg-white px-3 text-sm">
+          <select value={form.action} onChange={(e) => setForm((p) => ({ ...p, action: e.target.value }))} className="h-10 w-full rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm">
             <option value="">None</option>
             <option value="called">Called</option>
             <option value="emailed">Emailed</option>
@@ -579,14 +579,14 @@ function CreateTicketModal({ onClose, onCreated, initialName = "", initialEmail 
           </select>
         </label>
       </div>
-      <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#24486D]">
+      <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#3730A3]">
         Notes
-        <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} className="min-h-24 w-full rounded-lg border border-[#D7E5F3] bg-white p-3 text-sm text-[#14264A]" />
+        <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} className="min-h-24 w-full rounded-lg border border-[#E2DCF8] bg-white p-3 text-sm text-[#1D1050]" />
       </label>
       {error && <p className="mt-2 text-xs font-semibold text-red-600">{error}</p>}
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => void save()} disabled={saving} className="gap-2 bg-[#14264A] text-white hover:bg-[#1E3A6A]">
+        <Button onClick={() => void save()} disabled={saving} className="gap-2 bg-[#1D1050] text-white hover:bg-[#1E3A6A]">
           <Plus className="h-4 w-4" /> {saving ? "Creating..." : "Create Ticket"}
         </Button>
       </div>
@@ -608,12 +608,12 @@ function EPATicketActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5F7288] hover:bg-[#EEF3FB] hover:text-[#315D93]">
+        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6E6D8A] hover:bg-[#EEF3FB] hover:text-[#4338CA]">
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60 border-[#DDE7F0]">
-        <div className="px-2 py-1.5 text-xs font-semibold text-[#5F7288]">
+      <DropdownMenuContent align="end" className="w-60 border-[#E2DCF8]">
+        <div className="px-2 py-1.5 text-xs font-semibold text-[#6E6D8A]">
           {ticket.ticketRef} - {ticket.learnerName}
         </div>
         <DropdownMenuSeparator />
@@ -631,7 +631,7 @@ function EPATicketActionsMenu({
           <Paperclip className="h-4 w-4 text-blue-700" /> Add Evidence
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8AA0B6]">Risk Level</div>
+        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#9B94C8]">Risk Level</div>
         <DropdownMenuItem onClick={() => onPatch(ticket, { risk: "red" })} className="gap-2">
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ${ticket.risk === "red" ? "ring-2 ring-red-300" : ""}`} />
           Red {ticket.risk === "red" && <span className="ml-auto text-[10px] text-[#A0B0C0]">current</span>}
@@ -799,17 +799,17 @@ export default function EPATicketsPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/gateway" label="Gateway (EPA)" />
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F0F9]">
-                <Ticket className="h-5 w-5 text-[#315D93]" />
+                <Ticket className="h-5 w-5 text-[#4338CA]" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">EPA Ticket System</h1>
-                <p className="mt-0.5 text-sm text-[#5F7288]">
+                <h1 className="text-xl font-bold text-[#1D1050]">EPA Ticket System</h1>
+                <p className="mt-0.5 text-sm text-[#6E6D8A]">
                   Track overdue EPA follow-up tickets
                   {syncing && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">Auto-syncing overdue EPAs...</span>}
                 </p>
@@ -828,16 +828,16 @@ export default function EPATicketsPage() {
               ["Open Tickets", openCount],
               ["Resolved", resolvedCount],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-[#DDE7F0] bg-white p-4 shadow-sm">
-                <p className="text-sm text-[#5F7288]">{label}</p>
-                <p className="mt-2 text-2xl font-bold text-[#14264A]">{value}</p>
+              <div key={label} className="rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-sm">
+                <p className="text-sm text-[#6E6D8A]">{label}</p>
+                <p className="mt-2 text-2xl font-bold text-[#1D1050]">{value}</p>
               </div>
             ))}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-lg border border-[#DDE7F0] bg-white px-3">
-              <Search className="h-4 w-4 text-[#8AA0B6]" />
+            <div className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-lg border border-[#E2DCF8] bg-white px-3">
+              <Search className="h-4 w-4 text-[#9B94C8]" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -845,11 +845,11 @@ export default function EPATicketsPage() {
                 className="h-full border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
               />
             </div>
-            <div className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-2">
+            <div className="flex items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-2">
               {(["all", "red", "amber", "green"] as const).map((risk) => {
                 const isActive = riskFilter === risk;
                 const styles: Record<string, string> = {
-                  all: isActive ? "bg-[#14264A] text-white" : "text-[#5F7288] hover:bg-[#F0F4F8]",
+                  all: isActive ? "bg-[#1D1050] text-white" : "text-[#6E6D8A] hover:bg-[#F0F4F8]",
                   red: isActive ? "bg-red-600 text-white" : "text-red-600 hover:bg-red-50",
                   amber: isActive ? "bg-amber-500 text-white" : "text-amber-600 hover:bg-amber-50",
                   green: isActive ? "bg-green-600 text-white" : "text-green-700 hover:bg-green-50",
@@ -868,16 +868,16 @@ export default function EPATicketsPage() {
             <Button variant={showArchived ? "default" : "outline"} onClick={() => setShowArchived((value) => !value)} className="gap-2">
               <Archive className="h-4 w-4" /> {showArchived ? "Archived" : "Archive"}
             </Button>
-            <Button onClick={() => setShowCreateModal(true)} className="gap-2 bg-[#14264A] text-white hover:bg-[#1E3A6A]">
+            <Button onClick={() => setShowCreateModal(true)} className="gap-2 bg-[#1D1050] text-white hover:bg-[#1E3A6A]">
               <Plus className="h-4 w-4" /> Create Ticket
             </Button>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading...</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading...</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <Award className="h-8 w-8 text-[#C5D5E3]" />
                 <p>No tickets found</p>
               </div>
@@ -885,9 +885,9 @@ export default function EPATicketsPage() {
               <div className="max-h-[calc(100vh-380px)] overflow-auto">
                 <table className="w-full min-w-[1320px] text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
                       {["Ticket", "Learner", "Risk", "Status", "Coach", "End-Date", "Days Overdue", "Assigned Owner", "Notes", "Evidence", "Actions", "Edit", "View", "Archive"].map((head) => (
-                        <th key={head} className="sticky top-0 bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#5F7288]">
+                        <th key={head} className="sticky top-0 bg-[#F8FBFE] px-4 py-3 text-left text-xs font-semibold text-[#6E6D8A]">
                           {head === "Days Overdue" ? <DaysOverdueHeader /> : head}
                         </th>
                       ))}
@@ -897,18 +897,18 @@ export default function EPATicketsPage() {
                     {filtered.map((ticket) => (
                       <tr key={ticket.id} className="border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
                         <td className="px-4 py-3">
-                          <span className="rounded-full bg-[#EEF3FB] px-2 py-0.5 text-[11px] font-bold text-[#315D93]">{ticket.ticketRef}</span>
+                          <span className="rounded-full bg-[#EEF3FB] px-2 py-0.5 text-[11px] font-bold text-[#4338CA]">{ticket.ticketRef}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-semibold text-[#14264A]">{ticket.learnerName}</p>
-                          <p className="text-[11px] text-[#71849A]">{ticket.learnerEmail}</p>
+                          <p className="font-semibold text-[#1D1050]">{ticket.learnerName}</p>
+                          <p className="text-[11px] text-[#6E6D8A]">{ticket.learnerEmail}</p>
                         </td>
                         <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${riskColor[ticket.risk]}`}>{ticket.risk}</span></td>
                         <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${statusColor[ticket.status]}`}>{ticket.status}</span></td>
-                        <td className="px-4 py-3 text-xs text-[#5F7288]">{ticket.coachName || "-"}</td>
-                        <td className="px-4 py-3 font-semibold text-[#14264A]">{fmtDate(ticket.endDate)}</td>
+                        <td className="px-4 py-3 text-xs text-[#6E6D8A]">{ticket.coachName || "-"}</td>
+                        <td className="px-4 py-3 font-semibold text-[#1D1050]">{fmtDate(ticket.endDate)}</td>
                         <td className="px-4 py-3"><span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">{ticket.daysOverdue}d</span></td>
-                        <td className="px-4 py-3 text-xs text-[#5F7288]">{ticket.assignedOwner || "-"}</td>
+                        <td className="px-4 py-3 text-xs text-[#6E6D8A]">{ticket.assignedOwner || "-"}</td>
                         <td className="px-4 py-3">
                           <button onClick={() => setNotesTicket(ticket)} className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 hover:bg-green-100">
                             <MessageSquare className="h-3 w-3" /> {noteCount(ticket.notes)}
@@ -928,17 +928,17 @@ export default function EPATicketsPage() {
                           />
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => setEditTicket(ticket)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#1E6ACB] hover:bg-[#EEF7FF]">
+                          <button onClick={() => setEditTicket(ticket)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5B47D5] hover:bg-[#EEF2FF]">
                             <Edit className="h-4 w-4" />
                           </button>
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => setViewTicket(ticket)} className="text-xs font-bold text-[#1E6ACB] hover:underline">
+                          <button onClick={() => setViewTicket(ticket)} className="text-xs font-bold text-[#5B47D5] hover:underline">
                             View
                           </button>
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => void archiveToggle(ticket)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5F7288] hover:bg-amber-50 hover:text-amber-700">
+                          <button onClick={() => void archiveToggle(ticket)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6E6D8A] hover:bg-amber-50 hover:text-amber-700">
                             {showArchived ? <FileText className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                           </button>
                         </td>

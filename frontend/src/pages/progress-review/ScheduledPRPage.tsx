@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, CalendarRange, CheckCircle2, ChevronDown,
@@ -141,7 +141,7 @@ function FilterSelect<T extends string | number>({
 
   return (
     <div className="relative inline-flex items-center">
-      <span className="pointer-events-none absolute left-3 z-10 whitespace-nowrap text-xs font-bold text-[#14264A]">
+      <span className="pointer-events-none absolute left-3 z-10 whitespace-nowrap text-xs font-bold text-[#1D1050]">
         {label}
       </span>
       <AppFilterSelect
@@ -151,7 +151,7 @@ function FilterSelect<T extends string | number>({
           if (selected) onChange(selected.value);
         }}
         options={selectOptions}
-        className="pl-[7.25rem] font-semibold text-[#1E6ACB]"
+        className="pl-[7.25rem] font-semibold text-[#5B47D5]"
         minWidth={240}
       />
     </div>
@@ -170,7 +170,7 @@ function SimpleSelect({ value, onChange, options, placeholder }: {
         value={value}
         onChange={onChange}
         options={[{ value: "", label: placeholder }, ...options.map((o) => ({ value: o, label: o }))]}
-        className="w-full flex-1 bg-[#F8FBFE] font-normal text-[#20344D]"
+        className="w-full flex-1 bg-[#F8FBFE] font-normal text-[#1D1050]"
         minWidth={160}
       />
     </div>
@@ -405,16 +405,16 @@ export default function ScheduledPRPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
+      <div className="min-h-full bg-[#F5F4FB]">
         {/* Header */}
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/progress-review" label="Progress Review" />
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#14264A]">Scheduled PR</h1>
-              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#5F7288]">
+              <h1 className="text-xl font-bold text-[#1D1050]">Scheduled PR</h1>
+              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#6E6D8A]">
                 <span>Default view: scheduled, in-progress, awaiting signature, or completed progress reviews</span>
-                <span className="rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+                <span className="rounded-full bg-[#1D1050] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
                   Last 12 Weeks
                 </span>
               </p>
@@ -423,11 +423,11 @@ export default function ScheduledPRPage() {
               <button
                 onClick={exportCSV}
                 disabled={displayedRows.length === 0}
-                className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 py-2 text-xs font-semibold text-[#6E6D8A] hover:bg-[#F0F4F8] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Download className="h-3.5 w-3.5" /> Export
               </button>
-              <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-xs font-semibold text-[#5F7288] hover:bg-[#F0F4F8]">
+              <button onClick={loadAll} className="flex items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 py-2 text-xs font-semibold text-[#6E6D8A] hover:bg-[#F0F4F8]">
                 <RefreshCw className="h-3.5 w-3.5" /> Refresh
               </button>
             </div>
@@ -454,12 +454,12 @@ export default function ScheduledPRPage() {
           {/* Row 2: Search + PR Quarter */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCardFilter("all"); }}
                 placeholder="Search learner, email, coach…"
-                className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm"
+                className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm"
               />
             </div>
             <FilterSelect<PrOffset>
@@ -468,12 +468,12 @@ export default function ScheduledPRPage() {
               onChange={(v) => { setPrOffset(v === "last12weeks" ? "last12weeks" : Number(v) as PrOffset); setCardFilter("all"); }}
               options={QUARTER_OPTIONS}
             />
-            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
-              <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+            <span className="flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-[#F8FBFE] px-3 text-xs font-medium text-[#6E6D8A]">
+              <CalendarRange className="h-3.5 w-3.5 text-[#9B94C8]" />
               {getPrRangeLabel(prOffset)}
             </span>
             {hasFilters && (
-              <button onClick={clearAll} className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-xs font-semibold text-[#71849A] hover:bg-[#F0F4F8]">
+              <button onClick={clearAll} className="h-10 rounded-lg border border-[#E2DCF8] bg-white px-3 text-xs font-semibold text-[#6E6D8A] hover:bg-[#F0F4F8]">
                 Clear filters
               </button>
             )}
@@ -487,8 +487,8 @@ export default function ScheduledPRPage() {
                 label: "Total Shown",
                 count: summary.total,
                 icon: <CalendarRange className="h-4 w-4" />,
-                base: "border-[#DDE7F0] bg-white text-[#14264A]",
-                active: "border-[#14264A] bg-[#14264A] text-white shadow-md",
+                base: "border-[#E2DCF8] bg-white text-[#1D1050]",
+                active: "border-[#1D1050] bg-[#1D1050] text-white shadow-md",
                 sub: `Period: ${getPrMonthLabel(prOffset)}`,
               },
               {
@@ -539,15 +539,15 @@ export default function ScheduledPRPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading…</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading…</div>
             ) : displayedRows.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <CheckCircle2 className="h-8 w-8 text-[#C5D5E3]" />
                 <p>No learners found for this selection</p>
                 {(hasFilters || cardFilter !== "all") && (
-                  <button onClick={clearAll} className="text-xs font-semibold text-[#1E6ACB] hover:underline">
+                  <button onClick={clearAll} className="text-xs font-semibold text-[#5B47D5] hover:underline">
                     Clear all filters
                   </button>
                 )}
@@ -556,10 +556,10 @@ export default function ScheduledPRPage() {
               <div className="overflow-x-auto" style={{ maxHeight: "60vh", overflowY: "auto" }}>
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="sticky left-0 z-20 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Learner</th>
                       {["Email", "Coach", "Programme", "Last actual completed", "Last PR", "Booked PR Date", "PR Status", "Follow-up"].map((h) => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -580,25 +580,25 @@ export default function ScheduledPRPage() {
                       const ticket = ticketMap.get(l.email.toLowerCase());
                       return (
                         <tr key={l.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
-                          <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{l.fullName}</td>
-                          <td className="px-3 py-3 text-xs text-[#71849A]">{l.email}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{l.caseOwner || "—"}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288] max-w-[180px]">
+                          <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 font-semibold text-[#1D1050] group-hover:bg-[#F8FBFE]">{l.fullName}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.email}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{l.caseOwner || "—"}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A] max-w-[180px]">
                             <span className="line-clamp-2">{l.group || "—"}</span>
                           </td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtProgressReviewText(l.lastActuallyCompletedPr)}</td>
-                          <td className="px-3 py-3 text-xs text-[#5F7288]">{fmtProgressReviewText(l.lastProgressReview)}</td>
-                          <td className="px-3 py-3 text-xs font-semibold text-[#14264A]">{fmtDate(displayDate)}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{fmtProgressReviewText(l.lastActuallyCompletedPr)}</td>
+                          <td className="px-3 py-3 text-xs text-[#6E6D8A]">{fmtProgressReviewText(l.lastProgressReview)}</td>
+                          <td className="px-3 py-3 text-xs font-semibold text-[#1D1050]">{fmtDate(displayDate)}</td>
                           <td className="px-3 py-3">
                             <BookedStatusBadge status={displayStatus} />
                           </td>
                           <td className="px-3 py-3">
                             {ticket ? (
-                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF7FF] px-2.5 py-1.5 text-xs font-semibold text-[#1E6ACB] hover:bg-[#D8EEFF]">
+                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF2FF] px-2.5 py-1.5 text-xs font-semibold text-[#5B47D5] hover:bg-[#D8EEFF]">
                                 <ExternalLink className="h-3.5 w-3.5" /> View Ticket
                               </button>
                             ) : (
-                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#14264A] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A6A]">
+                              <button onClick={() => onFollowUp(l)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#1D1050] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A6A]">
                                 <Plus className="h-3.5 w-3.5" /> Open Ticket
                               </button>
                             )}
@@ -608,7 +608,7 @@ export default function ScheduledPRPage() {
                     })}
                   </tbody>
                 </table>
-                <div className="border-t border-[#DDE7F0] px-4 py-2 text-xs text-[#8AA0B6]">
+                <div className="border-t border-[#E2DCF8] px-4 py-2 text-xs text-[#9B94C8]">
                   {displayedRows.length} learner{displayedRows.length !== 1 ? "s" : ""}
                   {cardFilter !== "all" && ` · ${cardFilter === "inProgress" ? "In Progress" : cardFilter === "scheduled" ? "Scheduled" : "Completed"}`}
                 </div>

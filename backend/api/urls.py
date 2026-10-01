@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import include, path
+from .zoom_views import zoom_call_recordings, zoom_call_report, zoom_recording_transcript, zoom_transcript_report
 from .views import (
     auth_login,
     auth_logout,
@@ -54,6 +55,11 @@ from .views import (
 )
 
 urlpatterns = [
+    path('callcentre/', include('api.callcenter.urls')),
+    path("zoom/calls/", zoom_call_report, name="zoom-call-report"),
+    path("zoom/transcripts/", zoom_transcript_report, name="zoom-transcript-report"),
+    path("zoom/calls/<int:call_pk>/recordings/", zoom_call_recordings, name="zoom-call-recordings"),
+    path("zoom/recordings/<int:recording_pk>/transcript/", zoom_recording_transcript, name="zoom-recording-transcript"),
     path("auth/session/", auth_session, name="auth-session"),
     path("auth/login/", auth_login, name="auth-login"),
     path("auth/microsoft-login/", auth_microsoft_login, name="auth-microsoft-login"),

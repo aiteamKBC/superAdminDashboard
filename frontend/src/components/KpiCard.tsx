@@ -115,11 +115,11 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
   return (
     <Card
       onClick={onClick}
-      className="group h-full cursor-pointer rounded-lg border border-[#DDE7F0] bg-white p-4 shadow-[0_8px_22px_rgba(20,38,74,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#B9C9DA] hover:shadow-[0_14px_30px_rgba(20,38,74,0.10)]"
+      className="group h-full cursor-pointer rounded-xl border border-[#E2DCF8] bg-white p-4 shadow-[0_4px_16px_rgba(29,16,80,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C4B8F0] hover:shadow-[0_12px_28px_rgba(29,16,80,0.10)]"
       style={{
         background: active ? visual.soft : "#FFFFFF",
         boxShadow: active
-          ? `inset 0 0 0 1px ${visual.accent}55, inset 4px 0 0 ${visual.accent}, 0 16px 34px rgba(20,38,74,0.12)`
+          ? `inset 0 0 0 1px ${visual.accent}55, inset 4px 0 0 ${visual.accent}, 0 16px 34px rgba(29,16,80,0.12)`
           : undefined,
       }}
     >
@@ -131,10 +131,10 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
           >
             <Icon className="h-[18px] w-[18px]" />
           </div>
-          <p className="line-clamp-2 text-sm font-semibold leading-5 text-[#20344D]">
+          <p className="line-clamp-2 text-sm font-semibold leading-5 text-[#1D1050]">
             {data.title}
           </p>
-          <p className="mt-1 line-clamp-2 text-xs leading-4 text-[#71849A]">
+          <p className="mt-1 line-clamp-2 text-xs leading-4 text-[#6E6D8A]">
             {visual.subtitle}
           </p>
         </div>
@@ -155,12 +155,12 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold leading-none tracking-normal text-[#10233F]">
+            <span className="text-3xl font-bold leading-none tracking-normal text-[#1D1050]">
               {data.count}
             </span>
-            <span className="text-sm font-medium text-[#8292A6]">of {data.total}</span>
+            <span className="text-sm font-medium text-[#9B94C8]">of {data.total}</span>
           </div>
-          <p className="mt-1 text-xs font-medium text-[#71849A]">{data.percentage}% of cohort</p>
+          <p className="mt-1 text-xs font-medium text-[#6E6D8A]">{data.percentage}% of cohort</p>
         </div>
 
         <span
@@ -174,7 +174,7 @@ export default function KpiCard({ data, onClick, active }: KpiCardProps) {
         </span>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E8EEF5]">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#EEEAFF]">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CalendarCheck2, CalendarClock, CalendarRange, CheckCircle2, Clock, Download, ExternalLink, Plus, Search, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
@@ -102,17 +102,17 @@ function OverdueBadge({ row }: { row: MCMRow }) {
             {overdueCount}/{dueToDateCount}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-[240px] p-0 border border-[#DDE7F0] bg-white shadow-xl rounded-xl overflow-hidden">
-          <div className="px-3 py-2 border-b border-[#DDE7F0] bg-[#F8FBFE]">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5F7288]">All Overdue Meetings</p>
-            <p className="mt-1 text-[11px] font-semibold text-[#5F7288]">
+        <TooltipContent side="top" className="max-w-[240px] p-0 border border-[#E2DCF8] bg-white shadow-xl rounded-xl overflow-hidden">
+          <div className="px-3 py-2 border-b border-[#E2DCF8] bg-[#F8FBFE]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#6E6D8A]">All Overdue Meetings</p>
+            <p className="mt-1 text-[11px] font-semibold text-[#6E6D8A]">
               {overdueCount} overdue of {dueToDateCount} MCM meeting{dueToDateCount === 1 ? "" : "s"} due to date
             </p>
           </div>
           <div className="flex flex-col gap-0 px-3 py-2">
             {overdueItems.map((d, i) => (
               <div key={i} className="flex items-center justify-between gap-2 rounded-lg py-1">
-                <span className="text-xs font-semibold text-[#14264A]">{fmtDate(getMcmScopeDate(d)?.toISOString() || d.date)}</span>
+                <span className="text-xs font-semibold text-[#1D1050]">{fmtDate(getMcmScopeDate(d)?.toISOString() || d.date)}</span>
                 <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 capitalize">{d.status || "Not Scheduled"}</span>
               </div>
             ))}
@@ -453,22 +453,22 @@ export default function RequiredMCMPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/coaching-meetings" label="Monthly Coaching Meetings" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F0F9]">
-                <CalendarClock className="h-5 w-5 text-[#315D93]" />
+                <CalendarClock className="h-5 w-5 text-[#4338CA]" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#14264A]">Required MCM</h1>
-                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#5F7288]">
+                <h1 className="text-xl font-bold text-[#1D1050]">Required MCM</h1>
+                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[#6E6D8A]">
                   <span>
                     Learners requiring monthly coaching action in the{" "}
-                    <strong className="font-bold text-[#315D93]">Last 30 days</strong>
+                    <strong className="font-bold text-[#4338CA]">Last 30 days</strong>
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-[#14264A] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
+                  <span className="inline-flex items-center rounded-full bg-[#1D1050] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ring-2 ring-[#8DB6F3]/30 motion-safe:animate-pulse">
                     {activeLearnersLoading ? "..." : activeLearnersCount} active learners
                   </span>
                 </p>
@@ -486,7 +486,7 @@ export default function RequiredMCMPage() {
               return (
                 <button
                   onClick={() => { setCategoryFilter(null); setOverdueOnly(false); }}
-                  className={`rounded-xl border p-3 text-left transition-all duration-150 hover:shadow-sm active:scale-[0.98] ${isActive ? "border-[#14264A] bg-[#14264A] text-white shadow-md" : "border-[#DDE7F0] bg-white text-[#14264A]"}`}
+                  className={`rounded-xl border p-3 text-left transition-all duration-150 hover:shadow-sm active:scale-[0.98] ${isActive ? "border-[#1D1050] bg-[#1D1050] text-white shadow-md" : "border-[#E2DCF8] bg-white text-[#1D1050]"}`}
                 >
                   <div className="flex items-center gap-2 opacity-70">
                     <CalendarRange className="h-4 w-4" />
@@ -551,8 +551,8 @@ export default function RequiredMCMPage() {
 
           <div className="mb-2 flex flex-wrap gap-2">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8AA0B6]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." className="h-10 rounded-lg border-[#D7E5F3] bg-white pl-9 text-sm" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9B94C8]" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email..." className="h-10 rounded-lg border-[#E2DCF8] bg-white pl-9 text-sm" />
             </div>
             <FilterSelect
               value={programmeFilter}
@@ -585,8 +585,8 @@ export default function RequiredMCMPage() {
             <TooltipProvider delayDuration={120}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="flex h-10 cursor-help items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-[#F8FBFE] px-3 text-xs font-medium text-[#5F7288]">
-                    <CalendarRange className="h-3.5 w-3.5 text-[#8AA0B6]" />
+                  <span className="flex h-10 cursor-help items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-[#F8FBFE] px-3 text-xs font-medium text-[#6E6D8A]">
+                    <CalendarRange className="h-3.5 w-3.5 text-[#9B94C8]" />
                     {getMcrRangeLabel(periodOffset)}
                   </span>
                 </TooltipTrigger>
@@ -600,73 +600,73 @@ export default function RequiredMCMPage() {
             {(coachFilter !== "all" || programmeFilter !== "all" || orgFilter !== "all" || periodOffset !== -1 || search || overdueOnly || categoryFilter) && (
               <button
                 onClick={() => { setSearch(""); setCoachFilter("all"); setProgrammeFilter("all"); setOrgFilter("all"); setPeriodOffset(-1); setOverdueOnly(false); setCategoryFilter(null); }}
-                className="h-10 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm text-[#5F7288] hover:bg-[#F0F6FF]"
+                className="h-10 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm text-[#6E6D8A] hover:bg-[#F0F6FF]"
               >
                 Clear Filters
               </button>
             )}
-            <button onClick={exportMcmCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#DDE7F0] bg-white px-3 text-sm font-semibold text-[#24486D] hover:bg-[#F0F6FF]">
+            <button onClick={exportMcmCsv} className="ml-auto flex h-10 items-center gap-1.5 rounded-lg border border-[#E2DCF8] bg-white px-3 text-sm font-semibold text-[#3730A3] hover:bg-[#F0F6FF]">
               <Download className="h-4 w-4" /> Export CSV
             </button>
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-[#DDE7F0] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[#E2DCF8] bg-white shadow-sm">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-[#5F7288]">Loading...</div>
+              <div className="flex h-40 items-center justify-center text-sm text-[#6E6D8A]">Loading...</div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#5F7288]">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-[#6E6D8A]">
                 <AlertTriangle className="h-8 w-8 text-[#C5D5E3]" /><p>No learners found</p>
               </div>
             ) : (
               <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 400px)" }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#DDE7F0] bg-[#F8FBFE]">
-                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#DDE7F0] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">Learner</th>
+                    <tr className="border-b border-[#E2DCF8] bg-[#F8FBFE]">
+                      <th className="sticky left-0 top-0 z-30 whitespace-nowrap border-r border-[#E2DCF8] bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">Learner</th>
                       {["Email", "Programme", "Organisation", "Coach", "Overdue / Due", "Last MCM", "Last Completed MCM"].map((h) => (
-                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288]">{h}</th>
+                        <th key={h} className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A]">{h}</th>
                       ))}
-                      <th colSpan={2} className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-1.5 text-center text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">
+                      <th colSpan={2} className="sticky top-0 z-10 bg-[#F8FBFE] px-3 py-1.5 text-center text-xs font-semibold text-[#6E6D8A] border-l border-[#E2DCF8]">
                         Next Due Date
-                        <div className="flex mt-1 border-t border-[#DDE7F0]">
-                          <span className="flex-1 py-1 text-[10px] font-semibold text-[#8AA0B6]">Date</span>
-                          <span className="flex-1 py-1 text-[10px] font-semibold text-[#8AA0B6]">State</span>
+                        <div className="flex mt-1 border-t border-[#E2DCF8]">
+                          <span className="flex-1 py-1 text-[10px] font-semibold text-[#9B94C8]">Date</span>
+                          <span className="flex-1 py-1 text-[10px] font-semibold text-[#9B94C8]">State</span>
                         </div>
                       </th>
-                      <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#5F7288] border-l border-[#DDE7F0]">Follow-up</th>
+                      <th className="sticky top-0 z-10 whitespace-nowrap bg-[#F8FBFE] px-3 py-3 text-left text-xs font-semibold text-[#6E6D8A] border-l border-[#E2DCF8]">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((r) => (
                       <tr key={r.id} className="group border-b border-[#F0F4F8] hover:bg-[#F8FBFE]">
-                        <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 font-semibold text-[#14264A] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
-                        <td className="px-3 py-3 text-xs text-[#71849A]">{r.email}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.programme || "â€”"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.organisationName || "â€”"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.caseOwner || "â€”"}</td>
+                        <td className="sticky left-0 z-10 border-r border-[#E2DCF8] bg-white px-3 py-3 font-semibold text-[#1D1050] group-hover:bg-[#F8FBFE]">{r.fullName}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.email}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.programme || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.organisationName || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.caseOwner || "â€”"}</td>
                         <td className="whitespace-nowrap px-3 py-3"><OverdueBadge row={r} /></td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastMcm || "â€”"}</td>
-                        <td className="px-3 py-3 text-xs text-[#5F7288]">{r.lastActuallyCompletedMcm || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.lastMcm || "â€”"}</td>
+                        <td className="px-3 py-3 text-xs text-[#6E6D8A]">{r.lastActuallyCompletedMcm || "â€”"}</td>
                         {/* Next Due Date â€” Date cell */}
-                        <td className="border-l border-[#DDE7F0] px-3 py-3 text-xs font-semibold">
+                        <td className="border-l border-[#E2DCF8] px-3 py-3 text-xs font-semibold">
                           {(() => {
                             const d = r.nextDueDate ? new Date(r.nextDueDate) : null;
                             const isOverdue = d && !isNaN(d.getTime()) && d < new Date();
-                            return <span className={isOverdue ? "text-red-600" : "text-[#14264A]"}>{fmtDate(r.nextDueDate)}</span>;
+                            return <span className={isOverdue ? "text-red-600" : "text-[#1D1050]"}>{fmtDate(r.nextDueDate)}</span>;
                           })()}
                         </td>
                         {/* Next Due Date â€” State cell */}
                         <td className="whitespace-nowrap px-3 py-3">{statusBadge(nextMeetingStatus(r))}</td>
                         {/* Follow-up */}
-                        <td className="whitespace-nowrap border-l border-[#DDE7F0] px-3 py-3">
+                        <td className="whitespace-nowrap border-l border-[#E2DCF8] px-3 py-3">
                           {(() => {
                             const ticket = ticketMap[r.email.toLowerCase()];
                             if (ticket) {
                               return (
                                 <button
                                   onClick={() => navigate(`/coaching-meetings/tickets?ticket=${ticket.id}`)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#315D93] hover:bg-[#D7E8F7] transition-colors"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF3FB] px-2.5 py-1.5 text-xs font-bold text-[#4338CA] hover:bg-[#D7E8F7] transition-colors"
                                 >
                                   <Ticket className="h-3 w-3 shrink-0" />
                                   {ticket.ticketRef}
@@ -677,7 +677,7 @@ export default function RequiredMCMPage() {
                             return (
                               <button
                                 onClick={() => navigate(`/coaching-meetings/tickets?newFor=${encodeURIComponent(r.email)}&newName=${encodeURIComponent(r.fullName)}`)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#B8D7F2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#5F7288] hover:border-[#315D93] hover:bg-[#F0F7FF] hover:text-[#315D93] transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#C4B8F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#6E6D8A] hover:border-[#4338CA] hover:bg-[#F0F7FF] hover:text-[#4338CA] transition-colors"
                               >
                                 <Plus className="h-3 w-3 shrink-0" />
                                 Open Ticket

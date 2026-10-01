@@ -18,72 +18,72 @@ const cards = [
     description: "Track and manage learner attendance records",
     icon: ClipboardList,
     path: "/attendance",
-    accent: "#1E6ACB",
-    bg: "from-white to-[#EAF4FF]",
-    iconBg: "#1E6ACB",
+    accent: "#5B47D5",
+    bg: "from-white to-[#F0EEFF]",
+    iconBg: "linear-gradient(135deg, #7B5CF0, #5B47D5)",
   },
   {
     label: "Progress Review",
     description: "Monitor and record learner progress reviews",
     icon: BookOpen,
     path: "/progress-review",
-    accent: "#0369A1",
-    bg: "from-white to-[#EAF6FC]",
-    iconBg: "#0369A1",
+    accent: "#4338CA",
+    bg: "from-white to-[#EDEAFF]",
+    iconBg: "linear-gradient(135deg, #6366F1, #4338CA)",
   },
   {
     label: "Monthly Coaching Meetings",
     description: "Schedule and log monthly coaching sessions",
     icon: CalendarCheck2,
     path: "/coaching-meetings",
-    accent: "#315D93",
-    bg: "from-white to-[#EDF4FB]",
-    iconBg: "#315D93",
+    accent: "#6D28D9",
+    bg: "from-white to-[#F2EDFF]",
+    iconBg: "linear-gradient(135deg, #8B5CF6, #6D28D9)",
   },
   {
     label: "Off The Job Hours",
     description: "Record and verify off-the-job training hours",
     icon: BriefcaseBusiness,
     path: "/otj-hours",
-    accent: "#24557F",
-    bg: "from-white to-[#EAF3FA]",
-    iconBg: "#24557F",
+    accent: "#D97706",
+    bg: "from-white to-[#FFF8ED]",
+    iconBg: "linear-gradient(135deg, #F59E0B, #D97706)",
   },
   {
     label: "Marking",
     description: "Grade and provide feedback on submitted work",
     icon: CheckSquare,
     path: "/marking",
-    accent: "#24486D",
-    bg: "from-white to-[#EDF4FB]",
-    iconBg: "#24486D",
+    accent: "#0369A1",
+    bg: "from-white to-[#EFF8FF]",
+    iconBg: "linear-gradient(135deg, #0EA5E9, #0369A1)",
   },
   {
     label: "Active Learners",
     description: "View and manage all currently active learners",
     icon: GraduationCap,
     path: "/active-learners",
-    accent: "#14264A",
-    bg: "from-white to-[#E8F0FA]",
-    iconBg: "#14264A",
+    accent: "#059669",
+    bg: "from-white to-[#ECFDF5]",
+    iconBg: "linear-gradient(135deg, #10B981, #059669)",
   },
   {
     label: "Gateway (EPA)",
     description: "Manage end-point assessment readiness and gateway progress",
     icon: Award,
     path: "/gateway",
-    accent: "#1E6ACB",
-    bg: "from-white to-[#EAF4FF]",
-    iconBg: "#1E6ACB",
+    accent: "#DC2626",
+    bg: "from-white to-[#FEF2F2]",
+    iconBg: "linear-gradient(135deg, #EF4444, #DC2626)",
   },
   {
     label: "Learner Progress",
     description: "PR, MCR, and OTJH in one learner snapshot",
     icon: TrendingUp,
     path: "/learner-progress",
-    accent: "#1E6ACB",
-    bg: "from-white to-[#EAF4FF]",
-    iconBg: "#1E6ACB",
+    accent: "#5B47D5",
+    bg: "from-white to-[#F0EEFF]",
+    iconBg: "linear-gradient(135deg, #7B5CF0, #5B47D5)",
   },
 ];
 
@@ -92,47 +92,50 @@ export default function HomePage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC] p-6 sm:p-8">
+      <div className="min-h-full bg-[#F5F4FB] p-6 sm:p-8">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-[#14264A] sm:text-3xl">
-              Welcome to Engagment Dashboard
+            <p className="text-xs font-bold uppercase tracking-widest text-[#9B87D8] mb-1">
+              Kent Business College
+            </p>
+            <h1 className="text-2xl font-bold text-[#1D1050] sm:text-3xl">
+              Engagement Dashboard
             </h1>
-            <p className="mt-1 text-sm text-[#5F7288]">
+            <p className="mt-1 text-sm text-[#6E6D8A]">
               Select a section to get started
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {cards.map(({ label, description, icon: Icon, path, accent, bg, iconBg }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className={`group relative flex flex-col rounded-lg bg-gradient-to-br ${bg} border border-[#DDE7F0] p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#BCD4EA] hover:shadow-[0_16px_34px_rgba(20,38,74,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
+                className={`group relative flex flex-col rounded-2xl bg-gradient-to-br ${bg} border border-[#E2DCF8] p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#C4B8F0] hover:shadow-[0_16px_36px_rgba(29,16,80,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B47D5] focus-visible:ring-offset-2`}
                 style={{ "--ring-color": accent } as CSSProperties}
               >
                 <div
-                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-sm"
-                  style={{ backgroundColor: iconBg }}
+                  className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+                  style={{ background: iconBg }}
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-5 w-5" />
                 </div>
 
-                <h2 className="text-base font-bold leading-snug" style={{ color: accent }}>
+                <h2 className="text-sm font-bold leading-snug" style={{ color: accent }}>
                   {label}
                 </h2>
 
-                <p className="mt-1.5 text-xs leading-relaxed text-[#5F7288]">
+                <p className="mt-1.5 text-xs leading-relaxed text-[#6E6D8A]">
                   {description}
                 </p>
 
                 <div
-                  className="mt-5 flex items-center gap-1 text-xs font-semibold opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  className="mt-4 flex items-center gap-1 text-xs font-semibold opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0.5"
                   style={{ color: accent }}
                 >
                   Open
                   <svg
-                    className="h-3.5 w-3.5 translate-x-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                    className="h-3 w-3"
                     viewBox="0 0 16 16"
                     fill="none"
                   >

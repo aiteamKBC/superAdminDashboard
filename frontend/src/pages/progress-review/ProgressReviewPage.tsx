@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { BookOpen, Ticket } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
@@ -42,11 +42,11 @@ export default function ProgressReviewPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-[#F4F8FC]">
-        <div className="border-b border-[#DDE7F0] bg-white px-4 pb-5 pt-4 sm:px-6">
+      <div className="min-h-full bg-[#F5F4FB]">
+        <div className="border-b border-[#E2DCF8] bg-white px-4 pb-5 pt-4 sm:px-6">
           <BackButton to="/" label="Home" />
-          <h1 className="text-xl font-bold text-[#14264A]">Progress Review</h1>
-          <p className="mt-0.5 text-sm text-[#5F7288]">Monitor and manage learner progress reviews</p>
+          <h1 className="text-xl font-bold text-[#1D1050]">Progress Review</h1>
+          <p className="mt-0.5 text-sm text-[#6E6D8A]">Monitor and manage learner progress reviews</p>
         </div>
 
         <div className="p-4 sm:p-6">
@@ -61,8 +61,8 @@ export default function ProgressReviewPage() {
                   <Icon className={`h-6 w-6 ${iconColor}`} />
                 </div>
                 <div>
-                  <p className="text-base font-bold text-[#14264A] group-hover:text-[#1E6ACB]">{title}</p>
-                  <p className="mt-1 text-sm text-[#5F7288]">{description}</p>
+                  <p className="text-base font-bold text-[#1D1050] group-hover:text-[#5B47D5]">{title}</p>
+                  <p className="mt-1 text-sm text-[#6E6D8A]">{description}</p>
                 </div>
               </button>
             ))}
