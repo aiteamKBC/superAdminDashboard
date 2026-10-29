@@ -229,7 +229,470 @@ def _latest_dated_item(items, date_key="date"):
     return dated_items[-1][1]
 
 
+LMS_VISIBLE_LEARNER_STATUSES = ("active", "delivery", "readytoenrol")
+
+
+def _coach_review_overrides():
+    """Return the latest Coach status for each source review/date.
+
+    Learner.reviews is used only as a bridge from Coach.source_review_id to
+    the learner email and review date. The displayed/base review data still
+    comes from the public Aptem tables.
+    """
+    if "lms" not in connections:
+        return {}
+
+    sql = """
+        SELECT
+            LOWER(TRIM(COALESCE(r.learner_email, ''))) AS email,
+            r.review_type,
+            r.planned_scheduled_date,
+            ci.status,
+            ci.completed_at,
+            t.review_family,
+            ci.updated_at,
+            ci.id
+        FROM "Coach"."coach_imported_review_instance" ci
+        INNER JOIN "Learner"."reviews" r
+            ON r.id = ci.source_review_id
+        LEFT JOIN "Coach"."coach_migrated_review_template" t
+            ON t.id = ci.migrated_template_id
+        WHERE ci.source_review_id IS NOT NULL
+        ORDER BY ci.updated_at DESC NULLS LAST, ci.id DESC
+    """
+
+    overrides = {}
+    with connections["lms"].cursor() as cursor:
+        cursor.execute(sql)
+        for email, review_type, planned_date, status, completed_at, family, updated_at, instance_id in cursor.fetchall():
+            if not email or not planned_date:
+                continue
+            family_text = str(family or review_type or "").strip().lower()
+            if "mcm" in family_text or "monthly coaching" in family_text:
+                public_type = "Monthly Coaching Meeting"
+            elif "pr" in family_text or "progress" in family_text:
+                public_type = "Progress Review"
+            else:
+                continue
+
+            key = (email, public_type, planned_date.date() if hasattr(planned_date, "date") else parse_date_safe(planned_date))
+            if key[2] and key not in overrides:
+                overrides[key] = {
+                    "status": str(status or "").strip(),
+                    "completed_date": completed_at,
+                    "coach_instance_id": instance_id,
+                    "coach_review_family": family or "",
+                }
+    return overrides
+
+
+def _lms_review_rows(review_types, learner_filter=""):
+    """Read PR/MCM from the legacy public tables.
+
+    Coach/Learner tables are intentionally not read here. Coach overlays will
+    be added later once a stable key between the two database models exists.
+    """
+    if "aptem" not in connections:
+        raise RuntimeError("APPTEM_DATABASE_URL is not configured")
+
+    is_mcm = review_types == ("Monthly Coaching Meeting",)
+    source_table = 'public."MCR"' if is_mcm else "public.progress_review"
+    email_filter = "AND LOWER(TRIM(COALESCE(m.\"Email\", ''))) = %s" if learner_filter else ""
+    params = [learner_filter] if learner_filter else []
+
+    if is_mcm:
+        planned_columns = ", ".join(
+            f'm."MCM{i}", m."Status{i}"' for i in range(1, 21)
+        )
+        sql = f"""
+            SELECT
+                m."ID" AS learner_id,
+                m."FullName" AS full_name,
+                LOWER(TRIM(COALESCE(m."Email", ''))) AS email,
+                '' AS learner_group,
+                m."CaseOwner" AS case_owner,
+                m."Status" AS lifecycle_status,
+                m."Subscription Status" AS subscription_status,
+                m."Last Actually Completed  MCM" AS last_completed_date,
+                m."Last MCM" AS last_review_date,
+                m."Manager Name" AS manager_name,
+                m."Manager Email" AS manager_email,
+                COALESCE(a."Program Name", '') AS programme,
+                COALESCE(a."OrganizationName", '') AS organisation,
+                COALESCE(a."Learner Phone", '') AS phone,
+                {planned_columns}
+            FROM {source_table} m
+            LEFT JOIN public.aptem_auto_extracting a
+              ON LOWER(TRIM(COALESCE(m."Email", ''))) = LOWER(TRIM(COALESCE(a."Email", '')))
+            WHERE LOWER(COALESCE(m."Status", '')) = 'active'
+              {email_filter}
+            ORDER BY email, m."ID"
+        """
+    else:
+        planned_columns = ", ".join(
+            f'm."Review Planned Date{i}", m."Review Status{i}"' for i in range(1, 17)
+        )
+        sql = f"""
+            SELECT
+                m."ID" AS learner_id,
+                m."FullName" AS full_name,
+                LOWER(TRIM(COALESCE(m."Email", ''))) AS email,
+                m."Group" AS learner_group,
+                m."CaseOwner" AS case_owner,
+                m."Status" AS lifecycle_status,
+                m."Last Actually Completed PR" AS last_completed_date,
+                m."Last Progress Review" AS last_review_date,
+                m."Manager Name" AS manager_name,
+                m."Manager Email" AS manager_email,
+                COALESCE(NULLIF(m."programme", ''), a."Program Name", '') AS programme,
+                COALESCE(a."OrganizationName", '') AS organisation,
+                COALESCE(a."Learner Phone", '') AS phone,
+                {planned_columns}
+            FROM {source_table} m
+            LEFT JOIN public.aptem_auto_extracting a
+              ON LOWER(TRIM(COALESCE(m."Email", ''))) = LOWER(TRIM(COALESCE(a."Email", '')))
+            WHERE LOWER(COALESCE(m."Status", '')) = 'active'
+              {email_filter}
+            ORDER BY email, m."ID"
+        """
+
+    with connections["aptem"].cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        source_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    coach_overrides = _coach_review_overrides()
+    deduplicated_rows = {}
+    slot_count = 20 if is_mcm else 16
+    for source in source_rows:
+        source_has_planned_date = False
+        for index in range(1, slot_count + 1):
+            planned_key = f"MCM{index}" if is_mcm else f"Review Planned Date{index}"
+            status_key = f"Status{index}" if is_mcm else f"Review Status{index}"
+            planned_date = source.get(planned_key)
+            if not planned_date:
+                continue
+            source_has_planned_date = True
+            planned_date_value = _lms_item_date(planned_date)
+            public_type = "Monthly Coaching Meeting" if is_mcm else "Progress Review"
+            override = coach_overrides.get((source.get("email") or "", public_type, planned_date_value), {})
+            review_status = override.get("status") or source.get(status_key) or ""
+            row = {
+                "id": source.get("learner_id"),
+                "learner_id": source.get("learner_id"),
+                "full_name": source.get("full_name") or "",
+                "email": source.get("email") or "",
+                "learner_group": source.get("programme") or source.get("learner_group") or "",
+                "case_owner": source.get("case_owner") or "",
+                "phone": str(source.get("phone") or "").strip(),
+                "organisation": source.get("organisation") or "",
+                "programme": source.get("programme") or "",
+                "manager_name": source.get("manager_name") or "",
+                "manager_email": source.get("manager_email") or "",
+                "subscription_status": source.get("subscription_status") or "",
+                "lifecycle_status": source.get("lifecycle_status") or "",
+                "review_type": public_type,
+                "review_name": planned_date,
+                "planned_scheduled_date": planned_date,
+                "completed_date": override.get("completed_date"),
+                "last_completed_date": source.get("last_completed_date"),
+                "last_completed_value": source.get("last_completed_date") or "",
+                "last_progress_review": source.get("last_review_date"),
+                "review_status": review_status,
+                "updated_at": None,
+                "current_document_id": None,
+                "current_document_updated_at": None,
+                "section_count": 0,
+                "coach_instance_id": override.get("coach_instance_id"),
+                "meeting_intelligence": None,
+                "coach_review_family": override.get("coach_review_family"),
+            }
+
+            # One visible record per learner, review type and planned date.
+            # The Coach version wins when the same review exists in both
+            # sources; otherwise the public Aptem record remains authoritative.
+            dedupe_key = (row["email"], row["review_type"], planned_date_value)
+            existing = deduplicated_rows.get(dedupe_key)
+            if not existing or row.get("coach_instance_id"):
+                deduplicated_rows[dedupe_key] = row
+
+        # Keep active learners even when the source has no meeting slot yet.
+        # They should appear in the UI as Not Yet, not disappear from the
+        # active population entirely.
+        if not source_has_planned_date:
+            public_type = "Monthly Coaching Meeting" if is_mcm else "Progress Review"
+            deduplicated_rows.setdefault((source.get("email") or "", public_type, None), {
+                "id": source.get("learner_id"),
+                "learner_id": source.get("learner_id"),
+                "full_name": source.get("full_name") or "",
+                "email": source.get("email") or "",
+                "learner_group": source.get("programme") or source.get("learner_group") or "",
+                "case_owner": source.get("case_owner") or "",
+                "phone": str(source.get("phone") or "").strip(),
+                "organisation": source.get("organisation") or "",
+                "programme": source.get("programme") or "",
+                "manager_name": source.get("manager_name") or "",
+                "manager_email": source.get("manager_email") or "",
+                "subscription_status": source.get("subscription_status") or "",
+                "lifecycle_status": source.get("lifecycle_status") or "",
+                "review_type": public_type,
+                "review_name": "",
+                "planned_scheduled_date": None,
+                "completed_date": None,
+                "last_completed_date": source.get("last_completed_date"),
+                "last_completed_value": source.get("last_completed_date") or "",
+                "last_progress_review": source.get("last_review_date"),
+                "review_status": "Not Yet",
+                "updated_at": None,
+                "current_document_id": None,
+                "current_document_updated_at": None,
+                "section_count": 0,
+                "coach_instance_id": None,
+                "meeting_intelligence": None,
+                "coach_review_family": None,
+            })
+
+    return list(deduplicated_rows.values())
+
+
+def _lms_item_date(value):
+    if not value:
+        return None
+    return value.date() if hasattr(value, "date") else parse_date_safe(value)
+
+
+def _lms_review_status(row):
+    raw_status = str(row.get("review_status") or "").strip()
+    status = raw_status.replace("-", " ")
+    status = {
+        "not scheduled": "Not Scheduled",
+        "in progress": "In Progress",
+        "awaiting signature": "Awaiting Signature",
+        "completed": "Completed",
+        "scheduled": "Scheduled",
+    }.get(status.lower(), status)
+    completed_date = _lms_item_date(row.get("completed_date"))
+    if completed_date and not is_completed_status(status):
+        return "Completed"
+    return status or ("Completed" if completed_date else "Not Scheduled")
+
+
+def _group_lms_reviews(rows):
+    grouped = {}
+    for row in rows:
+        key = row.get("email") or f"learner:{row.get('learner_id')}"
+        grouped.setdefault(key, []).append(row)
+    return grouped
+
+
+def _lms_progress_review_summary(request):
+    learner_filter = str(
+        request.GET.get("learner_email")
+        or request.GET.get("email")
+        or request.GET.get("learner")
+        or ""
+    ).strip().lower()
+    rows = _lms_review_rows(
+        ("Progress Review", "Progress Review (+ Skills Radar)"),
+        learner_filter,
+    )
+    today = date.today()
+    results = []
+
+    for email, learner_rows in _group_lms_reviews(rows).items():
+        planned = []
+        completed_dates = []
+        candidates = []
+        for row in learner_rows:
+            planned_date = _lms_item_date(row.get("planned_scheduled_date"))
+            completed_date = _lms_item_date(row.get("completed_date"))
+            last_completed_date = _lms_item_date(row.get("last_completed_date"))
+            status = _lms_review_status(row)
+            if completed_date:
+                completed_dates.append(completed_date)
+            if last_completed_date:
+                completed_dates.append(last_completed_date)
+            if not planned_date:
+                continue
+            completed = bool(completed_date) or is_completed_status(status)
+            archived = is_archived_status(status)
+            planned.append({
+                "date": planned_date.strftime("%Y-%m-%d"),
+                "status": status,
+                "completed": completed,
+                "isPast": planned_date < today,
+            })
+            candidates.append({
+                "date": planned_date,
+                "status": status,
+                "completed": completed,
+                "archived": archived,
+            })
+
+        completed_date = max(completed_dates) if completed_dates else None
+        overdue = [
+            item for item in candidates
+            if item["date"] < today and not item["completed"] and not item["archived"]
+        ]
+        future = [
+            item for item in candidates
+            if item["date"] >= today and not item["completed"] and not item["archived"]
+        ]
+        next_item = min(future, key=lambda item: item["date"]) if future else None
+        latest_due = max(overdue, key=lambda item: item["date"]) if overdue else None
+        first = learner_rows[0]
+        last_text = (
+            completed_date.strftime("%Y-%m-%d (Completed)")
+            if completed_date
+            else str(first.get("last_completed_value") or "")
+        )
+
+        if len(overdue) <= 0:
+            review_status = "Ahead"
+        elif len(overdue) > 12:
+            review_status = "Due"
+        elif len(overdue) > 10:
+            review_status = "At Risk"
+        else:
+            review_status = "Normal"
+
+        results.append({
+            "id": first.get("learner_id"),
+            "fullName": first.get("full_name") or "",
+            "email": email,
+            "group": first.get("learner_group") or "",
+            "caseOwner": first.get("case_owner") or "",
+            "phone": str(first.get("phone") or "").strip(),
+            "organisation": first.get("organisation") or "",
+            "lastActuallyCompletedPr": last_text,
+            "lastProgressReview": first.get("last_progress_review") or "",
+            "nextReviewStatus": next_item["status"] if next_item else "",
+            "duePrDate": latest_due["date"].strftime("%Y-%m-%d") if latest_due else "",
+            "duePrState": latest_due["status"] if latest_due else "",
+            "nextPrDate": next_item["date"].strftime("%Y-%m-%d") if next_item else "",
+            "nextPrState": next_item["status"] if next_item else "",
+            "overduePrCount": len(overdue),
+            "reviewStatus": review_status,
+            "plannedDates": sorted(planned, key=lambda item: item["date"]),
+        })
+
+    return results
+
+
+def _lms_progress_review_booked_summary(request):
+    rows = _lms_review_rows(("Progress Review", "Progress Review (+ Skills Radar)"))
+    results = []
+    for email, learner_rows in _group_lms_reviews(rows).items():
+        planned = []
+        for row in learner_rows:
+            planned_date = _lms_item_date(row.get("planned_scheduled_date"))
+            if not planned_date:
+                continue
+            status = _lms_review_status(row)
+            if not is_scheduled_status(status) or is_completed_status(status):
+                continue
+            planned.append({
+                "date": planned_date.strftime("%Y-%m-%d"),
+                "status": status,
+                "completed": False,
+            })
+        if not planned:
+            continue
+        planned.sort(key=lambda item: item["date"])
+        first = learner_rows[0]
+        results.append({
+            "id": first.get("learner_id"),
+            "fullName": first.get("full_name") or "",
+            "email": email,
+            "caseOwner": first.get("case_owner") or "",
+            "caseOwnerId": None,
+            "bookedDates": planned,
+            "nextBookedDate": planned[0]["date"],
+        })
+    return results
+
+
+def _lms_mcr_summary(request):
+    rows = _lms_review_rows(("Monthly Coaching Meeting",))
+    today = date.today()
+    results = []
+    for email, learner_rows in _group_lms_reviews(rows).items():
+        dates = []
+        completed_dates = []
+        for row in learner_rows:
+            planned_date = _lms_item_date(row.get("planned_scheduled_date"))
+            completed_date = _lms_item_date(row.get("completed_date"))
+            last_completed_date = _lms_item_date(row.get("last_completed_date"))
+            status = _lms_review_status(row)
+            if completed_date:
+                completed_dates.append(completed_date)
+            if last_completed_date:
+                completed_dates.append(last_completed_date)
+            if planned_date:
+                dates.append({
+                    "date": planned_date.strftime("%Y-%m-%d"),
+                    "status": status,
+                    "completed": bool(completed_date) or is_completed_status(status),
+                })
+
+        candidates = [
+            item for item in dates
+            if (parsed := parse_date_safe(item["date"]))
+            and parsed < today
+            and not item["completed"]
+            and not is_archived_status(item["status"])
+        ]
+        future = [
+            item for item in dates
+            if (parsed := parse_date_safe(item["date"]))
+            and parsed >= today
+            and not item["completed"]
+            and not is_archived_status(item["status"])
+        ]
+        next_item = min(future, key=lambda item: item["date"]) if future else None
+        latest_due = max(candidates, key=lambda item: item["date"]) if candidates else None
+        completed_date = max(completed_dates) if completed_dates else None
+        first = learner_rows[0]
+        if len(candidates) <= 0:
+            mcr_status = "Ahead"
+        elif len(candidates) > 12:
+            mcr_status = "Due"
+        elif len(candidates) > 10:
+            mcr_status = "At Risk"
+        else:
+            mcr_status = "Normal"
+
+        results.append({
+            "id": first.get("learner_id"),
+            "fullName": first.get("full_name") or "",
+            "email": email,
+            "status": first.get("lifecycle_status") or "",
+            "subscriptionStatus": first.get("subscription_status") or "",
+            "caseOwner": first.get("case_owner") or "",
+            "lastMcm": first.get("last_progress_review") or "",
+            "nextMcm": next_item["date"] if next_item else "",
+            "lastActuallyCompletedMcm": (
+                completed_date.strftime("%Y-%m-%d")
+                if completed_date
+                else str(first.get("last_completed_value") or "")
+            ),
+            "overdueMcmCount": len(candidates),
+            "dueMcmDate": latest_due["date"] if latest_due else None,
+            "nextDueDate": next_item["date"] if next_item else None,
+            "mcrStatus": mcr_status,
+            "mcmDates": sorted(dates, key=lambda item: item["date"]),
+            "managerName": first.get("manager_name") or "",
+            "managerEmail": first.get("manager_email") or "",
+            "programme": first.get("programme") or "",
+            "organisationName": first.get("organisation") or "",
+        })
+    return results
+
+
 def progress_review_summary(request):
+    return JsonResponse(_lms_progress_review_summary(request), safe=False)
+
+    # Legacy Aptem source retained below for reference only.
     learner_filter = str(
         request.GET.get("learner_email")
         or request.GET.get("email")
@@ -678,6 +1141,9 @@ def employer_tables_debug(request):
     )
 
 def progress_review_booked_summary(request):
+    return JsonResponse(_lms_progress_review_booked_summary(request), safe=False)
+
+    # Legacy Aptem source retained below for reference only.
     planned_cols = ", ".join(
         f'"Review Planned Date{i}", "Review Status{i}"' for i in range(1, 17)
     )
@@ -1040,6 +1506,9 @@ def otj_at_risk_summary(request):
 
 
 def mcr_summary(request):
+    return JsonResponse(_lms_mcr_summary(request), safe=False)
+
+    # Legacy Aptem source retained below for reference only.
     with connections["aptem"].cursor() as cursor:
         cursor.execute("""
             SELECT
