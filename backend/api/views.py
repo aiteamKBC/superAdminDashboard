@@ -1215,137 +1215,203 @@ def progress_review_booked_summary(request):
 
 
 def aptem_learners_summary(request):
-    with connections["aptem"].cursor() as cursor:
+    if "lms" not in connections:
+        raise RuntimeError("LMS_DATABASE_URL is not configured")
+
+    with connections["lms"].cursor() as cursor:
         cursor.execute("""
+            WITH latest_created_users AS (
+                SELECT DISTINCT ON (LOWER(TRIM(COALESCE("Email", ''))))
+                    LOWER(TRIM(COALESCE("Email", ''))) AS email_key,
+                    "Phone_number",
+                    "Orgnization",
+                    "Employer",
+                    "Line_manager",
+                    "Employer_email",
+                    "Coach_name",
+                    "Coach_email",
+                    "Programme",
+                    "Group",
+                    "Start_date",
+                    "End_date",
+                    "Learner_start_date",
+                    "Learner_end_date",
+                    "Planned_hours",
+                    "Minimum_required_hours"
+                FROM "enrolment"."Created_users"
+                WHERE TRIM(COALESCE("Email", '')) <> ''
+                ORDER BY LOWER(TRIM(COALESCE("Email", ''))), id DESC
+            ),
+            latest_target_hours AS (
+                SELECT DISTINCT ON (aptem_id)
+                    aptem_id,
+                    planned_hours,
+                    target_hours,
+                    start_date,
+                    planned_end_date,
+                    elapsed_days,
+                    programme_days
+                FROM "Learner".learner_target_hours_current
+                WHERE aptem_id IS NOT NULL
+                ORDER BY aptem_id, updated_at DESC NULLS LAST, snapshot_date DESC NULLS LAST
+            ),
+            latest_inclusion_roster AS (
+                SELECT DISTINCT ON (LOWER(TRIM(COALESCE(learner_email, ''))))
+                    LOWER(TRIM(COALESCE(learner_email, ''))) AS email_key,
+                    employer
+                FROM kbc_quality_reporting.inclusion_roster_v2
+                WHERE TRIM(COALESCE(learner_email, '')) <> ''
+                ORDER BY LOWER(TRIM(COALESCE(learner_email, ''))), lms_updated_at DESC NULLS LAST
+            )
             SELECT
-                "ID",
-                "FullName",
-                "Email",
-                "Group",
-                "Minimum",
-                "Planned",
-                "Submitted",
-                "Completed",
-                "Forecast",
-                "Exepected",
-                "ProgressVariance",
-                "Progress-Hours",
-                "OTJHoursStatus",
-                "TotalTargetKSB",
-                "TotalCompletedKSB",
-                "KSBStatus",
-                "Start-Date",
-                "End-Date",
-                "Total Days",
-                "Elapsed-Days",
-                "Program Name",
-                "Program-Status",
-                "subprogramme",
-                "TotalCompCount",
-                "TargetCompCount",
-                "CompletedCompCount",
-                "TargetComp%",
-                "CompletedComp%",
-                "CompStatus",
-                "OwnerName",
-                "OwnerEmail",
-                "Coach-RAG",
-                "OrganizationName",
-                "ManagerName",
-                "ManagerEmail",
-                "Manager Phone",
-                "Employer Email",
-                "Employer Repsentative",
-                "Learner Phone",
-                "Gender",
-                "Disability",
-                "Subscription Status",
-                "Levy or Not",
-                "Working hours",
-                "case_owner_id",
-                "Assignment Evidence",
-                "AssignEvdHours",
-                "LMS Evidence",
-                "LMSEvdHours",
-                "ExtraAct-Evidence",
-                "ExtrEvdHours",
-                "Markers_Markers",
-                "components",
-                "apprenticeship-agreement",
-                "trainingplan",
-                "individual-learning-record",
-                "contract-for-service",
-                "written-agreement",
-                "Address",
-                "post code "
-            FROM public.aptem_auto_extracting
+                l.id,
+                l.full_name,
+                l.email,
+                COALESCE(NULLIF(l.group_name, ''), u."Group", l.cohort) AS group_name,
+                COALESCE(l.minimum_hours, 0) AS minimum_hours,
+                COALESCE(l.planned_hours, th.planned_hours, 0) AS planned_hours,
+                COALESCE(l.completed_hours, 0) AS completed_hours,
+                COALESCE(l.target_hours, th.target_hours, 0) AS target_hours,
+                l.progress_variance,
+                l.progress_hours,
+                l.otjh_status,
+                COALESCE(l.start_date, th.start_date) AS start_date,
+                COALESCE(l.end_date, th.planned_end_date) AS end_date,
+                COALESCE(NULLIF(l.programme, ''), u."Programme", '') AS programme,
+                l.programme_status,
+                COALESCE(NULLIF(l.coach_name, ''), u."Coach_name", '') AS coach_name,
+                COALESCE(NULLIF(l.coach_email, ''), u."Coach_email", '') AS coach_email,
+                l.coach_rag,
+                COALESCE(NULLIF(l.phone_number, ''), u."Phone_number", '') AS phone_number,
+                COALESCE(NULLIF(l.cohort, ''), '') AS cohort,
+                l.aptem_id,
+                COALESCE(NULLIF(u."Orgnization", ''), NULLIF(u."Employer", ''), r.employer, '') AS organization_name,
+                COALESCE(u."Line_manager", '') AS manager_name,
+                COALESCE(u."Employer_email", '') AS employer_email,
+                th.elapsed_days,
+                th.programme_days
+            FROM "Learner".learners l
+            LEFT JOIN latest_created_users u
+                ON u.email_key = LOWER(TRIM(COALESCE(l.email, '')))
+            LEFT JOIN latest_target_hours th
+                ON th.aptem_id = l.aptem_id
+            LEFT JOIN latest_inclusion_roster r
+                ON r.email_key = LOWER(TRIM(COALESCE(l.email, '')))
+            WHERE LOWER(COALESCE(l.programme_status, '')) = 'active'
+            ORDER BY LOWER(COALESCE(full_name, '')), id
         """)
         columns = [col[0] for col in cursor.description]
         raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+        learner_keys = sorted({int(row["aptem_id"]) for row in raw_rows if str(row.get("aptem_id") or "").isdigit()})
+        evidence_by_learner = {}
+        ksb_by_learner = {}
+        if learner_keys:
+            cursor.execute("""
+                SELECT
+                    learner_id,
+                    COUNT(*) AS evidence_count,
+                    COALESCE(SUM(spent_time), 0) AS evidence_hours,
+                    COUNT(DISTINCT component_id) FILTER (WHERE component_id IS NOT NULL) AS evidence_component_count,
+                    COUNT(DISTINCT component_id) FILTER (
+                        WHERE component_id IS NOT NULL
+                          AND LOWER(COALESCE(evidence_status, '')) IN ('accepted', 'completed', 'complete')
+                    ) AS completed_evidence_component_count
+                FROM fetching_evidence.active_evidence_items
+                WHERE learner_id = ANY(%s)
+                GROUP BY learner_id
+            """, [learner_keys])
+            evidence_by_learner = {str(row[0]): {
+                "evidence_count": row[1],
+                "evidence_hours": row[2],
+                "evidence_component_count": row[3],
+                "completed_evidence_component_count": row[4],
+            } for row in cursor.fetchall()}
+
+            cursor.execute("""
+                SELECT learner_id, COUNT(DISTINCT code) AS assigned_ksb_count
+                FROM fetching_evidence.learner_ksbs
+                WHERE learner_id = ANY(%s)
+                GROUP BY learner_id
+            """, [learner_keys])
+            ksb_by_learner = {str(row[0]): {"assigned_ksb_count": row[1]} for row in cursor.fetchall()}
+
     results = []
     for row in raw_rows:
+        learner_key = str(row.get("aptem_id") or "")
+        evidence = evidence_by_learner.get(learner_key, {})
+        assigned_ksb = ksb_by_learner.get(learner_key, {})
+        ksb_target = int(assigned_ksb.get("assigned_ksb_count") or 0)
+        ksb_completed = 0
+        component_target = int(evidence.get("evidence_component_count") or 0)
+        component_completed = int(evidence.get("completed_evidence_component_count") or 0)
+        ksb_status = ""
+        if ksb_target:
+            ksb_status = "Available"
+        comp_pct = round((component_completed / component_target) * 100, 1) if component_target else None
+        evidence_count = int(evidence.get("evidence_count") or 0)
+        evidence_hours = float(evidence.get("evidence_hours") or 0)
         results.append({
-            "id": row.get("ID"),
-            "fullName": row.get("FullName") or "",
-            "email": (row.get("Email") or "").strip().lower(),
-            "group": row.get("Group") or "",
-            "otjMinimum": float(row.get("Minimum") or 0),
-            "otjPlanned": float(row.get("Planned") or 0),
-            "otjSubmitted": float(row.get("Submitted") or 0),
-            "otjCompleted": float(row.get("Completed") or 0),
-            "otjForecast": float(row.get("Forecast") or 0),
-            "otjExpected": float(row.get("Exepected") or 0),
-            "progressVariance": row.get("ProgressVariance") or "",
-            "progressHours": row.get("Progress-Hours") or "",
-            "otjHoursStatus": row.get("OTJHoursStatus") or "",
-            "totalTargetKsb": row.get("TotalTargetKSB"),
-            "totalCompletedKsb": row.get("TotalCompletedKSB"),
-            "ksbStatus": row.get("KSBStatus") or "",
-            "startDate": row.get("Start-Date").isoformat() if row.get("Start-Date") else None,
-            "endDate": row.get("End-Date").isoformat() if row.get("End-Date") else None,
-            "totalDays": row.get("Total Days"),
-            "elapsedDays": row.get("Elapsed-Days"),
-            "programName": row.get("Program Name") or "",
-            "programStatus": row.get("Program-Status") or "",
+            "id": row.get("id") or row.get("aptem_id"),
+            "fullName": row.get("full_name") or "",
+            "email": (row.get("email") or "").strip().lower(),
+            "group": row.get("group_name") or row.get("cohort") or "",
+            "otjMinimum": float(row.get("minimum_hours") or 0),
+            "otjPlanned": float(row.get("planned_hours") or 0),
+            "otjSubmitted": 0,
+            "otjCompleted": float(row.get("completed_hours") or 0),
+            "otjForecast": 0,
+            "otjExpected": float(row.get("target_hours") or 0),
+            "progressVariance": row.get("progress_variance") or "",
+            "progressHours": row.get("progress_hours") or "",
+            "otjHoursStatus": row.get("otjh_status") or "",
+            "totalTargetKsb": ksb_target or None,
+            "totalCompletedKsb": ksb_completed or None,
+            "ksbStatus": ksb_status,
+            "startDate": row.get("start_date").isoformat() if row.get("start_date") else None,
+            "endDate": row.get("end_date").isoformat() if row.get("end_date") else None,
+            "totalDays": row.get("programme_days"),
+            "elapsedDays": row.get("elapsed_days"),
+            "programName": row.get("programme") or "",
+            "programStatus": row.get("programme_status") or "",
             "subprogramme": row.get("subprogramme") or "",
-            "totalCompCount": row.get("TotalCompCount"),
-            "targetCompCount": row.get("TargetCompCount"),
-            "completedCompCount": row.get("CompletedCompCount") or "",
-            "targetCompPct": row.get("TargetComp%") or "",
-            "completedCompPct": row.get("CompletedComp%") or "",
-            "compStatus": row.get("CompStatus") or "",
-            "ownerName": row.get("OwnerName") or "",
-            "ownerEmail": (row.get("OwnerEmail") or "").strip().lower(),
-            "coachRag": row.get("Coach-RAG") or "",
-            "organizationName": row.get("OrganizationName") or "",
-            "managerName": row.get("ManagerName") or "",
-            "managerEmail": (row.get("ManagerEmail") or "").strip().lower(),
-            "managerPhone": row.get("Manager Phone") or "",
-            "employerEmail": (row.get("Employer Email") or "").strip().lower(),
-            "employerRepresentative": row.get("Employer Repsentative") or "",
-            "learnerPhone": row.get("Learner Phone") or "",
-            "gender": row.get("Gender") or "",
-            "disability": row.get("Disability") or "",
-            "subscriptionStatus": row.get("Subscription Status") or "",
-            "levyOrNot": row.get("Levy or Not") or "",
-            "workingHours": row.get("Working hours") or "",
-            "caseOwnerId": row.get("case_owner_id"),
-            "assignmentEvidence": row.get("Assignment Evidence"),
-            "assignEvdHours": float(row.get("AssignEvdHours") or 0),
-            "lmsEvidence": row.get("LMS Evidence"),
-            "lmsEvdHours": float(row.get("LMSEvdHours") or 0),
-            "extraActEvidence": row.get("ExtraAct-Evidence"),
-            "extraEvdHours": float(row.get("ExtrEvdHours") or 0),
-            "markers": row.get("Markers_Markers") or "",
-            "components": row.get("components") or "",
-            "apprenticeshipAgreement": row.get("apprenticeship-agreement") or "",
-            "trainingPlan": row.get("trainingplan") or "",
-            "individualLearningRecord": row.get("individual-learning-record") or "",
-            "contractForService": row.get("contract-for-service") or "",
-            "writtenAgreement": row.get("written-agreement") or "",
-            "address": row.get("Address") or "",
-            "postCode": row.get("post code ") or "",
+            "totalCompCount": component_target or None,
+            "targetCompCount": component_target or None,
+            "completedCompCount": component_completed,
+            "targetCompPct": 100 if component_target else None,
+            "completedCompPct": comp_pct,
+            "compStatus": ("Completed" if component_target and component_completed >= component_target else "In Progress") if component_target else "",
+            "ownerName": row.get("coach_name") or "",
+            "ownerEmail": (row.get("coach_email") or "").strip().lower(),
+            "coachRag": row.get("coach_rag") or "Coming soon",
+            "organizationName": row.get("organization_name") or "",
+            "managerName": row.get("manager_name") or "Coming soon",
+            "managerEmail": "",
+            "managerPhone": "",
+            "employerEmail": (row.get("employer_email") or "").strip().lower(),
+            "employerRepresentative": "",
+            "learnerPhone": row.get("phone_number") or "",
+            "gender": row.get("gender") or "",
+            "disability": row.get("disability") or "",
+            "subscriptionStatus": row.get("subscription_status") or "",
+            "levyOrNot": "Coming soon",
+            "workingHours": "",
+            "caseOwnerId": row.get("case_owner") or None,
+            "assignmentEvidence": evidence_count or None,
+            "assignEvdHours": 0,
+            "lmsEvidence": evidence_count or None,
+            "lmsEvdHours": evidence_hours,
+            "extraActEvidence": None,
+            "extraEvdHours": 0,
+            "markers": "",
+            "components": row.get("source_components") or "",
+            "apprenticeshipAgreement": row.get("review_documents") or "",
+            "trainingPlan": row.get("training_plan") or "",
+            "individualLearningRecord": "",
+            "contractForService": "",
+            "writtenAgreement": "",
+            "address": row.get("address") or "",
+            "postCode": row.get("post_code") or "",
         })
 
     return JsonResponse(results, safe=False)

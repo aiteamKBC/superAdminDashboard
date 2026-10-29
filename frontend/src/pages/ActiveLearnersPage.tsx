@@ -77,6 +77,7 @@ const ragBadge = (rag: string) => {
   if (r === "red") return <span className="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">Red</span>;
   if (r === "amber") return <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">Amber</span>;
   if (r === "green") return <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Green</span>;
+  if (r === "coming soon") return <span className="text-xs italic text-[#A0B0C0]">Coming soon</span>;
   return <span className="text-xs text-[#A0B0C0]">—</span>;
 };
 
@@ -485,7 +486,9 @@ export default function ActiveLearnersPage() {
                           {/* Info columns */}
                           <td className="px-3 py-3 text-xs text-[#5F7288]">{l.organizationName || "—"}</td>
                           <td className="px-3 py-3">
-                            {l.managerName ? (
+                            {l.managerName === "Coming soon" ? (
+                              <span className="text-xs italic text-[#A0B0C0]">Coming soon</span>
+                            ) : l.managerName ? (
                               <>
                                 <p className="whitespace-nowrap text-xs font-semibold text-[#14264A]">{l.managerName}</p>
                                 {l.managerEmail && <p className="text-[11px] text-[#71849A]">{l.managerEmail}</p>}
