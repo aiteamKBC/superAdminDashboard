@@ -18,8 +18,8 @@ export default function AdminReports({ coordinators, performance }: AdminReports
   const [reportType, setReportType] = useState<ReportType>('daily-activity');
   const [selectedCoordinator, setSelectedCoordinator] = useState('all');
 
-  const activeCoordinators = (coordinators?.length ? coordinators : mockCoordinators).filter(c => c.active);
-  const perfData = useMemo(() => performance?.length ? performance : getCoordinatorPerformance('7days'), [performance]);
+  const activeCoordinators = (coordinators ?? mockCoordinators).filter(c => c.active);
+  const perfData = useMemo(() => performance ?? getCoordinatorPerformance('7days'), [performance]);
 
   const exportCSV = (data: Record<string, any>[], filename: string) => {
     if (data.length === 0) return;
@@ -43,7 +43,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
 
   // Daily activity data (last 7 days per coordinator)
   const dailyActivityData = filteredPerf.map(p => ({
-    Coordinator: p.coordinatorName,
+    Coach: p.coordinatorName,
     Calls: p.callsMade,
     Answered: p.answeredCalls,
     'Not Answered': p.notAnswered,
@@ -55,7 +55,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
 
   // Weekly summary
   const weeklySummaryData = filteredPerf.map(p => ({
-    Coordinator: p.coordinatorName,
+    Coach: p.coordinatorName,
     Caseload: p.assignedCaseload,
     'Total Calls': p.callsMade,
     'Answer Rate': `${p.assignedCaseload > 0 ? Math.round((p.answeredCalls / Math.max(p.callsMade, 1)) * 100) : 0}%`,
@@ -68,7 +68,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
 
   // Risk snapshot
   const riskSnapshotData = filteredPerf.map(p => ({
-    Coordinator: p.coordinatorName,
+    Coach: p.coordinatorName,
     'Missed Session': p.caseloadHealth.missedSession,
     'PR Due': p.caseloadHealth.reviewDue,
     'MCM Required': p.caseloadHealth.coachingDue,
@@ -105,7 +105,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
         <Select value={selectedCoordinator} onValueChange={setSelectedCoordinator}>
           <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Coordinators</SelectItem>
+            <SelectItem value="all">All Coaches</SelectItem>
             {activeCoordinators.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -127,7 +127,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
               <TableHeader>
                 <TableRow>
                   {Object.keys(currentData[0]).map(header => (
-                    <TableHead key={header} className={header !== 'Coordinator' ? 'text-right' : ''}>{header}</TableHead>
+                    <TableHead key={header} className={header !== 'Coach' ? 'text-right' : ''}>{header}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -135,7 +135,7 @@ export default function AdminReports({ coordinators, performance }: AdminReports
                 {currentData.map((row, i) => (
                   <TableRow key={i}>
                     {Object.entries(row).map(([key, val], j) => (
-                      <TableCell key={j} className={`${key !== 'Coordinator' ? 'text-right' : 'font-medium text-foreground'}`}>
+                      <TableCell key={j} className={`${key !== 'Coach' ? 'text-right' : 'font-medium text-foreground'}`}>
                         {String(val)}
                       </TableCell>
                     ))}

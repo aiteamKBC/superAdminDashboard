@@ -43,9 +43,9 @@ export default function AllocationManager({
   lastContactByLearner = {},
   nextFollowUpByLearner = {},
 }: AllocationManagerProps) {
-  const learners = liveLearners?.length ? liveLearners : mockLearners;
-  const coordinators = liveCoordinators?.length ? liveCoordinators : mockCoordinators;
-  const assignmentRows = initialAssignments?.length ? initialAssignments : mockAssignments;
+  const learners = liveLearners ?? mockLearners;
+  const coordinators = liveCoordinators ?? mockCoordinators;
+  const assignmentRows = initialAssignments ?? mockAssignments;
   const [selectedLearners, setSelectedLearners] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
@@ -144,7 +144,8 @@ export default function AllocationManager({
       {/* Coordinator List Panel */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4" /> Engagement Coordinators</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4" /> LMS Coaches</CardTitle>
+          {liveLearners && <p className="text-xs text-muted-foreground">Assignment changes on this screen are a local preview and are not saved to the LMS.</p>}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -185,7 +186,7 @@ export default function AllocationManager({
       <div className="flex flex-wrap gap-3">
         {filterCoordinator !== 'all' && (
           <div className="flex h-11 items-center gap-2 rounded-xl border border-[#E7DAF4] bg-[#FCF3FF] px-3 text-sm font-medium text-[#644D93]">
-            Showing {coordinators.find((c) => c.id === filterCoordinator)?.name || 'selected coordinator'}
+            Showing {coordinators.find((c) => c.id === filterCoordinator)?.name || 'selected coach'}
             <button
               type="button"
               onClick={() => setFilterCoordinator('all')}
@@ -210,9 +211,9 @@ export default function AllocationManager({
           </SelectContent>
         </Select>
         <Select value={filterCoordinator} onValueChange={setFilterCoordinator}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Coordinator" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Coach" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Coordinators</SelectItem>
+            <SelectItem value="all">All Coaches</SelectItem>
             {coordinators.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -279,7 +280,7 @@ export default function AllocationManager({
                 <TableHead>Status</TableHead>
                 <TableHead>Risk Flags</TableHead>
                 <TableHead>Priority</TableHead>
-                <TableHead>Coordinator</TableHead>
+                <TableHead>Coach</TableHead>
                 <TableHead>Last Contact</TableHead>
                 <TableHead>Next Follow-up</TableHead>
               </TableRow>
@@ -322,10 +323,10 @@ export default function AllocationManager({
                     </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {lastContactByLearner[learner.id] || getLastContactDate(learner.id) || "N/A"}
+                    {lastContactByLearner[learner.id] || (!liveLearners && getLastContactDate(learner.id)) || "N/A"}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {nextFollowUpByLearner[learner.id] || getNextFollowUpDate(learner.id) || "N/A"}
+                    {nextFollowUpByLearner[learner.id] || (!liveLearners && getNextFollowUpDate(learner.id)) || "N/A"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -340,7 +341,7 @@ export default function AllocationManager({
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Bulk Assignment</AlertDialogTitle>
             <AlertDialogDescription>
-              Assign {selectedLearners.size} learner(s) to {activeCoordinators.find(c => c.id === bulkCoordinator)?.name}? This action will be logged in the audit trail.
+              Preview assigning {selectedLearners.size} learner(s) to {activeCoordinators.find(c => c.id === bulkCoordinator)?.name}? This does not save to the LMS.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -356,7 +357,7 @@ export default function AllocationManager({
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Automatic Rebalance</AlertDialogTitle>
             <AlertDialogDescription>
-              This will redistribute all learners evenly across active coordinators. Inactive coordinators will be excluded. This action will be logged.
+              This previews an even distribution across active coaches. It does not save to the LMS.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,9 +1,13 @@
 from django.urls import path
+from .lms_admin import lms_admin_learners
+from .lms_calendar import lms_calendar_events
+from .marking_summary import lms_marking_summary
 from .views import (
     auth_login,
     auth_logout,
     auth_microsoft_login,
     auth_session,
+    communication_ticket_report,
     test_kbc_attendance,
     learner_contact_actions,
     progress_review_summary,
@@ -58,6 +62,7 @@ urlpatterns = [
     path("auth/login/", auth_login, name="auth-login"),
     path("auth/microsoft-login/", auth_microsoft_login, name="auth-microsoft-login"),
     path("auth/logout/", auth_logout, name="auth-logout"),
+    path("communication-tickets/report/", communication_ticket_report, name="communication-ticket-report"),
     path("test-kbc-attendance/", test_kbc_attendance),
     path("learner-contact-actions/", learner_contact_actions),
     path("progress-review-summary/", progress_review_summary, name="progress-review-summary"),
@@ -69,6 +74,9 @@ urlpatterns = [
     path("epa-summary/", epa_summary, name="epa-summary"),
     path("mcr-summary/", mcr_summary, name="mcr-summary"),
     path("require-marking/", require_marking_summary, name="require-marking-summary"),
+    path("lms-marking/", lms_marking_summary, name="lms-marking-summary"),
+    path("lms-admin-learners/", lms_admin_learners, name="lms-admin-learners"),
+    path("lms-calendar/", lms_calendar_events, name="lms-calendar-events"),
     path("lms-activity/", lms_activity_summary, name="lms-activity-summary"),
     path("otj-at-risk/", otj_at_risk_summary, name="otj-at-risk-summary"),
     path("kbc-attendance/", kbc_attendance_summary, name="kbc-attendance-summary"),

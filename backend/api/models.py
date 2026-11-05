@@ -27,6 +27,30 @@ class DashboardContactLog(models.Model):
         db_table = 'dashboard_contact_log'
 
 
+class AttendanceContactAction(models.Model):
+    """Follow-up state for attendance sources that are read-only to this app."""
+
+    source = models.CharField(max_length=20, default='live')
+    learner_email = models.CharField(max_length=255, db_index=True)
+    attendance_date = models.DateField()
+    attendance_module = models.CharField(max_length=500)
+    called = models.BooleanField(default=False)
+    emailed = models.BooleanField(default=False)
+    resolved = models.BooleanField(default=False)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    note = models.TextField(blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'dashboard_attendance_contact_action'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['source', 'learner_email', 'attendance_date', 'attendance_module'],
+                name='attendance_contact_action_source_learner_session_unique',
+            ),
+        ]
+
+
 class AttendanceTicket(models.Model):
     RISK_CHOICES = [('red', 'Red'), ('amber', 'Amber'), ('green', 'Green')]
     STATUS_CHOICES = [

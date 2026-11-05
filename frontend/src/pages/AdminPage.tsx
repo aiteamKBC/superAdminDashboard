@@ -91,7 +91,7 @@ export default function AdminPage() {
       .catch((err) => {
         if (cancelled) return;
         console.error(err);
-        setError('Unable to load live administrator data. Showing fallback data.');
+        setError('Unable to load LMS administrator data. Please try again.');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -107,16 +107,16 @@ export default function AdminPage() {
       <div className="p-4 sm:p-5 lg:p-6 space-y-5">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Administrator</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage coordinator allocations, monitor performance, and generate reports</p>
+          <p className="text-sm text-muted-foreground mt-1">Review LMS coach caseloads, monitor performance, and generate reports</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             {loading && (
               <span className="rounded-full bg-[#FCF3FF] px-2.5 py-1 font-medium text-[#644D93]">
-                Loading live learner data...
+                Loading LMS learner data...
               </span>
             )}
             {!loading && adminData && (
               <span className="rounded-full bg-[#EDFAF3] px-2.5 py-1 font-medium text-[#1A7A4A]">
-                Live data: {adminData.learners.length} learners
+                LMS learners: {adminData.totals.current} current (Active/Delivery) | {adminData.totals.all} all statuses
               </span>
             )}
             {error && (
@@ -129,7 +129,7 @@ export default function AdminPage() {
 
         {loading ? (
           <AdminPageSkeleton />
-        ) : (
+        ) : adminData ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="allocation">Allocation</TabsTrigger>
@@ -139,30 +139,30 @@ export default function AdminPage() {
 
             <TabsContent value="allocation">
               <AllocationManager
-                learners={adminData?.learners}
-                coordinators={adminData?.coordinators}
-                initialAssignments={adminData?.assignments}
-                lastContactByLearner={adminData?.lastContactByLearner}
-                nextFollowUpByLearner={adminData?.nextFollowUpByLearner}
+                learners={adminData.learners}
+                coordinators={adminData.coordinators}
+                initialAssignments={adminData.assignments}
+                lastContactByLearner={adminData.lastContactByLearner}
+                nextFollowUpByLearner={adminData.nextFollowUpByLearner}
               />
             </TabsContent>
             <TabsContent value="performance">
               <PerformanceDashboard
-                coordinators={adminData?.coordinators}
-                learners={adminData?.learners}
-                assignments={adminData?.assignments}
-                contactLogs={adminData?.contactLogs}
-                performance={adminData?.performance}
+                coordinators={adminData.coordinators}
+                learners={adminData.learners}
+                assignments={adminData.assignments}
+                contactLogs={adminData.contactLogs}
+                performance={adminData.performance}
               />
             </TabsContent>
             <TabsContent value="reports">
               <AdminReports
-                coordinators={adminData?.coordinators}
-                performance={adminData?.performance}
+                coordinators={adminData.coordinators}
+                performance={adminData.performance}
               />
             </TabsContent>
           </Tabs>
-        )}
+        ) : <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">LMS administrator data is unavailable.</div>}
       </div>
     </AppLayout>
   );

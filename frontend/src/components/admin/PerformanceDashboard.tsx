@@ -30,10 +30,10 @@ export default function PerformanceDashboard({
   const [dateRange, setDateRange] = useState<DateRange>('7days');
   const perfData = useMemo(
     () => {
-      if (coordinators?.length && learners?.length && assignments?.length && contactLogs) {
+      if (coordinators && learners && assignments && contactLogs) {
         return buildAdminPerformance(coordinators, learners, assignments, contactLogs, dateRange);
       }
-      return performance?.length ? performance : getCoordinatorPerformance(dateRange);
+      return performance ?? getCoordinatorPerformance(dateRange);
     },
     [coordinators, learners, assignments, contactLogs, performance, dateRange]
   );
@@ -91,7 +91,7 @@ export default function PerformanceDashboard({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Coordinator</TableHead>
+                <TableHead>Coach</TableHead>
                 <TableHead className="text-right">Caseload</TableHead>
                 <TableHead className="text-right">Calls</TableHead>
                 <TableHead className="text-right">Answered</TableHead>
@@ -132,7 +132,7 @@ export default function PerformanceDashboard({
       {/* Outcome Breakdown Chart */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Outcome Breakdown by Coordinator</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Outcome Breakdown by Coach</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[350px]">
@@ -157,13 +157,13 @@ export default function PerformanceDashboard({
       {/* Caseload Health */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Caseload Health per Coordinator</CardTitle>
+          <CardTitle className="text-base">Caseload Health per Coach</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Coordinator</TableHead>
+                <TableHead>Coach</TableHead>
                 <TableHead className="text-right">Missed Sess.</TableHead>
                 <TableHead className="text-right">PR Due</TableHead>
                 <TableHead className="text-right">MCM Required</TableHead>

@@ -1,37 +1,47 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { ChevronLeft, ChevronRight, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 type Booking = {
   id: number;
   learnerEmail: string;
   learnerName: string;
   coach: string;
-  sessionType: "PR" | "MCM" | "Support";
+  sessionType: "PR" | "MCM" | "Support" | "Other";
   date: string;
   time: string;
+  eventType: string;
+  status: string;
   notes: string;
   bookingUrl: string;
-  createdAt: string;
 };
 
 const SESSION_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   PR:      { bg: "#F3EEFF", text: "#644d93", dot: "#644d93" },
   MCM:     { bg: "#FFF8EE", text: "#b27715", dot: "#b27715" },
   Support: { bg: "#F0FFF6", text: "#2E9E5B", dot: "#2E9E5B" },
+  Other:   { bg: "#EDF2F7", text: "#536477", dot: "#536477" },
 };
 
 const SESSION_LABELS: Record<string, string> = {
   PR: "Progress Review",
   MCM: "Monthly Coaching Meeting",
   Support: "Support Session",
+  Other: "Other LMS Session",
 };
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function isoDate(y: number, m: number, d: number) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const date = new Date(y, m, d);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function sessionLabel(booking: Booking) {
+  return SESSION_LABELS[booking.sessionType] && ["mcr", "progress-review", "student-support"].includes(booking.eventType)
+    ? SESSION_LABELS[booking.sessionType]
+    : booking.eventType.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function getMonthGrid(year: number, month: number) {
@@ -57,6 +67,7 @@ function getMonthGrid(year: number, month: number) {
 export default function CalendarPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [view, setView] = useState<"month" | "week">("month");
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth());
@@ -70,18 +81,18 @@ export default function CalendarPage() {
     return mon;
   });
   const [selected, setSelected] = useState<Booking | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [editDate, setEditDate] = useState("");
-  const [editTime, setEditTime] = useState("");
-  const [editNotes, setEditNotes] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/bookings/");
+      setError("");
+      const res = await fetch("/api/lms-calendar/");
+      if (!res.ok) throw new Error("Could not load LMS sessions.");
       const data = await res.json();
-      setBookings(Array.isArray(data) ? data : []);
+      if (!Array.isArray(data)) throw new Error("Invalid LMS calendar response.");
+      setBookings(data);
     } catch {
       setBookings([]);
+      setError("Could not load LMS sessions. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -99,13 +110,8 @@ export default function CalendarPage() {
     return m;
   }, [bookings]);
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  const deleteBooking = async (id: number) => {
-    await fetch(`/api/bookings/?id=${id}`, { method: "DELETE" });
-    setBookings((prev) => prev.filter((b) => b.id !== id));
-    setSelected(null);
-  };
+  const now = new Date();
+  const today = isoDate(now.getFullYear(), now.getMonth(), now.getDate());
 
   // ── Month navigation ────────────────────────────────────────────────
   const prevMonth = () => {
@@ -128,6 +134,12 @@ export default function CalendarPage() {
   }), [weekStart]);
 
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
+  const visibleDates = new Set(
+    view === "month"
+      ? grid.filter((cell) => cell.current).map((cell) => cell.date)
+      : weekDays.map((day) => isoDate(day.getFullYear(), day.getMonth(), day.getDate())),
+  );
+  const visibleCount = bookings.filter((booking) => visibleDates.has(booking.date)).length;
 
   return (
     <AppLayout>
@@ -135,8 +147,10 @@ export default function CalendarPage() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-xl font-bold text-[#4C4C4C]">Booking Calendar</h1>
-            <p className="text-xs text-[#808080] mt-0.5">Sessions booked from the dashboard</p>
+            <h1 className="text-xl font-bold text-[#4C4C4C]">LMS Coach Calendar</h1>
+            <p className="text-xs text-[#808080] mt-0.5">
+              Source: LMS coach calendar events · Read-only · {visibleCount} sessions this {view}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -204,6 +218,8 @@ export default function CalendarPage() {
 
           {loading ? (
             <div className="h-64 flex items-center justify-center text-sm text-[#808080]">Loading…</div>
+          ) : error ? (
+            <div role="alert" className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
           ) : view === "month" ? (
             // ── Month view ──────────────────────────────────────────────
             <div className="grid grid-cols-7">
@@ -222,7 +238,7 @@ export default function CalendarPage() {
                       {Number(cell.date.slice(-2))}
                     </div>
                     <div className="space-y-0.5">
-                      {cellBookings.slice(0, 3).map((b) => (
+                      {cellBookings.map((b) => (
                         <button
                           key={b.id}
                           onClick={() => setSelected(b)}
@@ -232,9 +248,6 @@ export default function CalendarPage() {
                           {b.time} {b.learnerName}
                         </button>
                       ))}
-                      {cellBookings.length > 3 && (
-                        <p className="text-[10px] text-[#808080] pl-1">+{cellBookings.length - 3} more</p>
-                      )}
                     </div>
                   </div>
                 );
@@ -244,7 +257,7 @@ export default function CalendarPage() {
             // ── Week view ────────────────────────────────────────────────
             <div className="grid grid-cols-7">
               {weekDays.map((day) => {
-                const dateStr = day.toISOString().slice(0, 10);
+                const dateStr = isoDate(day.getFullYear(), day.getMonth(), day.getDate());
                 const dayBookings = byDate.get(dateStr) ?? [];
                 const isToday = dateStr === today;
                 return (
@@ -264,7 +277,7 @@ export default function CalendarPage() {
                         >
                           <div>{b.time}</div>
                           <div className="font-semibold truncate">{b.learnerName}</div>
-                          <div className="opacity-75 truncate">{SESSION_LABELS[b.sessionType]}</div>
+                          <div className="opacity-75 truncate">{sessionLabel(b)}</div>
                         </button>
                       ))}
                       {!dayBookings.length && (
@@ -280,7 +293,7 @@ export default function CalendarPage() {
 
         {/* Booking detail panel */}
         {selected && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => { setSelected(null); setEditing(false); }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setSelected(null)}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -288,75 +301,16 @@ export default function CalendarPage() {
                     className="inline-block text-xs font-semibold rounded-full px-2.5 py-0.5 mb-2"
                     style={{ background: SESSION_COLORS[selected.sessionType]?.bg, color: SESSION_COLORS[selected.sessionType]?.text }}
                   >
-                    {SESSION_LABELS[selected.sessionType]}
+                    {sessionLabel(selected)}
                   </span>
                   <h3 className="text-base font-bold text-[#4C4C4C]">{selected.learnerName}</h3>
                 </div>
-                <button onClick={() => { setSelected(null); setEditing(false); }} className="text-[#808080] hover:text-[#4C4C4C]">
+                <button onClick={() => setSelected(null)} className="text-[#808080] hover:text-[#4C4C4C]">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {editing ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-[#808080] block mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                        className="w-full h-9 rounded-lg border border-[#E4E4E4] px-3 text-sm text-[#4C4C4C] outline-none focus:border-[#866CB6]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#808080] block mb-1">Time</label>
-                      <input
-                        type="time"
-                        value={editTime}
-                        onChange={(e) => setEditTime(e.target.value)}
-                        className="w-full h-9 rounded-lg border border-[#E4E4E4] px-3 text-sm text-[#4C4C4C] outline-none focus:border-[#866CB6]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-[#808080] block mb-1">Notes</label>
-                    <textarea
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      rows={2}
-                      className="w-full rounded-lg border border-[#E4E4E4] px-3 py-2 text-sm text-[#4C4C4C] outline-none focus:border-[#866CB6] resize-none"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={() => setEditing(false)}
-                      className="flex-1 h-9 rounded-lg border border-[#E4E4E4] text-sm text-[#808080] hover:bg-[#F8F8F8]"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      disabled={!editDate || !editTime}
-                      onClick={async () => {
-                        await fetch(`/api/bookings/?id=${selected.id}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ date: editDate, time: editTime, notes: editNotes }),
-                        });
-                        const updated = { ...selected, date: editDate, time: editTime, notes: editNotes };
-                        setBookings((prev) => prev.map((b) => b.id === selected.id ? updated : b));
-                        setSelected(updated);
-                        setEditing(false);
-                      }}
-                      className="flex-1 h-9 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
-                      style={{ background: "#644d93" }}
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
+              <>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-[#808080]">Date</span>
@@ -365,6 +319,10 @@ export default function CalendarPage() {
                     <div className="flex justify-between">
                       <span className="text-[#808080]">Time</span>
                       <span className="font-medium text-[#4C4C4C]">{selected.time}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#808080]">Status</span>
+                      <span className="font-medium text-[#4C4C4C] capitalize">{selected.status.replaceAll("-", " ")}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#808080]">Coach</span>
@@ -389,24 +347,11 @@ export default function CalendarPage() {
                         className="flex-1 h-9 rounded-lg text-sm font-semibold text-white"
                         style={{ background: "#644d93" }}
                       >
-                        Open Booking
+                        Open LMS Meeting
                       </button>
                     )}
-                    <button
-                      onClick={() => { setEditDate(selected.date); setEditTime(selected.time); setEditNotes(selected.notes); setEditing(true); }}
-                      className="h-9 w-9 flex items-center justify-center rounded-lg border border-[#E4E4E4] text-[#644d93] hover:bg-[#F3EEFF]"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deleteBooking(selected.id)}
-                      className="h-9 w-9 flex items-center justify-center rounded-lg border border-[#E4E4E4] text-red-400 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                </>
-              )}
+              </>
             </div>
           </div>
         )}

@@ -9,8 +9,516 @@ from django.http import JsonResponse
 from django.db import connection, connections
 from django.contrib.auth import authenticate, get_user_model, login as django_login, logout as django_logout
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from datetime import datetime, date, timedelta
 from django.conf import settings
+
+
+COMMUNICATION_TICKET_SOURCE_LABELS = {
+    "attendance": "Attendance",
+    "pr": "Progress Review",
+    "mcm": "Monthly Coaching Meeting",
+    "pr_missed": "Missed Progress Review",
+    "mcm_missed": "Missed MCM",
+    "signature": "Missing Signature",
+    "otj": "Off-the-Job Hours",
+    "epa": "EPA",
+    "reminder": "Reminder",
+    "satisfaction": "Satisfaction",
+    "learner_satisfaction": "Learner Satisfaction",
+    "employer_feedback": "Employer Satisfaction",
+    "manual": "Manual Case",
+    "tech_support": "Technical Support",
+}
+COMMUNICATION_SYSTEM_CUTOFF = date(2026, 9, 1)
+
+
+def _communication_next_workday(day):
+    candidate = day + timedelta(days=1)
+    while candidate.weekday() >= 5:
+        candidate += timedelta(days=1)
+    return candidate
+
+
+def _communication_on_break_emails():
+    if "lms" not in settings.DATABASES:
+        return []
+    break_statuses = [
+        "break",
+        "onbreak",
+        "onabreak",
+        "onmaternitybreak",
+        "onillnessbreak",
+        "onotherbreak",
+    ]
+    try:
+        with connections["lms"].cursor() as cursor:
+            cursor.execute("""
+                SELECT lower(BTRIM("Email"))
+                FROM enrolment."Created_users"
+                WHERE regexp_replace(
+                    lower(BTRIM(COALESCE("Programme_status", ''))),
+                    '\\s+', '', 'g'
+                ) = ANY(%s)
+                  AND NULLIF(BTRIM("Email"), '') IS NOT NULL
+            """, [break_statuses])
+            return sorted({row[0] for row in cursor.fetchall() if row[0]})
+    except Exception:
+        return []
+
+
+def _communication_case_scope():
+    """Return the Communication Centre's operational case scope and parameters."""
+    from zoneinfo import ZoneInfo
+
+    today = timezone.now().astimezone(ZoneInfo("Europe/London")).date()
+    ready_attendance_date = today - timedelta(days=3)
+    next_workday = _communication_next_workday(today)
+    on_break_emails = _communication_on_break_emails()
+    conditions = [
+        "c.source_type NOT IN ('otj', 'satisfaction')",
+        "COALESCE(c.source_data->>'eligible', 'true') <> 'false'",
+        "NOT (c.source_type = 'reminder' AND c.booking_at < %s)",
+        "NOT (c.source_type = 'attendance' AND (c.overdue_since < %s OR c.overdue_since > %s))",
+        "NOT (c.source_type IN ('pr', 'mcm', 'pr_missed', 'mcm_missed', 'signature') AND c.overdue_since < %s)",
+        "NOT (c.source_type IN ('pr', 'mcm') AND NOT (c.source_data ? 'review_type'))",
+    ]
+    params = [
+        datetime.combine(next_workday, datetime.min.time(), tzinfo=ZoneInfo("Europe/London")),
+        COMMUNICATION_SYSTEM_CUTOFF,
+        ready_attendance_date,
+        COMMUNICATION_SYSTEM_CUTOFF,
+    ]
+    if on_break_emails:
+        conditions.append("lower(BTRIM(c.learner_email)) <> ALL(%s)")
+        params.append(on_break_emails)
+    return " AND ".join(f"({condition})" for condition in conditions), params
+
+
+def _communication_ticket_issue(source_type, source_data):
+    data = source_data if isinstance(source_data, dict) else {}
+    candidates = (
+        data.get("module"),
+        data.get("review_type"),
+        data.get("title"),
+        data.get("session_type"),
+        data.get("subcategory"),
+        data.get("purpose"),
+    )
+    issue = next((str(value).strip() for value in candidates if str(value or "").strip()), "")
+    if source_type == "tech_support" and data.get("ticket"):
+        ticket_ref = str(data.get("ticket") or "").strip()
+        return " · ".join(value for value in (ticket_ref, issue) if value)
+    return issue or COMMUNICATION_TICKET_SOURCE_LABELS.get(
+        source_type,
+        str(source_type or "Ticket").replace("_", " ").title(),
+    )
+
+
+def _communication_report_bounds(month):
+    from zoneinfo import ZoneInfo
+
+    london = ZoneInfo("Europe/London")
+    if month == "all":
+        return None, None, "Since 1 September 2026"
+    if not re.fullmatch(r"\d{4}-\d{2}", month or ""):
+        raise ValueError("month must use YYYY-MM or all")
+    year, month_number = (int(part) for part in month.split("-"))
+    if year < 2020 or not 1 <= month_number <= 12:
+        raise ValueError("month is outside the supported range")
+    start = datetime(year, month_number, 1, tzinfo=london)
+    if month_number == 12:
+        end = datetime(year + 1, 1, 1, tzinfo=london)
+    else:
+        end = datetime(year, month_number + 1, 1, tzinfo=london)
+    current_month = timezone.now().astimezone(london).replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    if start > current_month:
+        raise ValueError("month cannot be in the future")
+    return start, end, start.strftime("%B %Y")
+
+
+def communication_ticket_report(request):
+    """Read-only reporting over the Communication Centre's shared case tables."""
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    month = str(request.GET.get("month") or timezone.localdate().strftime("%Y-%m")).strip()
+    try:
+        period_start, period_end, period_label = _communication_report_bounds(month)
+        page = max(1, int(request.GET.get("page", 1)))
+        page_size = min(100, max(10, int(request.GET.get("page_size", 50))))
+    except (TypeError, ValueError) as exc:
+        return JsonResponse({"error": str(exc) or "Invalid report filters"}, status=400)
+
+    search = str(request.GET.get("search") or "").strip()[:200]
+    status_filter = str(request.GET.get("status") or "all").strip().lower()
+    source_filter = str(request.GET.get("source") or "all").strip().lower()
+    include_tickets = str(request.GET.get("include_tickets") or "false").lower() == "true"
+
+    period_sql = "TRUE"
+    period_params = []
+    if period_start is not None:
+        period_sql = "c.created_at >= %s AND c.created_at < %s"
+        period_params = [period_start, period_end]
+
+    scope_sql, scope_params = _communication_case_scope()
+    scoped_period_sql = f"({period_sql}) AND ({scope_sql})"
+    scoped_period_params = [*period_params, *scope_params]
+
+    table_conditions = [scoped_period_sql]
+    table_params = list(scoped_period_params)
+    if status_filter == "open":
+        table_conditions.append("c.status <> 'resolved' AND c.archived = FALSE")
+    elif status_filter == "archived":
+        table_conditions.append("c.archived = TRUE")
+    elif status_filter != "all":
+        table_conditions.append("lower(c.status) = %s")
+        table_params.append(status_filter)
+    if source_filter != "all":
+        table_conditions.append("lower(c.source_type) = %s")
+        table_params.append(source_filter)
+    if search:
+        table_conditions.append("""
+            (
+                CAST(c.id AS TEXT) ILIKE %s
+                OR c.learner_name ILIKE %s
+                OR c.learner_email ILIKE %s
+                OR c.coach ILIKE %s
+                OR c.organisation ILIKE %s
+                OR c.programme ILIKE %s
+            )
+        """)
+        search_value = f"%{search}%"
+        table_params.extend([search_value] * 6)
+    table_where = " AND ".join(f"({condition})" for condition in table_conditions)
+
+    failed_call_results = ["no_answer", "missed", "busy", "voicemail", "rejected"]
+    summary = {}
+    daily_by_date = {}
+    tickets = []
+    status_breakdown = []
+    source_breakdown = []
+    available_months = []
+    total_filtered = 0
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT
+                    COUNT(*) AS total,
+                    COUNT(*) FILTER (WHERE c.status <> 'resolved' AND c.archived = FALSE) AS open,
+                    COUNT(*) FILTER (WHERE c.status = 'resolved') AS resolved,
+                    COUNT(*) FILTER (
+                        WHERE c.status <> 'resolved'
+                          AND c.archived = FALSE
+                          AND (c.sla_breached OR c.due_at < NOW())
+                    ) AS sla_breached,
+                    COUNT(*) FILTER (WHERE c.archived) AS archived
+                FROM callcenter_case c
+                WHERE {scoped_period_sql}
+            """, scoped_period_params)
+            total, open_count, resolved, sla_breached, archived = cursor.fetchone()
+            summary.update({
+                "ticketsTotal": total,
+                "ticketsOpen": open_count,
+                "ticketsResolved": resolved,
+                "slaBreached": sla_breached,
+                "ticketsArchived": archived,
+            })
+
+            event_period_sql = "TRUE" if period_start is None else "e.created_at >= %s AND e.created_at < %s"
+            cursor.execute(f"""
+                SELECT
+                    COUNT(DISTINCT e.ticket_id) FILTER (WHERE e.kind = 'escalated'),
+                    COUNT(*) FILTER (WHERE e.kind = 'session_booked')
+                FROM callcenter_event e
+                INNER JOIN callcenter_case c ON c.id = e.ticket_id
+                WHERE ({event_period_sql}) AND ({scope_sql})
+            """, [*period_params, *scope_params])
+            escalated, appointments = cursor.fetchone()
+            summary["ticketsEscalated"] = escalated
+            summary["appointmentsBooked"] = appointments
+
+            call_period_sql = "TRUE" if period_start is None else "z.started_at >= %s AND z.started_at < %s"
+            cursor.execute(f"""
+                SELECT
+                    COUNT(*),
+                    COUNT(*) FILTER (WHERE z.result = 'answered'),
+                    COUNT(*) FILTER (WHERE z.result = ANY(%s))
+                FROM dashboard_zoom_phone_call z
+                WHERE {call_period_sql}
+                  AND z.direction = 'outbound'
+            """, [failed_call_results, *period_params])
+            calls, answered, not_answered = cursor.fetchone()
+            summary.update({
+                "callsTotal": calls,
+                "callsAnswered": answered,
+                "callsNotAnswered": not_answered,
+            })
+
+            email_period_sql = "TRUE" if period_start is None else "em.created_at >= %s AND em.created_at < %s"
+            cursor.execute(f"""
+                SELECT COUNT(*)
+                FROM callcenter_email em
+                INNER JOIN callcenter_case c ON c.id = em.ticket_id
+                WHERE ({email_period_sql})
+                  AND ({scope_sql})
+                  AND em.status IN ('accepted', 'sent')
+            """, [*period_params, *scope_params])
+            summary["emailsSent"] = cursor.fetchone()[0]
+
+            cursor.execute(f"""
+                SELECT
+                    timezone('Europe/London', c.created_at)::date AS day,
+                    COUNT(*) AS tickets_created,
+                    COUNT(*) FILTER (WHERE c.status = 'resolved') AS created_and_resolved
+                FROM callcenter_case c
+                WHERE {scoped_period_sql}
+                GROUP BY day
+                ORDER BY day
+            """, scoped_period_params)
+            for day, created, created_and_resolved in cursor.fetchall():
+                daily_by_date[day.isoformat()] = {
+                    "date": day.isoformat(),
+                    "ticketsCreated": created,
+                    "ticketsResolved": 0,
+                    "createdAndResolved": created_and_resolved,
+                    "calls": 0,
+                    "answered": 0,
+                    "notAnswered": 0,
+                    "appointmentsBooked": 0,
+                    "emailsSent": 0,
+                }
+
+            resolved_period_sql = "c.resolved_at IS NOT NULL" if period_start is None else "c.resolved_at >= %s AND c.resolved_at < %s"
+            cursor.execute(f"""
+                SELECT timezone('Europe/London', c.resolved_at)::date AS day, COUNT(*)
+                FROM callcenter_case c
+                WHERE ({resolved_period_sql}) AND ({scope_sql})
+                GROUP BY day
+                ORDER BY day
+            """, [*period_params, *scope_params])
+            for day, count in cursor.fetchall():
+                key = day.isoformat()
+                daily_by_date.setdefault(key, {
+                    "date": key, "ticketsCreated": 0, "ticketsResolved": 0,
+                    "createdAndResolved": 0, "calls": 0, "answered": 0,
+                    "notAnswered": 0, "appointmentsBooked": 0, "emailsSent": 0,
+                })["ticketsResolved"] = count
+
+            cursor.execute(f"""
+                SELECT
+                    timezone('Europe/London', z.started_at)::date AS day,
+                    COUNT(*),
+                    COUNT(*) FILTER (WHERE z.result = 'answered'),
+                    COUNT(*) FILTER (WHERE z.result = ANY(%s))
+                FROM dashboard_zoom_phone_call z
+                WHERE {call_period_sql}
+                  AND z.direction = 'outbound'
+                GROUP BY day
+                ORDER BY day
+            """, [failed_call_results, *period_params])
+            for day, call_count, answered_count, failed_count in cursor.fetchall():
+                key = day.isoformat()
+                row = daily_by_date.setdefault(key, {
+                    "date": key, "ticketsCreated": 0, "ticketsResolved": 0,
+                    "createdAndResolved": 0, "calls": 0, "answered": 0,
+                    "notAnswered": 0, "appointmentsBooked": 0, "emailsSent": 0,
+                })
+                row.update({"calls": call_count, "answered": answered_count, "notAnswered": failed_count})
+
+            cursor.execute(f"""
+                SELECT timezone('Europe/London', e.created_at)::date AS day, COUNT(*)
+                FROM callcenter_event e
+                INNER JOIN callcenter_case c ON c.id = e.ticket_id
+                WHERE ({event_period_sql}) AND ({scope_sql}) AND e.kind = 'session_booked'
+                GROUP BY day
+            """, [*period_params, *scope_params])
+            for day, count in cursor.fetchall():
+                key = day.isoformat()
+                daily_by_date.setdefault(key, {
+                    "date": key, "ticketsCreated": 0, "ticketsResolved": 0,
+                    "createdAndResolved": 0, "calls": 0, "answered": 0,
+                    "notAnswered": 0, "appointmentsBooked": 0, "emailsSent": 0,
+                })["appointmentsBooked"] = count
+
+            cursor.execute(f"""
+                SELECT timezone('Europe/London', em.created_at)::date AS day, COUNT(*)
+                FROM callcenter_email em
+                INNER JOIN callcenter_case c ON c.id = em.ticket_id
+                WHERE ({email_period_sql}) AND ({scope_sql}) AND em.status IN ('accepted', 'sent')
+                GROUP BY day
+            """, [*period_params, *scope_params])
+            for day, count in cursor.fetchall():
+                key = day.isoformat()
+                daily_by_date.setdefault(key, {
+                    "date": key, "ticketsCreated": 0, "ticketsResolved": 0,
+                    "createdAndResolved": 0, "calls": 0, "answered": 0,
+                    "notAnswered": 0, "appointmentsBooked": 0, "emailsSent": 0,
+                })["emailsSent"] = count
+
+            cursor.execute(f"""
+                SELECT c.status, COUNT(*)
+                FROM callcenter_case c
+                WHERE {scoped_period_sql}
+                GROUP BY c.status
+                ORDER BY COUNT(*) DESC, c.status
+            """, scoped_period_params)
+            status_breakdown = [
+                {"key": key, "label": str(key).replace("_", " ").title(), "count": count}
+                for key, count in cursor.fetchall()
+            ]
+
+            cursor.execute(f"""
+                SELECT c.source_type, COUNT(*)
+                FROM callcenter_case c
+                WHERE {scoped_period_sql}
+                GROUP BY c.source_type
+                ORDER BY COUNT(*) DESC, c.source_type
+            """, scoped_period_params)
+            source_breakdown = [
+                {
+                    "key": key,
+                    "label": COMMUNICATION_TICKET_SOURCE_LABELS.get(
+                        key, str(key).replace("_", " ").title()
+                    ),
+                    "count": count,
+                }
+                for key, count in cursor.fetchall()
+            ]
+
+            cursor.execute(f"""
+                SELECT to_char(timezone('Europe/London', c.created_at), 'YYYY-MM') AS month, COUNT(*)
+                FROM callcenter_case c
+                WHERE {scope_sql}
+                GROUP BY month
+                ORDER BY month DESC
+            """, scope_params)
+            available_months = [
+                {"value": value, "count": count} for value, count in cursor.fetchall()
+            ]
+
+            if include_tickets:
+                cursor.execute(f"SELECT COUNT(*) FROM callcenter_case c WHERE {table_where}", table_params)
+                total_filtered = cursor.fetchone()[0]
+                max_page = max(1, (total_filtered + page_size - 1) // page_size)
+                page = min(page, max_page)
+                offset = (page - 1) * page_size
+
+                cursor.execute(f"""
+                    SELECT
+                        c.id,
+                        c.source_type,
+                        c.learner_name,
+                        c.learner_email,
+                        c.learner_phone,
+                        c.coach,
+                        c.organisation,
+                        c.programme,
+                        c.source_data,
+                        c.risk,
+                        c.status,
+                        c.attempts,
+                        c.misses,
+                        c.overdue_since,
+                        c.due_at,
+                        c.sla_breached,
+                        c.escalated,
+                        c.archived,
+                        c.created_at,
+                        c.updated_at,
+                        c.resolved_at,
+                        c.resolved_by,
+                        c.resolution_option,
+                        c.last_actor,
+                        agent.display_name AS claimed_by
+                    FROM callcenter_case c
+                    LEFT JOIN callcenter_agent agent ON agent.id = c.claimed_by_id
+                    WHERE {table_where}
+                    ORDER BY c.created_at DESC, c.id DESC
+                    LIMIT %s OFFSET %s
+                """, [*table_params, page_size, offset])
+                columns = [column[0] for column in cursor.description]
+                for values in cursor.fetchall():
+                    row = dict(zip(columns, values))
+                    source_type = row["source_type"]
+                    tickets.append({
+                        "id": row["id"],
+                        "ticketRef": f"CC-{row['id']:06d}",
+                        "sourceType": source_type,
+                        "sourceLabel": COMMUNICATION_TICKET_SOURCE_LABELS.get(
+                            source_type, str(source_type).replace("_", " ").title()
+                        ),
+                        "issue": _communication_ticket_issue(source_type, row["source_data"]),
+                        "issueDate": row["overdue_since"].isoformat() if row["overdue_since"] else None,
+                        "learnerName": row["learner_name"],
+                        "learnerEmail": row["learner_email"],
+                        "learnerPhone": row["learner_phone"],
+                        "coach": row["coach"],
+                        "organisation": row["organisation"],
+                        "programme": row["programme"],
+                        "risk": row["risk"],
+                        "status": row["status"],
+                        "attempts": row["attempts"],
+                        "misses": row["misses"],
+                        "dueAt": row["due_at"].isoformat() if row["due_at"] else None,
+                        "slaBreached": bool(
+                            row["status"] != "resolved"
+                            and not row["archived"]
+                            and (row["sla_breached"] or (row["due_at"] and row["due_at"] < timezone.now()))
+                        ),
+                        "escalated": row["escalated"],
+                        "archived": row["archived"],
+                        "claimedBy": row["claimed_by"] or "",
+                        "lastActor": row["last_actor"],
+                        "createdAt": row["created_at"].isoformat(),
+                        "updatedAt": row["updated_at"].isoformat(),
+                        "resolvedAt": row["resolved_at"].isoformat() if row["resolved_at"] else None,
+                        "resolvedBy": row["resolved_by"],
+                        "resolutionOption": row["resolution_option"],
+                    })
+    except Exception as exc:
+        return JsonResponse({
+            "error": "Communication Centre ticket data is temporarily unavailable",
+            "detail": str(exc) if settings.DEBUG else "",
+        }, status=503)
+
+    return JsonResponse({
+        "period": {
+            "value": month,
+            "label": period_label,
+            "from": period_start.date().isoformat() if period_start else None,
+            "to": (period_end - timedelta(days=1)).date().isoformat() if period_end else None,
+            "timezone": "Europe/London",
+        },
+        "scope": {
+            "from": COMMUNICATION_SYSTEM_CUTOFF.isoformat(),
+            "label": "Communication Centre operational scope",
+        },
+        "summary": summary,
+        "daily": [daily_by_date[key] for key in sorted(daily_by_date)],
+        "statusBreakdown": status_breakdown,
+        "sourceBreakdown": source_breakdown,
+        "months": available_months,
+        "filters": {
+            "statuses": [{"value": row["key"], "label": row["label"]} for row in status_breakdown],
+            "sources": [{"value": row["key"], "label": row["label"]} for row in source_breakdown],
+        },
+        "tickets": tickets,
+        "pagination": {
+            "page": page,
+            "pageSize": page_size,
+            "total": total_filtered,
+            "pages": max(1, (total_filtered + page_size - 1) // page_size),
+        },
+        "ticketsIncluded": include_tickets,
+    })
 
 
 def _json_body(request):
@@ -453,6 +961,9 @@ def test_kbc_attendance(request):
 
 @csrf_exempt
 def learner_contact_actions(request):
+    from django.utils import timezone
+    from .models import AttendanceContactAction
+
     if request.method == "GET":
         with connection.cursor() as cursor:
             cursor.execute("""
@@ -482,7 +993,23 @@ def learner_contact_actions(request):
                 "resolved": bool(row[5]),
                 "resolved_at": row[6].isoformat() if row[6] else None,
                 "note": row[7] or "",
-                "contact_key": f"{email}||{date_value}||{module}",
+                "source": "legacy",
+                "contact_key": f"legacy||{email}||{date_value}||{module}",
+            })
+
+        for action in AttendanceContactAction.objects.all():
+            date_value = action.attendance_date.isoformat()
+            data.append({
+                "email": action.learner_email,
+                "date": date_value,
+                "module": action.attendance_module,
+                "called": action.called,
+                "emailed": action.emailed,
+                "resolved": action.resolved,
+                "resolved_at": action.resolved_at.isoformat() if action.resolved_at else None,
+                "note": action.note,
+                "source": action.source,
+                "contact_key": f"{action.source}||{action.learner_email}||{date_value}||{action.attendance_module}",
             })
 
         return JsonResponse(data, safe=False)
@@ -494,6 +1021,7 @@ def learner_contact_actions(request):
             email = str(body.get("email", "")).strip().lower()
             date_value = body.get("date")
             module = str(body.get("module", "")).strip()
+            source = str(body.get("source", "legacy")).strip().lower()
             called = bool(body.get("called", False))
             emailed = bool(body.get("emailed", False))
             resolved = bool(body.get("resolved", False))
@@ -504,6 +1032,33 @@ def learner_contact_actions(request):
                     {"error": "email, date and module are required"},
                     status=400,
                 )
+
+            if source == "live":
+                action, _created = AttendanceContactAction.objects.update_or_create(
+                    source="live",
+                    learner_email=email,
+                    attendance_date=date_value,
+                    attendance_module=module,
+                    defaults={
+                        "called": called,
+                        "emailed": emailed,
+                        "resolved": resolved,
+                        "resolved_at": timezone.now() if resolved else None,
+                        "note": note,
+                    },
+                )
+                return JsonResponse({
+                    "email": action.learner_email,
+                    "date": action.attendance_date.isoformat(),
+                    "module": action.attendance_module,
+                    "called": action.called,
+                    "emailed": action.emailed,
+                    "resolved": action.resolved,
+                    "resolved_at": action.resolved_at.isoformat() if action.resolved_at else None,
+                    "note": action.note,
+                    "source": "live",
+                    "contact_key": f"live||{action.learner_email}||{action.attendance_date.isoformat()}||{action.attendance_module}",
+                })
 
             with connection.cursor() as cursor:
                 cursor.execute("""
@@ -536,7 +1091,8 @@ def learner_contact_actions(request):
                 "resolved": bool(row[5]),
                 "resolved_at": row[6].isoformat() if row[6] else None,
                 "note": row[7] or "",
-                "contact_key": f"{(row[0] or '').strip().lower()}||{row[1].isoformat() if row[1] else None}||{row[2] or ''}",
+                "source": "legacy",
+                "contact_key": f"legacy||{(row[0] or '').strip().lower()}||{row[1].isoformat() if row[1] else None}||{row[2] or ''}",
             })
 
         except Exception as e:
@@ -1191,6 +1747,16 @@ def mcr_summary(request):
 def kbc_attendance_summary(request):
     from collections import defaultdict
 
+    # The original KBC table is still the source of truth for these two legacy
+    # groups. All other active delivery moved to the LMS live-session tables at
+    # the start of October 2026.
+    legacy_modules = (
+        "Stephen-Portfolio Management 2026",
+        "Steve-Earned Value Management(EVM)2026",
+    )
+    live_attendance_start = date(2026, 10, 1)
+    eligible_programme_statuses = ("active", "delivery")
+
     # Enrich each attendance learner from their APTEM learner record.
     learner_extras = {}
     try:
@@ -1216,6 +1782,24 @@ def kbc_attendance_summary(request):
     except Exception:
         pass
 
+    # Created_users is the source of truth for whether a learner must attend
+    # live sessions and whether their programme is currently in delivery.
+    eligible_legacy_emails = set()
+    if "lms" in settings.DATABASES:
+        try:
+            with connections["lms"].cursor() as cursor:
+                cursor.execute("""
+                    SELECT lower(BTRIM("Email"))
+                    FROM enrolment."Created_users"
+                    WHERE lower(BTRIM(COALESCE("Attendance_type", ''))) = 'not recorded'
+                      AND lower(BTRIM(COALESCE("Programme_status", ''))) = ANY(%s)
+                      AND NULLIF(BTRIM("Email"), '') IS NOT NULL
+                """, [list(eligible_programme_statuses)])
+                eligible_legacy_emails = {row[0] for row in cursor.fetchall() if row[0]}
+        except Exception:
+            eligible_legacy_emails = set()
+
+    attendance_rows = []
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
@@ -1227,21 +1811,101 @@ def kbc_attendance_summary(request):
                 "key",
                 "note"
             FROM public.kbc_attendance
+            WHERE "module" = ANY(%s)
+              AND lower(BTRIM("Email")) = ANY(%s)
             ORDER BY "Email", "date" ASC
-        """)
+        """, [list(legacy_modules), list(eligible_legacy_emails)])
         columns = [col[0] for col in cursor.description]
-        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        for row in cursor.fetchall():
+            legacy = dict(zip(columns, row))
+            attendance_rows.append({
+                "email": (legacy.get("Email") or "").strip().lower(),
+                "full_name": str(legacy.get("FullName") or "").strip(),
+                "date": legacy.get("date"),
+                "attendance": legacy.get("Attendance"),
+                "module": str(legacy.get("module") or "").strip(),
+                "key": str(legacy.get("key") or "").strip(),
+                "note": str(legacy.get("note") or "").strip(),
+                "source": "legacy",
+            })
 
-    def _attendance_identity(row):
-        full_name = re.sub(r"\s+", " ", str(row.get("FullName") or "").strip()).lower()
-        raw_key = str(row.get("key") or "").strip()
-        key_match = re.match(r"^(\d+)_", raw_key)
-        if key_match:
-            return f"id:{key_match.group(1)}"
-        if full_name:
-            return f"name:{full_name}"
-        email = (row.get("Email") or "").strip().lower()
-        return f"email:{email}"
+    # Follow the LMS foreign-key chain explicitly:
+    # learner_profile_id -> Created_users.learner_id (attendance policy/status)
+    # module_catalogue_id -> modules.module_catalogue_id (module identity)
+    # live_session_id -> live_sessions.id (meeting definition)
+    # occurrence_id -> live_session_occurrences.id (weekly occurrence)
+    if "lms" in settings.DATABASES:
+        try:
+            with connections["lms"].cursor() as cursor:
+                cursor.execute("""
+                    SELECT
+                        attendance.learner_email,
+                        attendance.learner_name,
+                        occurrence.scheduled_start::date AS session_date,
+                        attendance.attendance_status,
+                        COALESCE(NULLIF(BTRIM(module.title), ''), session.module_title) AS module_title,
+                        session.organizer_email,
+                        attendance.learner_profile_id,
+                        attendance.module_catalogue_id,
+                        attendance.live_session_id,
+                        attendance.occurrence_id
+                    FROM curriculum.live_session_learner_attendance AS attendance
+                    INNER JOIN enrolment."Created_users" AS learner
+                        ON learner.learner_id = attendance.learner_profile_id
+                    INNER JOIN curriculum.modules AS module
+                        ON module.module_catalogue_id = attendance.module_catalogue_id
+                    INNER JOIN curriculum.live_sessions AS session
+                        ON session.id = attendance.live_session_id
+                       AND session.module_catalogue_id = attendance.module_catalogue_id
+                    INNER JOIN curriculum.live_session_occurrences AS occurrence
+                        ON occurrence.id = attendance.occurrence_id
+                       AND occurrence.live_session_id = attendance.live_session_id
+                    WHERE occurrence.status = 'completed'
+                      AND occurrence.scheduled_start::date >= %s
+                      AND occurrence.scheduled_start::date <= %s
+                      AND lower(BTRIM(COALESCE(learner."Attendance_type", ''))) = 'not recorded'
+                      AND lower(BTRIM(COALESCE(learner."Programme_status", ''))) = ANY(%s)
+                    ORDER BY attendance.learner_email, occurrence.scheduled_start ASC
+                """, [
+                    live_attendance_start,
+                    timezone.localdate(),
+                    list(eligible_programme_statuses),
+                ])
+                for (
+                    email,
+                    full_name,
+                    session_date,
+                    status,
+                    module_title,
+                    organizer_email,
+                    learner_profile_id,
+                    module_catalogue_id,
+                    live_session_id,
+                    occurrence_id,
+                ) in cursor.fetchall():
+                    normalized_status = str(status or "").strip().lower()
+                    attendance_rows.append({
+                        "email": str(email or "").strip().lower(),
+                        "full_name": str(full_name or "").strip(),
+                        "date": session_date,
+                        "attendance": 0 if normalized_status == "absent" else 1 if normalized_status == "present" else None,
+                        "module": str(module_title or "").strip(),
+                        "key": "",
+                        "note": "",
+                        "source": "live",
+                        "organizer_email": str(organizer_email or "").strip(),
+                        "learner_profile_id": learner_profile_id,
+                        "module_catalogue_id": str(module_catalogue_id or "").strip(),
+                        "live_session_id": str(live_session_id or "").strip(),
+                        "occurrence_id": str(occurrence_id or "").strip(),
+                    })
+        except Exception:
+            # The legacy groups must continue to load if the LMS database is
+            # temporarily unavailable.
+            pass
+
+    def _normalized_name(value):
+        return re.sub(r"\s+", " ", str(value or "").strip()).lower()
 
     grouped = defaultdict(lambda: {
         "fullName": "",
@@ -1249,29 +1913,48 @@ def kbc_attendance_summary(request):
         "emails": [],
         "latest_email": "",
         "latest_date": None,
+        "organizer_email": "",
     })
+    email_to_identity = {}
+    name_to_identities = defaultdict(set)
 
-    for row in rows:
-        email = (row.get("Email") or "").strip().lower()
+    for row in attendance_rows:
+        email = row["email"]
         if not email:
             continue
-        identity = _attendance_identity(row)
+        full_name = _normalized_name(row["full_name"])
+        identity = email_to_identity.get(email)
+        if not identity and full_name and len(name_to_identities[full_name]) == 1:
+            identity = next(iter(name_to_identities[full_name]))
+        if not identity:
+            identity = f"email:{email}"
+
+        email_to_identity[email] = identity
+        if full_name:
+            name_to_identities[full_name].add(identity)
         group = grouped[identity]
-        row_date = row.get("date")
-        if row.get("FullName"):
-            group["fullName"] = row.get("FullName") or group["fullName"]
+        row_date = row["date"]
+        if row["full_name"]:
+            group["fullName"] = row["full_name"] or group["fullName"]
         if email not in group["emails"]:
             group["emails"].append(email)
         if row_date and (group["latest_date"] is None or row_date >= group["latest_date"]):
             group["latest_date"] = row_date
             group["latest_email"] = email
+        if row.get("organizer_email"):
+            group["organizer_email"] = row["organizer_email"]
         group["records"].append({
-            "date": row["date"].isoformat() if row.get("date") else None,
-            "attendance": row.get("Attendance"),
-            "module": row.get("module") or "",
-            "key": row.get("key") or "",
+            "date": row_date.isoformat() if row_date else None,
+            "attendance": row["attendance"],
+            "module": row["module"],
+            "key": row["key"],
             "email": email,
-            "note": row.get("note") or "",
+            "note": row["note"],
+            "source": row["source"],
+            "learnerProfileId": row.get("learner_profile_id"),
+            "moduleCatalogueId": row.get("module_catalogue_id", ""),
+            "liveSessionId": row.get("live_session_id", ""),
+            "occurrenceId": row.get("occurrence_id", ""),
         })
 
     results = []
@@ -1290,7 +1973,7 @@ def kbc_attendance_summary(request):
             "phone": extras.get("phone", ""),
             "organisation": extras.get("organisation", ""),
             "aptemProgramme": extras.get("programme", ""),
-            "ownerName": extras.get("owner_name", ""),
+            "ownerName": extras.get("owner_name", "") or data["organizer_email"],
             "records": sorted(data["records"], key=lambda record: record.get("date") or ""),
         })
 
@@ -1760,6 +2443,11 @@ def fetch_all_coaches_analytics(request):
 
 def _ticket_to_dict(ticket):
     from .models import AttendanceTicket
+    evidence_count = (
+        ticket.evidence_file_count
+        if hasattr(ticket, "evidence_file_count")
+        else ticket.evidence_files.count()
+    )
     return {
         "id": ticket.pk,
         "ticketRef": ticket.ticket_ref,
@@ -1781,7 +2469,7 @@ def _ticket_to_dict(ticket):
         "createdBy": ticket.created_by,
         "createdAt": ticket.created_at.isoformat(),
         "updatedAt": ticket.updated_at.isoformat(),
-        "evidenceCount": ticket.evidence_files.count(),
+        "evidenceCount": evidence_count,
     }
 
 
@@ -1872,12 +2560,33 @@ def _attendance_missed_count(email, module):
 
 def _sync_attendance_ticket_risks(tickets):
     tickets = list(tickets)
+    legacy_modules = {
+        "Stephen-Portfolio Management 2026",
+        "Steve-Earned Value Management(EVM)2026",
+    }
     missed_dates = _attendance_missed_dates(
-        {(ticket.learner_email, ticket.attendance_module) for ticket in tickets}
+        {
+            (ticket.learner_email, ticket.attendance_module)
+            for ticket in tickets
+            if not (
+                ticket.attendance_date
+                and ticket.attendance_date >= date(2026, 10, 1)
+                and ticket.attendance_module not in legacy_modules
+            )
+        }
     )
 
     to_update = []
     for ticket in tickets:
+        # Live-session records are read from the LMS tables. Their risk was
+        # calculated when the ticket was created, so do not overwrite it with
+        # the legacy KBC-only query below.
+        if (
+            ticket.attendance_date
+            and ticket.attendance_date >= date(2026, 10, 1)
+            and ticket.attendance_module not in legacy_modules
+        ):
+            continue
         key = (
             str(ticket.learner_email or "").strip().lower(),
             str(ticket.attendance_module or "").strip(),
@@ -1901,6 +2610,68 @@ def _sync_attendance_ticket_risks(tickets):
 
 
 def _attendance_missing_learners_for_week(week_start, week_end):
+    """Return ticket-ready absences from the consolidated attendance sources."""
+    from django.test import RequestFactory
+
+    response = kbc_attendance_summary(
+        RequestFactory().get("/api/kbc-attendance/")
+    )
+    if response.status_code != 200:
+        return []
+
+    learners = []
+    for source_row in json.loads(response.content.decode("utf-8")):
+        email = str(source_row.get("email") or "").strip().lower()
+        if not email:
+            continue
+
+        def is_trackable(record):
+            raw_date = record.get("date")
+            module = str(record.get("module") or "").strip()
+            note = str(record.get("note") or "").lower()
+            if not raw_date or not module or "recorded sessions" in module.lower():
+                return False
+            if "attended with another instructor" in note:
+                return False
+            try:
+                record_date = date.fromisoformat(str(raw_date))
+            except (TypeError, ValueError):
+                return False
+            return week_start <= record_date <= week_end
+
+        week_records = [
+            record for record in source_row.get("records", []) if is_trackable(record)
+        ]
+        if not week_records:
+            continue
+
+        latest = max(week_records, key=lambda record: str(record.get("date") or ""))
+        if _normalize_attendance_value(latest.get("attendance")) != 0:
+            continue
+
+        attendance_date = str(latest.get("date") or "")
+        attendance_module = str(latest.get("module") or "").strip()
+        missed_count = sum(
+            1
+            for record in source_row.get("records", [])
+            if str(record.get("module") or "").strip() == attendance_module
+            and str(record.get("date") or "") <= attendance_date
+            and _normalize_attendance_value(record.get("attendance")) == 0
+        )
+        learners.append({
+            "email": email,
+            "name": str(source_row.get("fullName") or "Unknown").strip(),
+            "phone": str(source_row.get("phone") or "").strip(),
+            "organisation": str(source_row.get("organisation") or "").strip(),
+            "programme": str(source_row.get("aptemProgramme") or attendance_module).strip(),
+            "attendance_date": attendance_date,
+            "attendance_module": attendance_module,
+            "missed_count": missed_count or 1,
+        })
+    return learners
+
+
+def _legacy_attendance_missing_learners_for_week(week_start, week_end):
     """Build the same missed-learner payload the Track Attendance page used to send."""
     learner_extras = {}
     try:
@@ -2008,104 +2779,176 @@ def _attendance_missing_learners_for_week(week_start, week_end):
     return learners
 
 
-@csrf_exempt
-def auto_create_attendance_tickets(request):
-    """Auto-create tickets for absent learners in a given week if no ticket exists yet."""
+def _upsert_auto_attendance_tickets(learners):
+    """Create only tickets that are not already active for the same absence."""
     from .models import AttendanceTicket
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
-
-    body = _json_body(request)
-    learners = body.get("learners", [])
-    if not learners:
-        try:
-            week_start = date.fromisoformat(str(body.get("week_start") or ""))
-            week_end = date.fromisoformat(str(body.get("week_end") or ""))
-            learners = _attendance_missing_learners_for_week(week_start, week_end)
-        except Exception:
-            learners = []
 
     created_list = []
     existing_list = []
+    candidate_keys = []
+    for learner in learners:
+        email = str(learner.get("email") or "").strip().lower()
+        try:
+            attendance_date = date.fromisoformat(
+                str(learner.get("attendance_date") or "")
+            )
+        except (TypeError, ValueError):
+            continue
+        if email:
+            candidate_keys.append((email, attendance_date))
+
+    existing_by_key = {
+        (ticket.learner_email, ticket.attendance_date): ticket
+        for ticket in AttendanceTicket.objects.filter(
+            is_archived=False,
+            learner_email__in=list({email for email, _ in candidate_keys}),
+            attendance_date__in=list({attendance_date for _, attendance_date in candidate_keys}),
+        )
+    } if candidate_keys else {}
 
     for learner in learners:
         email = str(learner.get("email") or "").strip().lower()
         if not email:
             continue
 
-        raw_date = learner.get("attendance_date")
-        att_date = None
-        if raw_date:
-            try:
-                att_date = date.fromisoformat(str(raw_date))
-            except Exception:
-                pass
-
-        # Check for existing non-archived ticket for same email + date
-        existing = AttendanceTicket.objects.filter(
-            learner_email=email,
-            attendance_date=att_date,
-            is_archived=False,
-        ).first()
-
-        if existing:
-            missed_count = int(learner.get("missed_count") or 1)
-            risk = _attendance_ticket_risk(missed_count)
-            if existing.risk != risk:
-                existing.risk = risk
-                existing.save(update_fields=["risk"])
-            existing_list.append({
-                "email": email,
-                "id": existing.pk,
-                "ticketRef": existing.ticket_ref,
-                "status": existing.status,
-                "created": False,
-            })
-        else:
-            missed_count = int(learner.get("missed_count") or 1)
-            risk = _attendance_ticket_risk(missed_count)
-            ticket = AttendanceTicket.objects.create(
-                ticket_ref="ATT-TMP",
-                learner_email=email,
-                learner_name=str(learner.get("name") or "").strip(),
-                learner_phone=str(learner.get("phone") or "").strip(),
-                organisation=str(learner.get("organisation") or "").strip(),
-                programme=str(learner.get("programme") or "").strip(),
-                attendance_date=att_date,
-                attendance_module=str(learner.get("attendance_module") or "").strip(),
-                risk=risk,
-                status="new",
-                assigned_owner="",
-                action="no_action",
-                notes="",
-                evidence="",
-                created_by="Auto",
+        try:
+            attendance_date = date.fromisoformat(
+                str(learner.get("attendance_date") or "")
             )
-            ticket.ticket_ref = f"ATT-{ticket.pk:03d}"
-            ticket.save(update_fields=["ticket_ref"])
-            created_list.append({
+        except (TypeError, ValueError):
+            continue
+
+        missed_count = int(learner.get("missed_count") or 1)
+        risk = _attendance_ticket_risk(missed_count)
+        ticket = existing_by_key.get((email, attendance_date))
+
+        if ticket:
+            if ticket.risk != risk:
+                ticket.risk = risk
+                ticket.save(update_fields=["risk", "updated_at"])
+            existing_list.append({
                 "email": email,
                 "id": ticket.pk,
                 "ticketRef": ticket.ticket_ref,
                 "status": ticket.status,
-                "created": True,
+                "created": False,
             })
+            continue
+
+        ticket = AttendanceTicket.objects.create(
+            ticket_ref="ATT-TMP",
+            learner_email=email,
+            learner_name=str(learner.get("name") or "").strip(),
+            learner_phone=str(learner.get("phone") or "").strip(),
+            organisation=str(learner.get("organisation") or "").strip(),
+            programme=str(learner.get("programme") or "").strip(),
+            attendance_date=attendance_date,
+            attendance_module=str(learner.get("attendance_module") or "").strip(),
+            risk=risk,
+            status="new",
+            assigned_owner="",
+            action="no_action",
+            notes="",
+            evidence="",
+            created_by="Auto",
+        )
+        ticket.ticket_ref = f"ATT-{ticket.pk:03d}"
+        ticket.save(update_fields=["ticket_ref"])
+        existing_by_key[(email, attendance_date)] = ticket
+        created_list.append({
+            "email": email,
+            "id": ticket.pk,
+            "ticketRef": ticket.ticket_ref,
+            "status": ticket.status,
+            "created": True,
+        })
+
+    return created_list, existing_list
+
+
+def _archive_stale_auto_attendance_tickets(week_start, week_end, learners):
+    """Archive auto tickets that no longer belong to the eligible attendance set."""
+    from .models import AttendanceTicket
+
+    valid_keys = set()
+    for learner in learners:
+        email = str(learner.get("email") or "").strip().lower()
+        try:
+            attendance_date = date.fromisoformat(str(learner.get("attendance_date") or ""))
+        except (TypeError, ValueError):
+            continue
+        if email:
+            valid_keys.add((email, attendance_date))
+
+    stale = []
+    for ticket in AttendanceTicket.objects.filter(
+        is_archived=False,
+        created_by="Auto",
+        attendance_date__gte=week_start,
+        attendance_date__lte=week_end,
+    ):
+        key = (str(ticket.learner_email or "").strip().lower(), ticket.attendance_date)
+        if key not in valid_keys:
+            ticket.is_archived = True
+            ticket.updated_at = timezone.now()
+            stale.append(ticket)
+
+    if stale:
+        AttendanceTicket.objects.bulk_update(stale, ["is_archived", "updated_at"])
+    return len(stale)
+
+
+@csrf_exempt
+def auto_create_attendance_tickets(request):
+    """Auto-create tickets for absent learners in a given week if no ticket exists yet."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    body = _json_body(request)
+    try:
+        week_start = date.fromisoformat(str(body.get("week_start") or ""))
+        week_end = date.fromisoformat(str(body.get("week_end") or ""))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "week_start and week_end must be YYYY-MM-DD"}, status=400)
+
+    if week_end < week_start:
+        return JsonResponse({"error": "week_end must not be before week_start"}, status=400)
+
+    # Attendance tickets must always use the server-side merge of the LMS live
+    # tables and the two approved legacy KBC groups. The client payload is only
+    # a UI hint and can be stale when the page has been open for a while.
+    learners = _attendance_missing_learners_for_week(week_start, week_end)
+    archived = _archive_stale_auto_attendance_tickets(week_start, week_end, learners)
+    created_list, existing_list = _upsert_auto_attendance_tickets(learners)
 
     return JsonResponse({
         "created": len(created_list),
         "existing": len(existing_list),
+        "archived": archived,
         "tickets": created_list + existing_list,
     })
 
 
 @csrf_exempt
 def attendance_tickets(request):
+    from django.db.models import Count
     from .models import AttendanceTicket
 
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
         lookup_only = request.GET.get("lookup", "false").lower() == "true"
-        tickets = AttendanceTicket.objects.filter(is_archived=show_archived)
+        current_week_start = None
+        if not show_archived and not lookup_only:
+            today = timezone.localdate()
+            current_week_start = today - timedelta(days=today.weekday())
+            learners = _attendance_missing_learners_for_week(current_week_start, today)
+            _archive_stale_auto_attendance_tickets(current_week_start, today, learners)
+            _upsert_auto_attendance_tickets(
+                learners
+            )
+        tickets = AttendanceTicket.objects.filter(is_archived=show_archived).annotate(
+            evidence_file_count=Count("evidence_files")
+        )
         if lookup_only:
             rows = tickets.values(
                 "id",
@@ -2125,11 +2968,6 @@ def attendance_tickets(request):
                 for row in rows
             ], safe=False)
 
-        if not show_archived:
-            _sync_attendance_ticket_risks(
-                tickets.exclude(status__in=["resolved", "covered"])
-            )
-            tickets = AttendanceTicket.objects.filter(is_archived=False)
         return JsonResponse([_ticket_to_dict(t) for t in tickets], safe=False)
 
     if request.method == "POST":

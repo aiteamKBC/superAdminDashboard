@@ -40,7 +40,8 @@ type AttendanceSortField =
   | "emailed"
   | "note"
   | "followUp";
-type AttRec = { date: string | null; attendance: unknown; module: string; note?: string };
+type AttendanceSource = "legacy" | "live";
+type AttRec = { date: string | null; attendance: unknown; module: string; note?: string; source?: AttendanceSource };
 type ContactActionState = { called: boolean; emailed: boolean; resolved: boolean; note: string };
 
 interface AttendanceSourceRow {
@@ -66,6 +67,7 @@ interface AttendanceLearner extends Learner {
   attendanceDate: string;
   attendanceModule: string;
   attendanceContactKey: string;
+  attendanceSource: AttendanceSource;
   coachName: string;
   called: boolean;
   emailed: boolean;
@@ -196,6 +198,7 @@ function buildAttendanceMetrics(records: AttRec[], absenceWindow: AbsenceWindow 
     lastSessionStatus: "Unknown" as Learner["lastSessionStatus"],
     lastSessionModule: "",
     latestProgramme: "Unknown",
+    latestSessionSource: "legacy" as AttendanceSource,
     hasAttendanceInWindow: false,
   };
   if (!records.length) return empty;
@@ -252,6 +255,7 @@ function buildAttendanceMetrics(records: AttRec[], absenceWindow: AbsenceWindow 
     lastSessionStatus,
     lastSessionModule: latestModule,
     latestProgramme: parseModuleParts(latestModule).programme || "Unknown",
+    latestSessionSource: (last?.source === "live" ? "live" : "legacy") as AttendanceSource,
     hasAttendanceInWindow,
   };
 }
@@ -261,6 +265,7 @@ const getContactPayload = (learner: AttendanceLearner, updates: Partial<ContactA
   email: learner.attendanceEmail,
   date: learner.attendanceDate,
   module: learner.attendanceModule,
+  source: learner.attendanceSource,
   called: updates.called ?? learner.called,
   emailed: updates.emailed ?? learner.emailed,
   resolved: updates.resolved ?? Boolean(learner.isResolved),
@@ -332,7 +337,7 @@ export default function TrackAttendancePage() {
         for (const item of data || []) {
           const key =
             item.contact_key ||
-            `${normEmail(item.email)}||${item.date || ""}||${item.module || ""}`;
+            `${item.source === "live" ? "live" : "legacy"}||${normEmail(item.email)}||${item.date || ""}||${item.module || ""}`;
           mapped[key] = {
             called: Boolean(item.called),
             emailed: Boolean(item.emailed),
@@ -406,7 +411,8 @@ export default function TrackAttendancePage() {
       const attendanceDate =
         metrics.lastSessionDate === "N/A" ? "" : metrics.lastSessionDate;
       const attendanceModule = metrics.lastSessionModule;
-      const attendanceContactKey = `${email}||${attendanceDate}||${attendanceModule}`;
+      const attendanceSource = metrics.latestSessionSource;
+      const attendanceContactKey = `${attendanceSource}||${email}||${attendanceDate}||${attendanceModule}`;
       const ticket = attendanceDate
         ? ticketMaps.byAttendance.get(`${email}||${attendanceDate}`)
         : ticketMaps.byEmail.get(email);
@@ -463,6 +469,7 @@ export default function TrackAttendancePage() {
         attendanceEmail: email,
         attendanceDate,
         attendanceModule,
+        attendanceSource,
         attendanceContactKey,
         called: contactState.called,
         emailed: contactState.emailed,
@@ -736,6 +743,7 @@ export default function TrackAttendancePage() {
       email: string;
       date: string;
       module: string;
+      source: AttendanceSource;
       called: boolean;
       emailed: boolean;
       resolved: boolean;
@@ -758,6 +766,7 @@ export default function TrackAttendancePage() {
             email: payload.email,
             date: payload.date,
             module: payload.module,
+            source: payload.source,
             called: payload.called,
             emailed: payload.emailed,
             resolved: payload.resolved,

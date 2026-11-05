@@ -116,9 +116,21 @@ if os.getenv("APPTEM_DATABASE_URL"):
         ssl_require=True,
     )
 
-if os.getenv("LEARNER_EVIDENCE_DATABASE_URL"):
+# LMS owns the live-session attendance data used from October 2026 onward.
+if os.getenv("LMS_DATABASE_URL"):
+    DATABASES["lms"] = dj_database_url.parse(
+        os.getenv("LMS_DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+
+learner_evidence_database_url = (
+    os.getenv("LEARNER_EVIDENCE_DATABASE_URL")
+    or os.getenv("LMS_DATABASE_URL")
+)
+if learner_evidence_database_url:
     DATABASES["learner_evidence"] = dj_database_url.parse(
-        os.getenv("LEARNER_EVIDENCE_DATABASE_URL"),
+        learner_evidence_database_url,
         conn_max_age=600,
         ssl_require=True,
     )

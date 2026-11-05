@@ -1,4 +1,4 @@
-export type LearnerStatus = 'Active' | 'Break in Learning' | 'Withdrawn';
+export type LearnerStatus = 'Active' | 'Delivery' | 'Break in Learning' | 'Withdrawn';
 export type SessionStatus = 'Attended' | 'Missed' | 'No Show' | 'Cancelled by learner late' | 'Cancelled by provider' | 'Scheduled';
 export type CallOutcome = 
   | 'Sent email with details'

@@ -1,10 +1,47 @@
 import { Coordinator, CoordinatorPerformance, LearnerAssignment } from "@/types/admin";
 import { KpiCategory, Learner } from "@/types/dashboard";
 
-type AptemLearnerRow = Record<string, any>;
 type ContactLogRow = Record<string, any>;
 
+type LmsLearnerRow = {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  programStatus: string;
+  current: boolean;
+  coach: string;
+  coachEmail: string;
+  programme: string;
+  cohort: string;
+  group: string;
+  organisation: string;
+  managerName: string;
+  plannedOtjHours: number;
+  targetOtjHours: number;
+  completedOtjHours: number;
+  otjhStatus: string;
+  startDate: string;
+  endDate: string;
+  lastProgressReviewDate: string;
+  nextProgressReviewDue: string;
+  progressReviewBooked: boolean;
+  lastMonthlyMeetingDate: string;
+  nextMonthlyMeetingDue: string;
+  monthlyMeetingBooked: boolean;
+  lastSessionStatus: string;
+  lastSessionDate: string;
+  missedLast10Weeks: number;
+};
+
+type LmsAdminResponse = {
+  asOf: string;
+  learners: LmsLearnerRow[];
+  totals: { all: number; current: number };
+};
+
 export type AdminRealData = {
+  totals: { all: number; current: number };
   learners: Learner[];
   coordinators: Coordinator[];
   assignments: LearnerAssignment[];
@@ -52,10 +89,8 @@ const addDays = (dateString: string | null, days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-const isActiveStatus = (status: unknown) => String(status || "").trim().toLowerCase() === "active";
-
 const fetchJson = async <T,>(url: string): Promise<T> => {
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load ${url}`);
   return res.json();
 };
@@ -168,19 +203,11 @@ export const buildAdminPerformance = (
 };
 
 export async function loadAdminRealData(): Promise<AdminRealData> {
-  const [aptemRows, prRows, mcrRows, otjRows, attendanceRows, contactLogs] = await Promise.all([
-    fetchJson<AptemLearnerRow[]>("/api/aptem-learners/"),
-    fetchJson<AptemLearnerRow[]>("/api/progress-review-summary/"),
-    fetchJson<AptemLearnerRow[]>("/api/mcr-summary/"),
-    fetchJson<AptemLearnerRow[]>("/api/otj-at-risk/"),
-    fetchJson<AptemLearnerRow[]>("/api/kbc-attendance/"),
+  const [lms, contactLogs] = await Promise.all([
+    fetchJson<LmsAdminResponse>("/api/lms-admin-learners/"),
     fetchJson<ContactLogRow[]>("/api/contact-log/").catch(() => []),
   ]);
-
-  const prByEmail = new Map(prRows.map((row) => [normEmail(row.email), row]));
-  const mcrByEmail = new Map(mcrRows.map((row) => [normEmail(row.email), row]));
-  const otjEmails = new Set(otjRows.map((row) => normEmail(row.email)));
-  const attendanceByEmail = new Map(attendanceRows.map((row) => [normEmail(row.email), row]));
+  if (!Array.isArray(lms.learners) || !lms.totals) throw new Error("Invalid LMS admin response");
   const latestLogByEmail = new Map<string, ContactLogRow>();
 
   for (const log of contactLogs) {
@@ -193,70 +220,65 @@ export async function loadAdminRealData(): Promise<AdminRealData> {
   }
 
   const coordinatorNames = new Set<string>();
-  const learners: Learner[] = aptemRows
-    .filter((row) => isActiveStatus(row.programStatus))
-    .map((row, index) => {
+  const learners: Learner[] = lms.learners
+    .filter((row) => row.current)
+    .map((row) => {
       const email = normEmail(row.email);
       const fullName = normName(row.fullName);
       const { firstName, lastName } = splitName(fullName);
-      const pr = prByEmail.get(email);
-      const mcr = mcrByEmail.get(email);
-      const attendance = attendanceByEmail.get(email);
-      const records = Array.isArray(attendance?.records) ? attendance.records : [];
-      const lastAttendance = records[records.length - 1];
       const riskCategories: KpiCategory[] = [];
 
-      if (lastAttendance && Number(lastAttendance.attendance) === 0) riskCategories.push("missed-session");
-      if (Number(pr?.overduePrCount || 0) > 0 || ["due", "at risk"].includes(String(pr?.reviewStatus || "").toLowerCase())) {
+      if (row.lastSessionStatus === "absent") riskCategories.push("missed-session");
+      if (row.nextProgressReviewDue && row.nextProgressReviewDue <= lms.asOf && !row.progressReviewBooked) {
         riskCategories.push("review-due");
       }
-      if (Number(mcr?.overdueMcmCount || 0) > 0 || ["due", "at risk"].includes(String(mcr?.mcrStatus || "").toLowerCase())) {
+      if (row.nextMonthlyMeetingDue && row.nextMonthlyMeetingDue <= lms.asOf && !row.monthlyMeetingBooked) {
         riskCategories.push("coaching-due");
       }
-      if (otjEmails.has(email) || String(row.otjHoursStatus || "").toLowerCase() === "at risk") {
+      if (["at risk", "need attention"].includes(row.otjhStatus.trim().toLowerCase())) {
         riskCategories.push("otj-behind");
       }
 
       const uniqueRisks = [...new Set(riskCategories)];
       const priority: Learner["priority"] =
         uniqueRisks.length >= 3 ? "critical" : uniqueRisks.length >= 2 ? "high" : "normal";
-      const coordinatorName = normName(row.ownerName || mcr?.caseOwner || pr?.caseOwner || "Unassigned");
+      const coordinatorName = normName(row.coach);
       coordinatorNames.add(coordinatorName);
 
       return {
-        id: String(row.id || email || `learner-${index + 1}`),
+        id: String(row.id),
         firstName,
         lastName,
         email,
-        phone: String(row.learnerPhone || ""),
-        whatsapp: String(row.learnerPhone || ""),
-        organisation: String(row.organizationName || ""),
-        programme: String(row.programName || row.group || ""),
+        phone: row.phone,
+        whatsapp: row.phone,
+        organisation: row.organisation,
+        programme: row.programme || row.group,
         coach: coordinatorName,
-        cohort: String(row.group || ""),
-        status: "Active",
-        lineManagerName: String(row.managerName || mcr?.managerName || ""),
-        lineManagerPhone: String(row.managerPhone || ""),
-        lineManagerEmail: String(row.managerEmail || mcr?.managerEmail || ""),
+        cohort: row.cohort,
+        status: row.programStatus.trim().toLowerCase() === "delivery" ? "Delivery" : "Active",
+        lineManagerName: row.managerName,
+        lineManagerPhone: "",
+        lineManagerEmail: "",
         hrManagerName: "",
         hrManagerPhone: "",
         hrManagerEmail: "",
-        startDate: String(row.startDate || ""),
-        expectedEndDate: String(row.endDate || ""),
-        plannedOtjHours: Number(row.otjPlanned || 0),
-        expectedOtjHours: Number(row.otjExpected || 0),
-        actualOtjHours: Number(row.otjCompleted || 0),
-        lastSessionDate: lastAttendance?.date || "",
-        lastSessionStatus: Number(lastAttendance?.attendance) === 0 ? "Missed" : "Attended",
-        lastProgressReviewDate: String(pr?.lastProgressReview || ""),
-        nextProgressReviewDue: String(pr?.nextPrDate || ""),
-        progressReviewBooked: Boolean(pr?.nextPrDate),
-        lastMonthlyMeetingDate: String(mcr?.lastActuallyCompletedMcm || mcr?.lastMcm || ""),
-        nextMonthlyMeetingDue: String(mcr?.nextDueDate || mcr?.nextMcm || ""),
-        monthlyMeetingBooked: Boolean(mcr?.nextDueDate || mcr?.nextMcm),
+        startDate: row.startDate,
+        expectedEndDate: row.endDate,
+        plannedOtjHours: row.plannedOtjHours,
+        expectedOtjHours: row.targetOtjHours,
+        actualOtjHours: row.completedOtjHours,
+        lastSessionDate: row.lastSessionDate,
+        lastSessionStatus: row.lastSessionStatus === "absent" ? "Missed" : row.lastSessionStatus === "present" ? "Attended" : undefined,
+        lastProgressReviewDate: row.lastProgressReviewDate,
+        nextProgressReviewDue: row.nextProgressReviewDue,
+        progressReviewBooked: row.progressReviewBooked,
+        lastMonthlyMeetingDate: row.lastMonthlyMeetingDate,
+        nextMonthlyMeetingDue: row.nextMonthlyMeetingDue,
+        monthlyMeetingBooked: row.monthlyMeetingBooked,
         absenceRatio: 0,
-        missedLast10Weeks: records.filter((r: any) => Number(r.attendance) === 0).length,
-        missedInRow: Number(lastAttendance?.attendance) === 0 ? 1 : 0,
+        missedLast10Weeks: row.missedLast10Weeks,
+        missedInRow: row.lastSessionStatus === "absent" ? 1 : 0,
         riskCategories: uniqueRisks,
         priority,
       };
@@ -265,7 +287,7 @@ export async function loadAdminRealData(): Promise<AdminRealData> {
   const sortedCoordinatorNames = [...coordinatorNames].sort((a, b) => a.localeCompare(b));
   const coordinatorIdByName = new Map(sortedCoordinatorNames.map((name) => [name, `coord-${slug(name)}`]));
 
-  const assignments: LearnerAssignment[] = learners.map((learner, index) => ({
+  const assignments: LearnerAssignment[] = learners.map((learner) => ({
     id: `assign-${learner.id}`,
     learnerId: learner.id,
     coordinatorId: coordinatorIdByName.get(learner.coach) || "coord-unassigned",
@@ -285,7 +307,7 @@ export async function loadAdminRealData(): Promise<AdminRealData> {
       id: coordinatorIdByName.get(name) || `coord-${slug(name)}`,
       name,
       email: "",
-      role: "Engagement Coordinator",
+      role: "LMS Coach",
       active,
       caseloadSize: coordLearners.length,
       workload: coordLearners.length > 80 ? "heavy" : coordLearners.length > 35 ? "normal" : "light",
@@ -304,6 +326,7 @@ export async function loadAdminRealData(): Promise<AdminRealData> {
   }
 
   return {
+    totals: lms.totals,
     learners,
     coordinators,
     assignments,

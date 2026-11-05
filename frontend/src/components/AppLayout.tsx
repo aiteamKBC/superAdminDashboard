@@ -177,7 +177,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 })}
                 {section === "Operations" ? (
                   <SidebarExternalLink
-                    href="https://studentportal.kentbusinesscollege.net/"
+                    href="https://lms.kentbusinesscollege.org/curriculum/bulk-attendance"
                     collapsed={collapsed && isDesktop}
                     icon="fa-user-pen"
                     label="Edit Students Attendance"
