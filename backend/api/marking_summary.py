@@ -28,19 +28,36 @@ def lms_marking_summary(request):
     if "lms" not in settings.DATABASES:
         return JsonResponse({"error": "LMS database is not configured."}, status=503)
 
-    # Use the LMS staff roster for coach identity. Profile coach names also
-    # contain placeholders and test accounts, so they are not a reliable roster.
-    # Keep historical real learners in the full caseload, as the LMS does.
+    # Use the same current learner and real-coach scope as every LMS dashboard.
     # Decisions are attributed to reviewed_by, which can differ from that owner.
     today = timezone.now().astimezone(ZoneInfo("Europe/London")).date()
     try:
         with connections["lms"].cursor() as cursor:
             cursor.execute(
                 f"""
-                {REAL_COACHES_CTE}
+                {REAL_COACHES_CTE},
+                learner_roster AS (
+                    SELECT p.*,
+                        COALESCE(
+                            NULLIF(lower(btrim(p.coach_email)), ''),
+                            'name:' || NULLIF(
+                                lower(regexp_replace(btrim(p.coach_name), '\\s+', ' ', 'g')),
+                                ''
+                            ),
+                            'unassigned'
+                        ) AS roster_coach_key,
+                        COALESCE(
+                            NULLIF(regexp_replace(btrim(p.coach_name), '\\s+', ' ', 'g'), ''),
+                            NULLIF(btrim(p.coach_email), ''),
+                            'Unassigned'
+                        ) AS roster_coach_name
+                    FROM "Learner".learners AS p
+                    JOIN real_coaches AS c ON lower(btrim(p.coach_email)) = c.coach_key
+                    WHERE {REAL_LEARNER_WHERE}
+                )
                 SELECT
-                    c.coach_key,
-                    c.coach_name,
+                    p.roster_coach_key,
+                    p.roster_coach_name,
                     COUNT(DISTINCT p.id) AS total_learners,
                     COUNT(DISTINCT p.id) FILTER (
                         WHERE lower(btrim(p.programme_status)) = ANY(%s)
@@ -50,16 +67,14 @@ def lms_marking_summary(request):
                     COUNT(s.id) FILTER (WHERE lower(btrim(s.activity_type)) <> ALL(%s)) AS reflections,
                     MIN(s.submitted_at) AS oldest_submitted_at,
                     MAX(s.submitted_at) AS newest_submitted_at
-                FROM real_coaches AS c
-                JOIN "Learner".learners AS p ON lower(btrim(p.coach_email)) = c.coach_key
+                FROM learner_roster AS p
                 LEFT JOIN "Learner".learning_reflection_submissions AS s
                   ON p.enrolment_id::text = s.learner_id::text AND s.status = ANY(%s)
-                WHERE {REAL_LEARNER_WHERE}
-                GROUP BY c.coach_key, c.coach_name
-                ORDER BY COUNT(s.id) DESC, c.coach_name
+                GROUP BY p.roster_coach_key, p.roster_coach_name
+                ORDER BY COUNT(s.id) DESC, p.roster_coach_name
                 """,
-                [list(EXCLUDED_COACH_EMAILS), list(CURRENT_PROGRAMME_STATUSES),
-                 list(ASSIGNMENT_TYPES), list(ASSIGNMENT_TYPES), list(PENDING_STATUSES)],
+                [list(EXCLUDED_COACH_EMAILS), list(CURRENT_PROGRAMME_STATUSES), list(ASSIGNMENT_TYPES),
+                 list(ASSIGNMENT_TYPES), list(PENDING_STATUSES)],
             )
             pending_rows = cursor.fetchall()
 

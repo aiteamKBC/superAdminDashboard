@@ -27,7 +27,6 @@ import { fetchUiCoaches } from "@/lib/services/kbcDashboard";
 import { renderTemplate, type EmailRecipient } from "@/lib/emailCenter";
 import { buildBrandedEmailHtml } from "@/lib/emailDesign";
 import type { UiCoach } from "@/lib/adapters/kbcToUi";
-import { getMissedLearnersFromCoaches } from "@/lib/dashboard/getMissedLearners";
 
 const kpiLabels: Record<string, string> = {
   "missed-session": "Missed Session",
@@ -39,10 +38,23 @@ const kpiLabels: Record<string, string> = {
 const TEST_EMAIL = "rewan.yasser@kentbusinesscollege.com";
 const TEST_CC_EMAIL = "Ahmed.Lotfi@kentbusinesscollege.com";
 const CATCH_UP_TEMPLATE_ID = "tpl-5";
-const catchUpRequiredFields = ["catchUpSessionDateTime", "catchUpSessionLink"];
+const MAX_CC_RECIPIENTS = 20;
+const EMAIL_ADDRESS_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const hasMergeField = (text: string, field: string) =>
-  new RegExp(`\\{\\{\\s*${field}\\s*\\}\\}`, "i").test(text);
+type RecoverySessionType = "catch-up" | "alternative";
+
+const RECOVERY_TEMPLATE_COPY: Record<RecoverySessionType, { subject: string; body: string; mergeFields: string[] }> = {
+  "catch-up": {
+    subject: "Your Catch-Up Session Details | {{programme}}",
+    body: "Dear {{learnerName}},\n\nI hope you are doing well.\n\nWe noticed that you were unable to attend your session on **{{lastSessionDate}}**, and we wanted to make sure you have the opportunity to catch up on the content you missed.\n\nA catch-up session has been arranged for:\n\n**Date & Time:** {{catchUpSessionDateTime}}\n\nYou can join the session using the details below:\n\n**Join Meeting:** {{catchUpSessionLink}}\n**Meeting ID:** {{meetingId}}\n**Passcode:** {{passcode}}\n\nWe encourage you to attend this session so you can stay on track with your studies. If you have any questions or need any support, please don't hesitate to get in touch—we're here to help.\n\nWe look forward to seeing you there.\n\nKind regards,\n\n{{senderName}}\nEngagement Coordinator\nKent Business College",
+    mergeFields: ["learnerName", "programme", "lastSessionDate", "catchUpSessionDateTime", "catchUpSessionLink", "meetingId", "passcode", "senderName"],
+  },
+  alternative: {
+    subject: "Your Alternative Session Details | {{programme}}",
+    body: "Dear {{learnerName}},\n\nI hope you are doing well.\n\nWe noticed that you were unable to attend your session on **{{lastSessionDate}}**. An alternative session covering the same lecture has been arranged with another group.\n\n**Date & Time:** {{alternativeSessionDateTime}}\n**Group / Session:** {{alternativeSessionGroup}}\n**Location or Join Link:** {{alternativeSessionLink}}\n\nPlease attend this alternative session so the missed lecture can be recovered and you can stay on track with your studies. If you have any questions or need any support, please contact us or your coach.\n\nWe look forward to seeing you there.\n\nKind regards,\n\n{{senderName}}\nEngagement Coordinator\nKent Business College",
+    mergeFields: ["learnerName", "programme", "lastSessionDate", "alternativeSessionDateTime", "alternativeSessionGroup", "alternativeSessionLink", "senderName"],
+  },
+};
 
 const readEmailResponse = async (res: Response) => {
   const text = await res.text();
@@ -74,6 +86,17 @@ const cleanEmail = (value: unknown) =>
     .replace(/[\u202A-\u202E]/g, "")
     .trim()
     .toLowerCase();
+
+const parseEmailList = (value: string) =>
+  value
+    .split(/[,;\n]/)
+    .map((entry) => cleanEmail(entry))
+    .filter(Boolean);
+
+const uniqueEmailList = (values: string[], exclude = "") => {
+  const excluded = cleanEmail(exclude);
+  return [...new Set(values.map((value) => cleanEmail(value)).filter((value) => value && value !== excluded))];
+};
 
 const getCoachEmailFromRaw = (raw: any) => {
   const directEmail = cleanEmail(raw?.OwnerEmail || raw?.coachEmail || raw?.email || raw?.case_owner_email);
@@ -107,6 +130,61 @@ type AbsenceWeeksFilter = "all" | 0 | 1 | 2 | 3;
 type EmailTimePeriod = "all" | "today" | "last7days" | "last30days" | "thisMonth" | "last12weeks";
 type PrPeriodFilter = "last12weeks" | "allOverdue";
 type McmMonthOffset = "all" | -3 | -2 | -1 | 0 | 1 | 2;
+
+type AttendanceApiRow = {
+  email?: string;
+  fullName?: string;
+  phone?: string;
+  organisation?: string;
+  aptemProgramme?: string;
+  ownerName?: string;
+  records?: Array<{
+    date?: string;
+    attendance?: number | null;
+    module?: string;
+    source?: string;
+  }>;
+};
+
+const attendanceWeekRange = (offset: 0 | 1 | 2 | 3) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysSinceMonday = today.getDay() === 0 ? 6 : today.getDay() - 1;
+  const start = new Date(today);
+  start.setDate(today.getDate() - daysSinceMonday - offset * 7);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
+
+const missedRecipientsFromAttendance = (
+  rows: AttendanceApiRow[],
+  week: AbsenceWeeksFilter,
+): EmailRecipient[] => rows.flatMap((learner) => {
+  const email = cleanEmail(learner.email);
+  if (!email) return [];
+  const range = week === "all" ? null : attendanceWeekRange(week);
+  const records = (learner.records || [])
+    .map((record) => ({ ...record, parsedDate: record.date ? new Date(`${record.date}T00:00:00`) : null }))
+    .filter((record) => record.parsedDate && !Number.isNaN(record.parsedDate.getTime()))
+    .filter((record) => !range || (record.parsedDate! >= range.start && record.parsedDate! <= range.end))
+    .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
+  const latest = records.at(-1);
+  if (!latest || Number(latest.attendance) !== 0) return [];
+  return [{
+    learnerName: String(learner.fullName || "Unknown").trim(),
+    learnerEmail: email,
+    programme: String(latest.module || learner.aptemProgramme || "").trim(),
+    coachName: String(learner.ownerName || "").trim(),
+    coachEmail: "",
+    lastSessionDate: String(latest.date || ""),
+    status: "Active",
+    riskCategories: ["missed-session"],
+    hasAttendanceInWindow: true,
+    lastSessionStatus: "Missed",
+  }];
+});
 
 const absenceWindowLabels: Record<AbsenceWeeksFilter, string> = {
   all: "All",
@@ -373,6 +451,7 @@ const createEmailEvidenceImage = async ({
   subject,
   learnerName,
   learnerEmail,
+  ccEmails,
   programme,
   templateLabel,
   body,
@@ -381,6 +460,7 @@ const createEmailEvidenceImage = async ({
   subject: string;
   learnerName: string;
   learnerEmail: string;
+  ccEmails: string[];
   programme: string;
   templateLabel: string;
   body: string;
@@ -498,6 +578,10 @@ const createEmailEvidenceImage = async ({
   ctx.fillStyle = "#71849A";
   ctx.font = "600 13px Arial, Helvetica, sans-serif";
   ctx.fillText(`Sent to ${learnerName || "learner"}${learnerEmail ? ` <${learnerEmail}>` : ""}`, emailX, emailY + 1052);
+  if (ccEmails.length) {
+    ctx.font = "500 12px Arial, Helvetica, sans-serif";
+    ctx.fillText(`CC: ${ccEmails.join(", ")}`.slice(0, 105), emailX, emailY + 1074);
+  }
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((value) => {
@@ -516,6 +600,7 @@ const uploadEmailEvidenceImage = async (
     subject: string;
     learnerName: string;
     learnerEmail: string;
+    ccEmails: string[];
     programme: string;
     templateLabel: string;
     body: string;
@@ -561,6 +646,7 @@ export default function EmailCentre() {
   const [prRows, setPrRows] = useState<any[]>([]);
   const [mcrRows, setMcrRows] = useState<any[]>([]);
   const [otjRows, setOtjRows] = useState<any[]>([]);
+  const [attendanceRows, setAttendanceRows] = useState<AttendanceApiRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -573,6 +659,13 @@ export default function EmailCentre() {
   const [absenceWeeks, setAbsenceWeeks] = useState<AbsenceWeeksFilter>(0);
   const [prPeriodFilter, setPrPeriodFilter] = useState<PrPeriodFilter>("last12weeks");
   const [mcmMonthOffset] = useState<McmMonthOffset>(-1);
+  const [ccInput, setCcInput] = useState("");
+  const [recoverySessionType, setRecoverySessionType] = useState<RecoverySessionType>("catch-up");
+  const [recoverySessionDateTime, setRecoverySessionDateTime] = useState("");
+  const [recoverySessionLink, setRecoverySessionLink] = useState("");
+  const [recoveryMeetingId, setRecoveryMeetingId] = useState("");
+  const [recoveryPasscode, setRecoveryPasscode] = useState("");
+  const [alternativeSessionGroup, setAlternativeSessionGroup] = useState("");
 
   const subjectRef = useRef<HTMLInputElement>(null);
 
@@ -580,18 +673,35 @@ export default function EmailCentre() {
     const load = async () => {
       try {
         setLoading(true);
-        const [coachData, prData, mcrData, otjData] = await Promise.all([
+        const [coachData, prData, mcrData, otjData, attendanceData] = await Promise.all([
           fetchUiCoaches(),
-          fetch("/api/progress-review-summary/").then((r) => r.json()),
-          fetch("/api/mcr-summary/").then((r) => r.json()),
-          fetch("/api/otj-at-risk/").then((r) => r.json()),
+          fetch("/api/progress-review-summary/", { cache: "no-store" }).then((r) => {
+            if (!r.ok) throw new Error("Progress Review data is unavailable");
+            return r.json();
+          }),
+          fetch("/api/mcr-summary/", { cache: "no-store" }).then((r) => {
+            if (!r.ok) throw new Error("Monthly Meeting data is unavailable");
+            return r.json();
+          }),
+          fetch("/api/otj-at-risk/", { cache: "no-store" }).then((r) => {
+            if (!r.ok) throw new Error("OTJH data is unavailable");
+            return r.json();
+          }),
+          fetch("/api/kbc-attendance/", { cache: "no-store" }).then((r) => {
+            if (!r.ok) throw new Error("Attendance data is unavailable");
+            return r.json();
+          }),
         ]);
         setCoaches(Array.isArray(coachData) ? coachData : []);
         setPrRows(Array.isArray(prData) ? prData : []);
         setMcrRows(Array.isArray(mcrData) ? mcrData : []);
         setOtjRows(Array.isArray(otjData) ? otjData : []);
+        setAttendanceRows(Array.isArray(attendanceData) ? attendanceData : []);
       } catch (err) {
         console.error("Failed to load data", err);
+        toast.error("Email recipient data is unavailable", {
+          description: err instanceof Error ? err.message : "One or more LMS sources could not be loaded.",
+        });
       } finally {
         setLoading(false);
       }
@@ -641,8 +751,8 @@ export default function EmailCentre() {
   ]);
 
   const allRecipients = useMemo(() => {
-    return getMissedLearnersFromCoaches(coaches, absenceWeeks);
-  }, [coaches, absenceWeeks]);
+    return missedRecipientsFromAttendance(attendanceRows, absenceWeeks);
+  }, [attendanceRows, absenceWeeks]);
 
   const coachEmailMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -704,7 +814,7 @@ export default function EmailCentre() {
       })
       .filter((r) => {
         if (!r.learnerEmail || seen.has(r.learnerEmail)) return false;
-        if (dashboardLearnerEmails.size > 0 && !dashboardLearnerEmails.has(r.learnerEmail)) return false;
+        // Recipient scope comes from the canonical LMS endpoint, not legacy coach snapshots.
         seen.add(r.learnerEmail);
         return true;
       });
@@ -733,7 +843,7 @@ export default function EmailCentre() {
       })
       .filter((r) => {
         if (!r.learnerEmail || seen.has(r.learnerEmail)) return false;
-        if (dashboardLearnerEmails.size > 0 && !dashboardLearnerEmails.has(r.learnerEmail)) return false;
+        // Recipient scope comes from the canonical LMS endpoint, not legacy coach snapshots.
         seen.add(r.learnerEmail);
         return true;
       });
@@ -761,7 +871,7 @@ export default function EmailCentre() {
       })
       .filter((r) => {
         if (!r.learnerEmail || seen.has(r.learnerEmail)) return false;
-        if (dashboardLearnerEmails.size > 0 && !dashboardLearnerEmails.has(r.learnerEmail)) return false;
+        // Recipient scope comes from the canonical LMS endpoint, not legacy coach snapshots.
         seen.add(r.learnerEmail);
         return true;
       });
@@ -801,7 +911,9 @@ export default function EmailCentre() {
 
   const templateRecipientCounts = useMemo(() => {
     return {
-      "missed-session": allRecipients.filter((l: any) => l.lastSessionStatus === "Missed").length,
+      "missed-session": allRecipients.filter(
+        (l: any) => l.status !== "Inactive" && l.lastSessionStatus === "Missed" && Boolean(l.hasAttendanceInWindow)
+      ).length,
       "review-due": prReviewRecipients.length,
       "coaching-due": mcrRecipients.length,
       "otj-behind": otjRecipients.length,
@@ -809,18 +921,44 @@ export default function EmailCentre() {
   }, [allRecipients, prReviewRecipients, mcrRecipients, otjRecipients]);
 
   const effectiveRecipients = manualRecipients.length > 0 ? manualRecipients : bulkRecipients;
+  const manualCcEntries = useMemo(() => parseEmailList(ccInput), [ccInput]);
+  const invalidCcEmails = useMemo(
+    () => manualCcEntries.filter((email) => !EMAIL_ADDRESS_RE.test(email)),
+    [manualCcEntries]
+  );
+  const manualCcEmails = useMemo(
+    () => uniqueEmailList(manualCcEntries.filter((email) => EMAIL_ADDRESS_RE.test(email))),
+    [manualCcEntries]
+  );
+  const ccLimitExceeded = manualCcEmails.length > MAX_CC_RECIPIENTS;
+  const ccValidationMessage = invalidCcEmails.length
+    ? `Invalid CC email: ${invalidCcEmails[0]}`
+    : ccLimitExceeded
+      ? `You can add up to ${MAX_CC_RECIPIENTS} CC emails.`
+      : "";
 
-  const finalRecipients =
-    selectedIds.length > 0
+  const finalRecipients = manualRecipients.length > 0
+    ? selectedIds.length > 0
       ? effectiveRecipients.filter((r) => selectedIds.includes(r.learnerEmail))
-      : effectiveRecipients;
+      : effectiveRecipients
+    : effectiveRecipients.filter((r) => selectedIds.includes(r.learnerEmail));
 
+  const availableRecipientCount = effectiveRecipients.length;
   const recipientCount = finalRecipients.length;
-  const isCatchUpTemplate = selectedTemplate.id === CATCH_UP_TEMPLATE_ID;
-  const missingCatchUpFields = isCatchUpTemplate
-    ? catchUpRequiredFields.filter((field) => hasMergeField(body, field))
-    : [];
-  const isCatchUpTemplateBlocked = missingCatchUpFields.length > 0;
+  const isRecoveryTemplate = selectedTemplate.id === CATCH_UP_TEMPLATE_ID;
+  const recoveryValidationMessage = !isRecoveryTemplate
+    ? ""
+    : !recoverySessionDateTime.trim()
+      ? "Add the recovery session date and time."
+      : recoverySessionType === "catch-up" && !recoverySessionLink.trim()
+        ? "Add the catch-up session join link."
+        : recoverySessionType === "alternative" && !alternativeSessionGroup.trim()
+          ? "Add the alternative group or session name."
+          : "";
+  const isRecoveryTemplateBlocked = Boolean(recoveryValidationMessage);
+  const availableMergeFields = isRecoveryTemplate
+    ? RECOVERY_TEMPLATE_COPY[recoverySessionType].mergeFields
+    : selectedTemplate.mergeFields;
 
   const previewRecipient: EmailRecipient | null = effectiveRecipients[0] || null;
   const enrichRecipientForTemplate = (recipient: EmailRecipient) => {
@@ -842,13 +980,24 @@ export default function EmailCentre() {
       coachEmailMap.get(coachName.toLowerCase()) ||
       "";
 
+    const ccEmails = uniqueEmailList([coachEmail, ...manualCcEmails], learnerEmail);
     return {
       ...rest,
       coachName,
       coachEmail,
-      cc: coachEmail ? [coachEmail] : [],
-      ccEmail: coachEmail,
+      cc: ccEmails,
+      ccEmails,
+      ccEmail: ccEmails[0] || "",
+      ccRecipients: ccEmails.map((email) => ({ emailAddress: { address: email } })),
       coachCcEmail: coachEmail,
+      recoverySessionType,
+      catchUpSessionDateTime: recoverySessionType === "catch-up" ? recoverySessionDateTime.trim() : "",
+      catchUpSessionLink: recoverySessionType === "catch-up" ? recoverySessionLink.trim() : "",
+      meetingId: recoverySessionType === "catch-up" ? recoveryMeetingId.trim() : "",
+      passcode: recoverySessionType === "catch-up" ? recoveryPasscode.trim() : "",
+      alternativeSessionDateTime: recoverySessionType === "alternative" ? recoverySessionDateTime.trim() : "",
+      alternativeSessionGroup: recoverySessionType === "alternative" ? alternativeSessionGroup.trim() : "",
+      alternativeSessionLink: recoverySessionType === "alternative" ? recoverySessionLink.trim() : "",
     };
   };
   const previewRecipientWithCc = previewRecipient ? enrichRecipientForTemplate(previewRecipient) : null;
@@ -919,6 +1068,10 @@ export default function EmailCentre() {
         isHtml: true,
         senderName: "Progress Coordinator",
         kpiCategory: selectedTemplate.kpiCategory,
+        cc: manualCcEmails,
+        ccEmails: manualCcEmails,
+        ccEmail: manualCcEmails[0] || "",
+        ccRecipients: manualCcEmails.map((email) => ({ emailAddress: { address: email } })),
         recipients: renderedRecipients,
         ...extraPayload,
         preview: renderedRecipients[0]
@@ -934,15 +1087,45 @@ export default function EmailCentre() {
 
   const handleTemplateChange = (template: (typeof mockEmailTemplates)[number]) => {
     setSelectedTemplate(template);
-    setSubject(template.subject);
-    setBody(template.body);
+    if (template.id === CATCH_UP_TEMPLATE_ID) {
+      setRecoverySessionType("catch-up");
+      setRecoverySessionDateTime("");
+      setRecoverySessionLink("");
+      setRecoveryMeetingId("");
+      setRecoveryPasscode("");
+      setAlternativeSessionGroup("");
+      setSubject(RECOVERY_TEMPLATE_COPY["catch-up"].subject);
+      setBody(RECOVERY_TEMPLATE_COPY["catch-up"].body);
+    } else {
+      setSubject(template.subject);
+      setBody(template.body);
+    }
     setShowPreview(false);
   };
 
+  const handleRecoverySessionTypeChange = (value: RecoverySessionType) => {
+    setRecoverySessionType(value);
+    setRecoverySessionDateTime("");
+    setRecoverySessionLink("");
+    setRecoveryMeetingId("");
+    setRecoveryPasscode("");
+    setAlternativeSessionGroup("");
+    setSubject(RECOVERY_TEMPLATE_COPY[value].subject);
+    setBody(RECOVERY_TEMPLATE_COPY[value].body);
+    setShowPreview(false);
+  };
+
+  const ensureValidCc = () => {
+    if (!ccValidationMessage) return true;
+    toast.error("Check the CC email list", { description: ccValidationMessage });
+    return false;
+  };
+
   const handleSendTest = async () => {
-    if (isCatchUpTemplateBlocked) {
-      toast.error("Add the catch-up session details first", {
-        description: "Replace the catch-up session date/time and join link placeholders before sending.",
+    if (!ensureValidCc()) return;
+    if (isRecoveryTemplateBlocked) {
+      toast.error("Add the recovery session details first", {
+        description: recoveryValidationMessage,
       });
       return;
     }
@@ -961,23 +1144,28 @@ export default function EmailCentre() {
         learnerEmail: TEST_EMAIL,
       };
       const renderedRecipients = buildRenderedRecipients([testRecipient]).map((recipient) => {
-        const ccList = [TEST_CC_EMAIL];
+        const ccList = uniqueEmailList([TEST_CC_EMAIL, ...manualCcEmails], TEST_EMAIL);
         return {
           ...recipient,
           cc: ccList,
-          ccEmail: TEST_CC_EMAIL,
-          testCcEmail: TEST_CC_EMAIL,
+          ccEmails: ccList,
+          ccEmail: ccList[0] || "",
+          ccRecipients: ccList.map((email) => ({ emailAddress: { address: email } })),
+          testCcEmail: cleanEmail(TEST_CC_EMAIL),
         };
       });
+      const testCcList = uniqueEmailList([TEST_CC_EMAIL, ...manualCcEmails], TEST_EMAIL);
       const res = await sendRenderedRecipients(renderedRecipients, {
-        cc: [TEST_CC_EMAIL],
-        ccEmail: TEST_CC_EMAIL,
-        testCcEmail: TEST_CC_EMAIL,
+        cc: testCcList,
+        ccEmails: testCcList,
+        ccEmail: testCcList[0] || "",
+        ccRecipients: testCcList.map((email) => ({ emailAddress: { address: email } })),
+        testCcEmail: cleanEmail(TEST_CC_EMAIL),
       });
       await readEmailResponse(res);
 
       toast.success("Test email sent", {
-        description: `Sent to ${TEST_EMAIL}. CC: ${TEST_CC_EMAIL}.`,
+        description: `Sent to ${TEST_EMAIL}. CC: ${testCcList.join(", ")}.`,
       });
     } catch (err: any) {
       console.error(err);
@@ -990,10 +1178,14 @@ export default function EmailCentre() {
   };
 
   const handleSendNow = async () => {
-    if (!finalRecipients.length) return;
-    if (isCatchUpTemplateBlocked) {
-      toast.error("Add the catch-up session details first", {
-        description: "Replace the catch-up session date/time and join link placeholders before sending.",
+    if (!ensureValidCc()) return;
+    if (!finalRecipients.length) {
+      toast.error("Select at least one learner before sending");
+      return;
+    }
+    if (isRecoveryTemplateBlocked) {
+      toast.error("Add the recovery session details first", {
+        description: recoveryValidationMessage,
       });
       return;
     }
@@ -1012,6 +1204,7 @@ export default function EmailCentre() {
         subject: evidenceRecipient?.renderedSubject || previewSubject || subject,
         learnerName: evidenceRecipient?.learnerName || preselectedRecipient?.learnerName || "",
         learnerEmail: evidenceRecipient?.learnerEmail || preselectedRecipient?.learnerEmail || "",
+        ccEmails: Array.isArray(evidenceRecipient?.cc) ? evidenceRecipient.cc : [],
         programme: evidenceRecipient?.programme || preselectedRecipient?.programme || "",
         templateLabel: kpiLabels[selectedTemplate.kpiCategory] || selectedTemplate.name,
         body: evidenceRecipient?.renderedTextBody || previewBody || body,
@@ -1218,6 +1411,55 @@ export default function EmailCentre() {
                 Changes will apply to all selected learners.
               </p>
 
+              {isRecoveryTemplate && (
+                <div className="space-y-3 rounded-xl border border-[#D7E5F3] bg-[#F8FBFE] p-4">
+                  <div>
+                    <p className="text-xs font-semibold text-[#14264A]">Recovery option</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Choose a catch-up session or the same lecture with another group.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button type="button" variant={recoverySessionType === "catch-up" ? "default" : "outline"} onClick={() => handleRecoverySessionTypeChange("catch-up")}>
+                      Catch-up Session
+                    </Button>
+                    <Button type="button" variant={recoverySessionType === "alternative" ? "default" : "outline"} onClick={() => handleRecoverySessionTypeChange("alternative")}>
+                      Alternative Session
+                    </Button>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="recovery-date-time" className="text-xs font-medium text-muted-foreground">Date &amp; time</label>
+                      <Input id="recovery-date-time" value={recoverySessionDateTime} onChange={(event) => setRecoverySessionDateTime(event.target.value)} placeholder="e.g. 12 Nov 2026, 2:00 PM" className="mt-1 bg-white" />
+                    </div>
+                    {recoverySessionType === "alternative" && (
+                      <div>
+                        <label htmlFor="alternative-session-group" className="text-xs font-medium text-muted-foreground">Group / session</label>
+                        <Input id="alternative-session-group" value={alternativeSessionGroup} onChange={(event) => setAlternativeSessionGroup(event.target.value)} placeholder="e.g. Group B · Marketing" className="mt-1 bg-white" />
+                      </div>
+                    )}
+                    <div className={recoverySessionType === "catch-up" ? "sm:col-span-2" : ""}>
+                      <label htmlFor="recovery-session-link" className="text-xs font-medium text-muted-foreground">
+                        {recoverySessionType === "catch-up" ? "Join link" : "Location or join link (optional)"}
+                      </label>
+                      <Input id="recovery-session-link" value={recoverySessionLink} onChange={(event) => setRecoverySessionLink(event.target.value)} placeholder={recoverySessionType === "catch-up" ? "https://..." : "Room or https://..."} className="mt-1 bg-white" />
+                    </div>
+                    {recoverySessionType === "catch-up" && (
+                      <>
+                        <div>
+                          <label htmlFor="recovery-meeting-id" className="text-xs font-medium text-muted-foreground">Meeting ID (optional)</label>
+                          <Input id="recovery-meeting-id" value={recoveryMeetingId} onChange={(event) => setRecoveryMeetingId(event.target.value)} className="mt-1 bg-white" />
+                        </div>
+                        <div>
+                          <label htmlFor="recovery-passcode" className="text-xs font-medium text-muted-foreground">Passcode (optional)</label>
+                          <Input id="recovery-passcode" value={recoveryPasscode} onChange={(event) => setRecoveryPasscode(event.target.value)} className="mt-1 bg-white" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Subject</label>
                 <Input
@@ -1241,6 +1483,31 @@ export default function EmailCentre() {
               </div>
 
               <div>
+                <label htmlFor="additional-cc" className="text-xs font-medium text-muted-foreground">
+                  Additional CC emails
+                </label>
+                <Input
+                  id="additional-cc"
+                  value={ccInput}
+                  onChange={(event) => setCcInput(event.target.value)}
+                  placeholder="manager@example.com, support@example.com"
+                  className="mt-1"
+                  aria-invalid={Boolean(ccValidationMessage)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Separate multiple addresses with a comma, semicolon or new line. These are added to every selected learner email alongside the learner's coach.
+                </p>
+                {ccValidationMessage ? (
+                  <p className="mt-1 text-xs font-semibold text-red-600" role="alert">{ccValidationMessage}</p>
+                ) : null}
+                {manualCcEmails.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {manualCcEmails.map((email) => <Badge key={email} variant="secondary" className="text-[10px]">{email}</Badge>)}
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
                 <label className="text-xs font-medium text-muted-foreground">Body</label>
                 <Textarea
                   value={body}
@@ -1255,24 +1522,24 @@ export default function EmailCentre() {
 
               <div className="flex flex-wrap gap-1.5">
                 <p className="mb-1 w-full text-xs text-muted-foreground">Available merge fields:</p>
-                {selectedTemplate.mergeFields.map((field: string) => (
+                {availableMergeFields.map((field: string) => (
                   <Badge key={field} variant="secondary" className="text-[10px] font-mono">
                     {`{{${field}}}`}
                   </Badge>
                 ))}
               </div>
 
-              {isCatchUpTemplate && (
+              {isRecoveryTemplate && (
                 <div
                   className={`rounded-xl border p-3 text-xs ${
-                    isCatchUpTemplateBlocked
+                    isRecoveryTemplateBlocked
                       ? "border-amber-200 bg-amber-50 text-amber-900"
                       : "border-emerald-200 bg-emerald-50 text-emerald-900"
                   }`}
                 >
-                  {isCatchUpTemplateBlocked
-                    ? "Before sending, replace {{catchUpSessionDateTime}} and {{catchUpSessionLink}} with the catch-up session details."
-                    : "Catch-up session details have been added."}
+                  {isRecoveryTemplateBlocked
+                    ? recoveryValidationMessage
+                    : `${recoverySessionType === "catch-up" ? "Catch-up" : "Alternative"} session details are ready.`}
                 </div>
               )}
             </Card>
@@ -1391,10 +1658,10 @@ export default function EmailCentre() {
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold text-foreground">
-                    {loading ? "..." : recipientCount}
+                    {loading ? "..." : availableRecipientCount}
                   </span>
                   <span className="text-muted-foreground">
-                    recipients in "{kpiLabels[selectedTemplate.kpiCategory]}"
+                    available recipients in "{kpiLabels[selectedTemplate.kpiCategory]}"
                     {manualRecipients.length === 0 && selectedTemplate.kpiCategory === "missed-session"
                       ? ` for ${getAbsenceWindowLabel(absenceWeeks)}`
                       : ""}
@@ -1407,6 +1674,7 @@ export default function EmailCentre() {
                     {manualRecipients.length === 0 && selectedTemplate.kpiCategory !== "missed-session" && selectedTemplate.kpiCategory !== "review-due" && selectedTemplate.kpiCategory !== "coaching-due" && selectedTemplate.kpiCategory !== "otj-behind"
                       ? ` for ${timePeriodLabels[timePeriod]}`
                       : ""}
+                    {` · ${recipientCount} will receive this email`}
                   </span>
                 </div>
               </div>
@@ -1421,7 +1689,7 @@ export default function EmailCentre() {
                 <p className="text-sm font-medium">
                   Select Learners
                   <span className="ml-1 text-gray-500">"Multiple selection is available"</span>
-                  <span className="ml-1">({selectedIds.length})</span>
+                  <span className="ml-1">({recipientCount} will receive)</span>
                 </p>
 
                 <div className="rounded-md border p-2">
@@ -1488,7 +1756,7 @@ export default function EmailCentre() {
                 <Button
                   className="gap-1.5"
                   onClick={() => setSendConfirmOpen(true)}
-                  disabled={sending || !recipientCount || isCatchUpTemplateBlocked}
+                  disabled={sending || !recipientCount || isRecoveryTemplateBlocked || Boolean(ccValidationMessage)}
                 >
                   <Send className="h-3.5 w-3.5" />
                   Send Now
@@ -1498,7 +1766,7 @@ export default function EmailCentre() {
                   variant="outline"
                   className="gap-1.5"
                   onClick={handleSendTest}
-                  disabled={sending || !previewRecipient || isCatchUpTemplateBlocked}
+                  disabled={sending || !previewRecipient || isRecoveryTemplateBlocked || Boolean(ccValidationMessage)}
                 >
                   <Mail className="h-3.5 w-3.5" />
                   Send Test
@@ -1507,11 +1775,8 @@ export default function EmailCentre() {
                 <Button
                   variant="outline"
                   className="gap-1.5"
-                  onClick={() => {
-                    toast.info("Schedule is not connected yet", {
-                      description: "Only Send Now is currently linked to the email webhook.",
-                    });
-                  }}
+                  disabled
+                  title="Scheduling is not connected to the email service yet"
                 >
                   <Clock className="h-3.5 w-3.5" />
                   Schedule
@@ -1559,6 +1824,11 @@ export default function EmailCentre() {
                       {previewSubject || subject}
                     </p>
                   </div>
+                  <div className="rounded-xl border border-[#D7E5F3] bg-[#F8FBFE] px-4 py-3 text-xs text-[#52677D]">
+                    <p className="font-semibold text-[#14264A]">CC recipients</p>
+                    <p className="mt-1">Each learner's coach is included when available.</p>
+                    <p className="mt-1">Additional CC: {manualCcEmails.length ? manualCcEmails.join(", ") : "None"}</p>
+                  </div>
                 </AlertDialogHeader>
 
                 <AlertDialogFooter className="gap-2 px-6 pb-6 pt-2 sm:space-x-0">
@@ -1571,7 +1841,7 @@ export default function EmailCentre() {
                       void handleSendNow();
                     }}
                     className="rounded-xl bg-[#B27715] font-bold text-white hover:bg-[#9D6912]"
-                    disabled={sending || isCatchUpTemplateBlocked}
+                    disabled={sending || isRecoveryTemplateBlocked || Boolean(ccValidationMessage)}
                   >
                     {sending ? "Sending..." : "Send Now"}
                   </AlertDialogAction>

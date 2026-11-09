@@ -37,6 +37,9 @@ interface OTJTicket {
   risk: OTJRisk; status: OTJStatus; assignedOwner: string; action: string;
   notes: string; evidenceCount: number; isArchived: boolean; escalated: boolean;
   createdBy: string; createdAt: string; updatedAt: string;
+  otjDataSource?: "lms" | "ticket_snapshot";
+  otjTargetAsOfDate?: string | null;
+  otjTargetStatus?: string;
 }
 
 const ACTION_OPTIONS: { value: OTJAction; label: string }[] = [
@@ -747,7 +750,15 @@ export default function OTJTicketsPage() {
                     {filtered.map((t) => (
                       <tr key={t.id} className="group border-b border-[#F0F4F8] transition-colors hover:bg-[#F8FBFE]">
                         <td className="px-3 py-3"><span className="font-mono text-xs font-semibold text-[#24557F]">{t.ticketRef}</span></td>
-                        <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]"><p className="font-semibold text-[#14264A]">{t.learnerName}</p><p className="text-xs text-[#71849A]">{t.learnerEmail}</p></td>
+                        <td className="sticky left-0 z-10 border-r border-[#DDE7F0] bg-white px-3 py-3 group-hover:bg-[#F8FBFE]">
+                          <p className="font-semibold text-[#14264A]">{t.learnerName}</p>
+                          <p className="text-xs text-[#71849A]">{t.learnerEmail}</p>
+                          {t.otjDataSource === "ticket_snapshot" && (
+                            <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600" title="No current learner record exists in the LMS OTJH scope.">
+                              Historical snapshot
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-3">{riskBadge(t.risk)}</td>
                         <td className="px-3 py-3">{statusBadge(t.status)}</td>
                         <td className="px-3 py-3 text-xs text-[#5F7288]">{t.assignedOwner || <span className="italic text-[#A0B0C0]">Unassigned</span>}</td>
@@ -837,6 +848,12 @@ export default function OTJTicketsPage() {
                     <p className="text-xs text-[#71849A]">{viewTicket.learnerEmail}{viewTicket.learnerPhone ? ` · ${viewTicket.learnerPhone}` : ""}</p>
                   </div>
                 </div>
+
+                {viewTicket.otjDataSource === "ticket_snapshot" && (
+                  <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs font-semibold text-amber-900">
+                    Historical ticket snapshot — this learner is not in the current LMS OTJH scope.
+                  </div>
+                )}
 
                 {/* Organisation + Programme */}
                 <div className="grid grid-cols-2 gap-px bg-[#F0F4F8] border-b border-[#F0F4F8]">

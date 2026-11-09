@@ -36,6 +36,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import EngagementNav from "./engagement/EngagementNav";
 
 type Summary = {
   ticketsTotal: number;
@@ -309,7 +310,8 @@ export default function ActivityReport() {
       <div className="space-y-5 p-4 sm:p-5 lg:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[#14264A]">Communication Centre Ticket Report</h1>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1E6ACB]">Engagement Centre · Super Admin</p>
+            <h1 className="mt-1 text-xl font-bold text-[#14264A]">Communication Centre overview</h1>
             <p className="mt-0.5 text-sm text-[#5F7288]">
               Operational cases from 1 September 2026 and verified engagement activity
             </p>
@@ -337,6 +339,8 @@ export default function ActivityReport() {
             </Select>
           </div>
         </div>
+
+        <EngagementNav />
 
         {error && (
           <Card className="flex items-center justify-between border-red-200 bg-red-50 p-4">

@@ -139,6 +139,11 @@ if learner_evidence_database_url:
 # CORS Settings - Allow frontend to access API
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
+# Both KBC applications are commonly opened on localhost at the same time.
+# Cookie scope does not include the port, so Django's default ``sessionid``
+# would let one application overwrite the other application's login.
+SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "kbc_superadmin_sessionid")
+CSRF_COOKIE_NAME = os.getenv("CSRF_COOKIE_NAME", "kbc_superadmin_csrftoken")
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 

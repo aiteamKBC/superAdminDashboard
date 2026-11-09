@@ -10,7 +10,9 @@ import {
   Mail,
   Menu,
   ShieldCheck,
+  PhoneCall,
   UserPen,
+  Users,
   X,
 } from "lucide-react";
 
@@ -20,12 +22,14 @@ import { useAuth } from "@/lib/auth";
 const navItems = [
   { path: "/", label: "Home", icon: LayoutDashboard, section: "Operations" },
   { path: "/email-centre", label: "Email Centre", icon: Mail, section: "Operations" },
-  { path: "/activity-report", label: "Activity Report", icon: BarChart3, section: "Reporting" },
+  { path: "/activity-report", label: "Overview & Cases", icon: BarChart3, section: "Engagement Centre" },
+  { path: "/engagement-centre/team", label: "Team Performance", icon: Users, section: "Engagement Centre" },
+  { path: "/engagement-centre/calls", label: "Call Register", icon: PhoneCall, section: "Engagement Centre" },
   { path: "/calendar", label: "Calendar", icon: CalendarDays, section: "Reporting" },
   { path: "/administrator", label: "Administrator", icon: ShieldCheck, section: "Admin" },
 ];
 
-const sections = ["Operations", "Reporting", "Admin"];
+const sections = ["Operations", "Engagement Centre", "Reporting", "Admin"];
 
 type SidebarExternalLinkProps = {
   href: string;
@@ -142,7 +146,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
               <div className="space-y-1">
                 {items.map((item) => {
-                  const active = location.pathname === item.path;
+                  const active = location.pathname === item.path
+                    || (item.path === "/engagement-centre/team" && location.pathname.includes("/engagement-centre/specialists/"));
 
                   return (
                     <Link

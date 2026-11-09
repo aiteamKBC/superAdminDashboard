@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 import GlobalTableSorter from "@/components/GlobalTableSorter";
 import HomePage from "./pages/HomePage";
 import Dashboard from "./pages/Index";
@@ -12,6 +13,9 @@ import TrackAttendancePage from "./pages/attendance/TrackAttendancePage";
 import AttendanceTicketsPage from "./pages/attendance/AttendanceTicketsPage";
 import EmailCentre from "./pages/EmailCentre";
 import ActivityReport from "./pages/ActivityReport";
+import TeamPerformance from "./pages/engagement/TeamPerformance";
+import SpecialistDetail from "./pages/engagement/SpecialistDetail";
+import CallRegister from "./pages/engagement/CallRegister";
 import AdminPage from "./pages/AdminPage";
 import CalendarPage from "./pages/CalendarPage";
 import LoginPage from "./pages/LoginPage";
@@ -44,7 +48,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <AppErrorBoundary>
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -53,6 +58,10 @@ const App = () => (
             <Route path="/attendance/tickets" element={<ProtectedRoute><AttendanceTicketsPage /></ProtectedRoute>} />
             <Route path="/email-centre" element={<ProtectedRoute><EmailCentre /></ProtectedRoute>} />
             <Route path="/activity-report" element={<ProtectedRoute><ActivityReport /></ProtectedRoute>} />
+            <Route path="/engagement-centre" element={<ProtectedRoute><Navigate to="/activity-report" replace /></ProtectedRoute>} />
+            <Route path="/engagement-centre/team" element={<ProtectedRoute><TeamPerformance /></ProtectedRoute>} />
+            <Route path="/engagement-centre/specialists/:agentId" element={<ProtectedRoute><SpecialistDetail /></ProtectedRoute>} />
+            <Route path="/engagement-centre/calls" element={<ProtectedRoute><CallRegister /></ProtectedRoute>} />
             <Route path="/administrator" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/progress-review" element={<ProtectedRoute><ProgressReviewPage /></ProtectedRoute>} />
@@ -75,7 +84,8 @@ const App = () => (
             <Route path="/gateway/entered-epa" element={<ProtectedRoute><EPALearnersPage mode="entered" /></ProtectedRoute>} />
             <Route path="/gateway/tickets" element={<ProtectedRoute><EPATicketsPage /></ProtectedRoute>} />
             <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
-          </Routes>
+            </Routes>
+          </AppErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

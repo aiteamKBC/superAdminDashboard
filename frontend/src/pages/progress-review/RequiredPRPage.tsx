@@ -502,53 +502,31 @@ export default function RequiredPRPage() {
   }, [cardFilter, getGlobalOverdueStatus, getRangeStatus, prOffset]);
 
   useEffect(() => {
-    if (loading || globalOverdueRows.length === 0) return;
+    if (loading) return;
 
-    const candidates = globalOverdueRows
-      .map((learner) => ({ learner, status: getGlobalOverdueStatus(learner) }))
-      .filter(({ learner, status }) => {
-        if (!status.overdueDate) return false;
-        const existingTicket = ticketMap.get(learner.email.toLowerCase());
-        return !existingTicket || existingTicket.status === "resolved";
-      });
-
-    if (candidates.length === 0) return;
-
-    const runKey = candidates
-      .map(({ learner, status }) => getPrTicketKey(learner.email, status.overdueDate))
+    // The backend owns the canonical LMS comparison.  Always run the sync,
+    // including when there are no overdue rows, so untouched stale automatic
+    // tickets can be archived safely.
+    const runKey = globalOverdueRows
+      .map((learner) => {
+        const status = getGlobalOverdueStatus(learner);
+        return getPrTicketKey(learner.email, status.overdueDate);
+      })
       .sort()
-      .join("|");
-    if (!runKey || autoCreateOverdueKeyRef.current === runKey) return;
+      .join("|") || "no-overdue-learners";
+    if (autoCreateOverdueKeyRef.current === runKey) return;
     autoCreateOverdueKeyRef.current = runKey;
 
     fetch("/api/pr-tickets/auto-create/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        learners: candidates.map(({ learner, status }) => ({
-          email: learner.email,
-          name: learner.fullName,
-          phone: learner.phone || "",
-          organisation: learner.organisation || "",
-          programme: learner.group || "",
-          assigned_owner: "",
-          last_progress_review: learner.lastProgressReview || "",
-          last_actually_completed_pr: learner.lastActuallyCompletedPr || "",
-          last_pr_date: "",
-          next_pr_date: status.overdueDate,
-          overdue_count: status.overdueCount || 1,
-          risk: "amber",
-          status: "new",
-          notes: "",
-          created_by: "System",
-        })),
-      }),
+      body: JSON.stringify({}),
     }).then((res) => {
       if (res.ok) void loadAll();
     }).catch(() => {
       autoCreateOverdueKeyRef.current = "";
     });
-  }, [getGlobalOverdueStatus, globalOverdueRows, loadAll, loading, ticketMap]);
+  }, [getGlobalOverdueStatus, globalOverdueRows, loadAll, loading]);
 
   const onFollowUp = (l: PRLearner) => {
     const scopedPrDate = getScopedTicketDate(l);

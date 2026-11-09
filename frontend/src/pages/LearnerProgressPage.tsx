@@ -381,9 +381,10 @@ const matchesLastSubmissionFilter = (row: CombinedLearnerRow, filter: string) =>
 
 const loadJson = async <T,>(path: string): Promise<T[]> => {
   const response = await fetch(path, { cache: "no-store" });
-  if (!response.ok) return [];
+  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
   const payload = await response.json();
-  return Array.isArray(payload) ? payload : [];
+  if (!Array.isArray(payload)) throw new Error(`${path} returned an invalid payload`);
+  return payload;
 };
 
 export default function LearnerProgressPage() {
@@ -393,6 +394,7 @@ export default function LearnerProgressPage() {
   const [markingRows, setMarkingRows] = useState<MarkingRow[]>([]);
   const [lmsRows, setLmsRows] = useState<LmsActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [programmeFilter, setProgrammeFilter] = useState("all");
   const [coachFilter, setCoachFilter] = useState("all");
@@ -405,11 +407,12 @@ export default function LearnerProgressPage() {
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [nextPrRows, nextMcrRows, nextOtjRows, nextMarkingRows, nextLmsRows] = await Promise.all([
         loadJson<PrRow>("/api/progress-review-summary/"),
         loadJson<McrRow>("/api/mcr-summary/"),
-        loadJson<OtjRow>("/api/aptem-learners/"),
+        loadJson<OtjRow>("/api/otj-at-risk/"),
         loadJson<MarkingRow>("/api/require-marking/"),
         loadJson<LmsActivityRow>("/api/lms-activity/"),
       ]);
@@ -418,6 +421,8 @@ export default function LearnerProgressPage() {
       setOtjRows(nextOtjRows);
       setMarkingRows(nextMarkingRows);
       setLmsRows(nextLmsRows);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Learner data is unavailable");
     } finally {
       setLoading(false);
     }
@@ -509,7 +514,10 @@ export default function LearnerProgressPage() {
     }
 
     return Array.from(rows.values())
-      .filter((row) => !row.otj?.programStatus || row.otj.programStatus.toLowerCase() === "active")
+      .filter((row) => {
+        const status = row.otj?.programStatus?.toLowerCase();
+        return !status || ["active", "delivery"].includes(status);
+      })
       .sort((a, b) => {
         const aPrTone = statusTone(getPrDueStatus(a.pr) || a.pr?.nextPrState || a.pr?.reviewStatus, a.pr?.duePrDate || a.pr?.nextPrDate);
         const bPrTone = statusTone(getPrDueStatus(b.pr) || b.pr?.nextPrState || b.pr?.reviewStatus, b.pr?.duePrDate || b.pr?.nextPrDate);
@@ -666,6 +674,11 @@ export default function LearnerProgressPage() {
         </div>
 
         <div className="p-4 sm:p-6">
+          {loadError ? (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+              Live LMS data could not be loaded: {loadError}
+            </div>
+          ) : null}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <FilterSelect
               value={programmeFilter}

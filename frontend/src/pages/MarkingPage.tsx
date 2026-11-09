@@ -148,7 +148,7 @@ export default function MarkingPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DDE7F0] px-4 py-4 sm:px-5">
                 <div>
                   <h2 id="pending-heading" className="text-base font-bold text-[#14264A]">Coach caseload and work awaiting review</h2>
-                  <p className="mt-1 text-xs text-[#5F7288]">Same LMS coaches and learner filter as Administrator. Current means Active or Delivery; all includes historical statuses. Awaiting review excludes drafts.</p>
+                  <p className="mt-1 text-xs text-[#5F7288]">Caseload counts come directly from Learner.learners. Current means Active or Delivery; all includes every learner row and historical status. Awaiting review excludes drafts.</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={exportPending} disabled={!data.pending.length} className="h-9 gap-1.5">
                   <Download className="h-4 w-4" /> Export pending CSV

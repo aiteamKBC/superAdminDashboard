@@ -105,17 +105,6 @@ const parseProgressHours = (s: string): number => {
 
 // Calculate Target Now dynamically from actual current date + programme dates
 // Formula: Planned Total × (elapsed days / total days)
-const calcTargetNow = (startDate: string | null, endDate: string | null, otjPlanned: number): number => {
-  if (!startDate || !endDate || otjPlanned <= 0) return 0;
-  const start = new Date(startDate).getTime();
-  const end = new Date(endDate).getTime();
-  const now = new Date().getTime();
-  if (end <= start) return 0;
-  const totalMs = end - start;
-  const elapsedMs = Math.max(0, Math.min(now - start, totalMs));
-  return (otjPlanned * elapsedMs) / totalMs;
-};
-
 const otjBadge = (status: string) => {
   const s = (status || "").toLowerCase();
   if (s === "at risk") return <span className="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">At Risk</span>;
@@ -196,7 +185,7 @@ export default function ActiveLearnersPage() {
   const [ragFilter, setRagFilter] = useState("all");
   const [otjFilter, setOtjFilter] = useState("all");
   const [levyFilter, setLevyFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     const learnerQuery = searchParams.get("learner") || searchParams.get("search") || "";
@@ -206,7 +195,7 @@ export default function ActiveLearnersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/aptem-learners/");
+      const res = await fetch("/api/otj-at-risk/", { cache: "no-store" });
       if (res.ok) {
         const data: Learner[] = await res.json();
         setAll(data);
@@ -254,14 +243,14 @@ export default function ActiveLearnersPage() {
 
   const activeFilters = [coachFilter !== "all", ragFilter !== "all", otjFilter !== "all", levyFilter !== "all"].filter(Boolean).length;
 
-  const clearFilters = () => { setSearch(""); setCoachFilter("all"); setRagFilter("all"); setOtjFilter("all"); setLevyFilter("all"); setStatusFilter("active"); };
+  const clearFilters = () => { setSearch(""); setCoachFilter("all"); setRagFilter("all"); setOtjFilter("all"); setLevyFilter("all"); setStatusFilter("all"); };
 
   const exportCsv = () => {
     const cols = ["Name", "Email", "Phone", "Organisation", "Programme", "Subprogramme", "Coach", "Coach RAG", "Start Date", "End Date", "Elapsed Days", "OTJH Status", "OTJH Completed", "OTJH Target Now", "vs Target %", "KSB Status", "Comp Status", "Comp %", "Subscription Status", "Levy", "Working Hours", "Gender", "Disability"];
     const rows = filtered.map((l) => [
       l.fullName, l.email, l.learnerPhone, l.organizationName, l.programName, l.subprogramme,
       l.ownerName, l.coachRag, fmtDate(l.startDate), fmtDate(l.endDate), l.elapsedDays ?? "",
-      l.otjHoursStatus, fmtHoursMin(l.otjCompleted), fmtHoursMin(calcTargetNow(l.startDate, l.endDate, l.otjPlanned)), (() => { const varianceNum = parseFloat(l.progressVariance || "0") || 0; const pct = Math.abs(Math.round(varianceNum)); const ph = parseProgressHours(l.progressHours); return `${pct}% ${ph >= 0 ? "ahead" : "behind"}`; })(), fmtHoursMin(parseProgressHours(l.progressHours) < 0 ? Math.abs(parseProgressHours(l.progressHours)) : 0),
+      l.otjHoursStatus, fmtHoursMin(l.otjCompleted), fmtHoursMin(l.otjExpected), (() => { const varianceNum = parseFloat(l.progressVariance || "0") || 0; const pct = Math.abs(Math.round(varianceNum)); const ph = parseProgressHours(l.progressHours); return `${pct}% ${ph >= 0 ? "ahead" : "behind"}`; })(), fmtHoursMin(parseProgressHours(l.progressHours) < 0 ? Math.abs(parseProgressHours(l.progressHours)) : 0),
       l.ksbStatus, l.compStatus, l.completedCompPct,
       l.subscriptionStatus, l.levyOrNot, l.workingHours, l.gender, l.disability,
     ]);
@@ -465,8 +454,8 @@ export default function ActiveLearnersPage() {
                   </thead>
                   <tbody>
                     {filtered.map((l) => {
-                      // Target Now: calculated dynamically from actual today's date
-                      const targetNow = calcTargetNow(l.startDate, l.endDate, l.otjPlanned);
+                      // Target Now comes from the canonical LMS daily target snapshot.
+                      const targetNow = l.otjExpected;
                       const { barPct, ahead } = otjKpi(l.otjCompleted, targetNow);
                       // % behind/ahead from APTEM pre-calculated field
                       const varianceNum = parseFloat(l.progressVariance || "0") || 0;

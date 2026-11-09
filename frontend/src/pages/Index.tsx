@@ -1972,7 +1972,7 @@ export default function Dashboard() {
   const [prBookedData, setPrBookedData] = useState<any[]>([]);
   const [mcrData, setMcrData] = useState<any[]>([]);
   const [otjAtRiskData, setOtjAtRiskData] = useState<any[]>([]);
-  const [aptemLearnersData, setAptemLearnersData] = useState<any[]>([]);
+  const [lmsOtjhLearnersData, setLmsOtjhLearnersData] = useState<any[]>([]);
   const [requireMarkingData, setRequireMarkingData] = useState<any[]>([]);
   const [kbcAttendanceData, setKbcAttendanceData] = useState<any[]>([]);
 
@@ -2113,21 +2113,21 @@ export default function Dashboard() {
     void loadOtjAtRiskData();
   }, [loadOtjAtRiskData]);
 
-  const loadAptemLearnersData = useCallback(async () => {
+  const loadLmsOtjhLearnersData = useCallback(async () => {
     try {
-      const res = await fetch("/api/aptem-learners/", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load Aptem learners data");
+      const res = await fetch("/api/otj-at-risk/", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load canonical LMS learner data");
       const data = await res.json();
-      setAptemLearnersData(Array.isArray(data) ? data : []);
+      setLmsOtjhLearnersData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
-      setAptemLearnersData([]);
+      setLmsOtjhLearnersData([]);
     }
   }, []);
 
   useEffect(() => {
-    void loadAptemLearnersData();
-  }, [loadAptemLearnersData]);
+    void loadLmsOtjhLearnersData();
+  }, [loadLmsOtjhLearnersData]);
 
   const loadRequireMarkingData = useCallback(async () => {
     try {
@@ -2283,12 +2283,12 @@ export default function Dashboard() {
     return { byEmail, byId, byName, byEmailLocal, rows: progressReviewRows };
   }, [progressReviewRows]);
 
-  const aptemLearnerIndex = useMemo(() => {
+  const lmsOtjhLearnerIndex = useMemo(() => {
     const byEmail = new Map<string, any>();
     const byId = new Map<string, any>();
     const byName = new Map<string, any>();
 
-    for (const row of aptemLearnersData) {
+    for (const row of lmsOtjhLearnersData) {
       const email = normEmail(row?.email);
       const id = normId(row?.id);
       const fullName = normName(row?.fullName);
@@ -2299,7 +2299,7 @@ export default function Dashboard() {
     }
 
     return { byEmail, byId, byName };
-  }, [aptemLearnersData]);
+  }, [lmsOtjhLearnersData]);
 
   const prStatusOptions = ["All", "Scheduled", "Awaiting Signature", "In Progress", "Not Scheduled"];
 
@@ -2349,9 +2349,9 @@ export default function Dashboard() {
         ]);
         const { firstName, lastName } = splitName(fullName);
         const aptemLearnerRow =
-          (id && aptemLearnerIndex.byId.get(id)) ||
-          (fullName && aptemLearnerIndex.byName.get(normName(fullName))) ||
-          (emailKey && aptemLearnerIndex.byEmail.get(emailKey)) ||
+          (id && lmsOtjhLearnerIndex.byId.get(id)) ||
+          (fullName && lmsOtjhLearnerIndex.byName.get(normName(fullName))) ||
+          (emailKey && lmsOtjhLearnerIndex.byEmail.get(emailKey)) ||
           null;
         const aptemProgramStatusRaw = pickFirstString(aptemLearnerRow, [
           "programStatus",
@@ -2722,7 +2722,7 @@ export default function Dashboard() {
     }
 
     const prIndex = progressReviewIndex;
-    for (const row of aptemLearnersData) {
+    for (const row of lmsOtjhLearnersData) {
       const id = normId(row?.id);
       const emailKey = normEmail(row?.email);
       const fullName =
@@ -2851,8 +2851,8 @@ export default function Dashboard() {
 
       const progressVariance = toNum(row?.progressVariance);
       const progressHoursRaw = String(row?.progressHours || "").trim();
-      const hasOtjBehind =
-        (progressVariance != null && progressVariance < 0) || hasLeadingMinus(progressHoursRaw);
+      const otjStatus = String(row?.otjHoursStatus || "").trim().toLowerCase();
+      const hasOtjBehind = ["at risk", "need attention"].includes(otjStatus);
       const otjBehindPct =
         progressVariance != null && progressVariance < 0 ? Math.abs(progressVariance) : 0;
       const otjPriority = getOtjPriority(otjBehindPct);
@@ -2869,12 +2869,7 @@ export default function Dashboard() {
       const plannedOtj = toNum(row?.otjPlanned);
       const expectedOtj = toNum(row?.otjExpected);
       const actualOtj = toNum(row?.otjCompleted);
-      const totalDays = toNum(row?.totalDays);
-      const elapsedDays = toNum(row?.elapsedDays);
-      const targetNow =
-        plannedOtj && totalDays && elapsedDays
-          ? Math.round((elapsedDays / totalDays) * plannedOtj)
-          : 0;
+      const targetNow = expectedOtj ?? 0;
 
       const attendanceEmail = emailKey;
       const attendanceDate = metrics.lastSessionDate || "";
@@ -2984,6 +2979,8 @@ export default function Dashboard() {
         ? filters.status.toLowerCase()
         : null;
     return Array.from(deduped.values()).filter((l) => {
+      const canonicalEmail = normEmail(l.email);
+      if (!canonicalEmail || !lmsOtjhLearnerIndex.byEmail.has(canonicalEmail)) return false;
       const programStatusRaw = getLearnerProgramStatus(l);
       const hasAptemProgramStatus = Boolean(String((l as any).aptemProgramStatusRaw || "").trim());
       const programStatusLower = programStatusRaw.toLowerCase();
@@ -2993,9 +2990,9 @@ export default function Dashboard() {
         return statusFilter === "active" ? hasAptemProgramStatus : true;
       }
 
-      return programStatusLower === "active" && hasAptemProgramStatus;
+      return ["active", "delivery"].includes(programStatusLower) && hasAptemProgramStatus;
     });
-  }, [filteredRows, aptemLearnersData, absenceWeeks, filters, progressReviewIndex, aptemLearnerIndex, kbcAttendanceRecordsByEmail]);
+  }, [filteredRows, lmsOtjhLearnersData, absenceWeeks, filters, progressReviewIndex, lmsOtjhLearnerIndex, kbcAttendanceRecordsByEmail]);
 
   const coachMarkingRows = useMemo<CoachMarkingRow[]>(() => {
     const grouped = new Map<string, CoachMarkingRow>();
@@ -3670,13 +3667,7 @@ export default function Dashboard() {
             progressVariance !== null && progressVariance < 0
               ? Math.abs(progressVariance)
               : 0;
-          const aptemPlanned = Number(aptem?.otjPlanned ?? 0);
-          const aptemTotalDays = Number(aptem?.totalDays ?? 0);
-          const aptemElapsedDays = Number(aptem?.elapsedDays ?? 0);
-          const aptemTargetNow =
-            aptemPlanned && aptemTotalDays && aptemElapsedDays
-              ? Math.round((aptemElapsedDays / aptemTotalDays) * aptemPlanned)
-              : Number((l as any).targetNow || 0);
+          const aptemTargetNow = Number(aptem?.otjExpected ?? (l as any).targetNow ?? 0);
           return {
             ...l,
             plannedOtjHours: aptem?.otjPlanned ?? (l as any).plannedOtjHours,
@@ -3727,7 +3718,7 @@ export default function Dashboard() {
 
   const activeCardTitle = activeKpi ? kpiCards.find((c) => c.id === activeKpi)?.title || "" : "";
   const learnerStatusOptions = useMemo(() => {
-    const statuses = aptemLearnersData
+    const statuses = lmsOtjhLearnersData
       .map((row) =>
         pickFirstString(row, [
           "programStatus",
@@ -3741,7 +3732,7 @@ export default function Dashboard() {
       .filter(Boolean);
 
     return Array.from(new Set(statuses)).sort((a, b) => a.localeCompare(b));
-  }, [aptemLearnersData]);
+  }, [lmsOtjhLearnersData]);
 
   const detailContext = (() => {
     if (!activeKpi) return null;
@@ -3790,7 +3781,7 @@ export default function Dashboard() {
       loadPrBookedData(),
       loadMcrData(),
       loadOtjAtRiskData(),
-      loadAptemLearnersData(),
+      loadLmsOtjhLearnersData(),
       loadRequireMarkingData(),
       loadKbcAttendanceData(),
     ]);
@@ -3801,7 +3792,7 @@ export default function Dashboard() {
     loadPrBookedData,
     loadMcrData,
     loadOtjAtRiskData,
-    loadAptemLearnersData,
+    loadLmsOtjhLearnersData,
     loadRequireMarkingData,
     loadKbcAttendanceData,
   ]);

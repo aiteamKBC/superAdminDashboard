@@ -7,6 +7,7 @@ import requests
 from decimal import Decimal
 from django.http import JsonResponse
 from django.db import connection, connections
+from django.db.models import Count
 from django.contrib.auth import authenticate, get_user_model, login as django_login, logout as django_logout
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -147,6 +148,12 @@ def communication_ticket_report(request):
     """Read-only reporting over the Communication Centre's shared case tables."""
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
+    # Ticket and learner details are an administrative report, not a public API.
+    from .engagement_admin import _admin_only
+
+    denied = _admin_only(request)
+    if denied:
+        return denied
 
     month = str(request.GET.get("month") or timezone.localdate().strftime("%Y-%m")).strip()
     try:
@@ -209,6 +216,14 @@ def communication_ticket_report(request):
 
     try:
         with connection.cursor() as cursor:
+            from .engagement_admin import _table_exists, _verified_calls_cte
+            from zoneinfo import ZoneInfo
+
+            verified_calls_cte = _verified_calls_cte(_table_exists(cursor, "callcenter_event_call"))
+            verified_call_start = period_start or datetime.combine(
+                COMMUNICATION_SYSTEM_CUTOFF, datetime.min.time(), tzinfo=ZoneInfo("Europe/London")
+            )
+            verified_call_end = period_end or (timezone.now() + timedelta(seconds=1))
             cursor.execute(f"""
                 SELECT
                     COUNT(*) AS total,
@@ -245,16 +260,18 @@ def communication_ticket_report(request):
             summary["ticketsEscalated"] = escalated
             summary["appointmentsBooked"] = appointments
 
-            call_period_sql = "TRUE" if period_start is None else "z.started_at >= %s AND z.started_at < %s"
             cursor.execute(f"""
+                {verified_calls_cte}
                 SELECT
                     COUNT(*),
-                    COUNT(*) FILTER (WHERE z.result = 'answered'),
-                    COUNT(*) FILTER (WHERE z.result = ANY(%s))
-                FROM dashboard_zoom_phone_call z
-                WHERE {call_period_sql}
-                  AND z.direction = 'outbound'
-            """, [failed_call_results, *period_params])
+                    COUNT(*) FILTER (WHERE result = 'answered' AND voicemail = ''),
+                    COUNT(*) FILTER (
+                        WHERE (result = 'answered' AND voicemail <> '') OR result = ANY(%s)
+                    )
+                FROM verified_calls
+                WHERE zoom_started_at >= %s AND zoom_started_at < %s
+                  AND direction = 'outbound'
+            """, [failed_call_results, verified_call_start, verified_call_end])
             calls, answered, not_answered = cursor.fetchone()
             summary.update({
                 "callsTotal": calls,
@@ -313,17 +330,20 @@ def communication_ticket_report(request):
                 })["ticketsResolved"] = count
 
             cursor.execute(f"""
+                {verified_calls_cte}
                 SELECT
-                    timezone('Europe/London', z.started_at)::date AS day,
+                    timezone('Europe/London', zoom_started_at)::date AS day,
                     COUNT(*),
-                    COUNT(*) FILTER (WHERE z.result = 'answered'),
-                    COUNT(*) FILTER (WHERE z.result = ANY(%s))
-                FROM dashboard_zoom_phone_call z
-                WHERE {call_period_sql}
-                  AND z.direction = 'outbound'
+                    COUNT(*) FILTER (WHERE result = 'answered' AND voicemail = ''),
+                    COUNT(*) FILTER (
+                        WHERE (result = 'answered' AND voicemail <> '') OR result = ANY(%s)
+                    )
+                FROM verified_calls
+                WHERE zoom_started_at >= %s AND zoom_started_at < %s
+                  AND direction = 'outbound'
                 GROUP BY day
                 ORDER BY day
-            """, [failed_call_results, *period_params])
+            """, [failed_call_results, verified_call_start, verified_call_end])
             for day, call_count, answered_count, failed_count in cursor.fetchall():
                 key = day.isoformat()
                 row = daily_by_date.setdefault(key, {
@@ -1530,69 +1550,11 @@ def epa_summary(request):
 
 
 def otj_at_risk_summary(request):
-    with connections["aptem"].cursor() as cursor:
-        cursor.execute("""
-            SELECT
-                "ID",
-                "FullName",
-                "Email",
-                "Minimum",
-                "Planned",
-                "Submitted",
-                "Completed",
-                "Forecast",
-                "Exepected",
-                "ProgressVariance",
-                "Progress-Hours",
-                "OTJHoursStatus",
-                "Program Name",
-                "Program-Status",
-                "OwnerName",
-                "OwnerEmail",
-                "OrganizationName",
-                "Learner Phone",
-                "Start-Date",
-                "End-Date",
-                "Total Days",
-                "Elapsed-Days"
-            FROM public.aptem_auto_extracting
-            WHERE "Program-Status" = 'Active'
-              AND "OTJHoursStatus" IS NOT NULL
-              AND "OTJHoursStatus" != ''
-        """)
-        columns = [col[0] for col in cursor.description]
-        raw_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    # Keep the established URL for frontend compatibility, but source every
+    # OTJH metric from the canonical LMS snapshot.
+    from .lms_otjh import lms_otjh_summary
 
-    results = []
-    for row in raw_rows:
-        results.append({
-            "id": str(row.get("ID") or ""),
-            "fullName": row.get("FullName") or "",
-            "email": (row.get("Email") or "").strip().lower(),
-            "otjMinimum": float(row.get("Minimum") or 0),
-            "otjPlanned": float(row.get("Planned") or 0),
-            "otjSubmitted": float(row.get("Submitted") or 0),
-            "otjCompleted": float(row.get("Completed") or 0),
-            "otjForecast": float(row.get("Forecast") or 0),
-            "otjExpected": float(row.get("Exepected") or 0),
-            "progressVariance": row.get("ProgressVariance") or "",
-            "progressHours": row.get("Progress-Hours") or "",
-            "otjHoursStatus": row.get("OTJHoursStatus") or "",
-            "prStatusLast12Weeks": "",
-            "mcmStatusLast4Weeks": "",
-            "programName": row.get("Program Name") or "",
-            "programStatus": row.get("Program-Status") or "",
-            "ownerName": row.get("OwnerName") or "",
-            "ownerEmail": (row.get("OwnerEmail") or "").strip().lower(),
-            "organizationName": row.get("OrganizationName") or "",
-            "learnerPhone": row.get("Learner Phone") or "",
-            "startDate": row.get("Start-Date").isoformat() if row.get("Start-Date") else None,
-            "endDate": row.get("End-Date").isoformat() if row.get("End-Date") else None,
-            "totalDays": row.get("Total Days"),
-            "elapsedDays": row.get("Elapsed-Days"),
-        })
-
-    return JsonResponse(results, safe=False)
+    return lms_otjh_summary(request)
 
 
 def mcr_summary(request):
@@ -2187,32 +2149,20 @@ def require_marking_summary(request):
 
 
 def lms_activity_summary(request):
-    active_learners_by_email = {}
-    with connections["aptem"].cursor() as cursor:
-        cursor.execute("""
-            SELECT
-                "ID",
-                "FullName",
-                "Email",
-                "OwnerName",
-                "Program-Status"
-            FROM public.aptem_auto_extracting
-            WHERE LOWER(COALESCE("Program-Status", '')) = 'active'
-        """)
-        columns = [col[0] for col in cursor.description]
-        for row in [dict(zip(columns, row)) for row in cursor.fetchall()]:
-            email = (row.get("Email") or "").strip().lower()
-            if not email:
-                continue
-            active_learners_by_email[email] = {
-                "learnerId": row.get("ID"),
-                "fullName": row.get("FullName") or "",
-                "email": email,
-                "caseOwner": row.get("OwnerName") or "",
-            }
+    from .lms_otjh import load_lms_otjh_by_email
+
+    active_learners_by_email = {
+        email: {
+            "learnerId": learner.get("id"),
+            "fullName": learner.get("fullName") or "",
+            "email": email,
+            "caseOwner": learner.get("ownerName") or learner.get("coach") or "",
+        }
+        for email, learner in load_lms_otjh_by_email().items()
+    }
 
     if not active_learners_by_email or "learner_evidence" not in settings.DATABASES:
-        return JsonResponse([], safe=False)
+        return JsonResponse({"error": "LMS activity database is not configured."}, status=503)
 
     active_emails = list(active_learners_by_email.keys())
     try:
@@ -2227,7 +2177,7 @@ def lms_activity_summary(request):
             """, ["LMS_data", "BASE TABLE", "Audit"])
             schema_row = cursor.fetchone()
             if not schema_row:
-                return JsonResponse([], safe=False)
+                return JsonResponse({"error": "LMS activity table is unavailable."}, status=502)
 
             table_sql = f"{_quote_pg_identifier(schema_row[0])}.{_quote_pg_identifier('LMS_data')}"
             cursor.execute(
@@ -2271,8 +2221,11 @@ def lms_activity_summary(request):
                 [active_emails],
             )
             rows = cursor.fetchall()
-    except Exception:
-        return JsonResponse([], safe=False)
+    except Exception as exc:
+        return JsonResponse({
+            "error": "Could not load LMS activity data.",
+            "detail": str(exc) if settings.DEBUG else "",
+        }, status=502)
 
     latest_by_email = {email: last_activity for email, last_activity in rows if email}
     results = []
@@ -2937,15 +2890,6 @@ def attendance_tickets(request):
     if request.method == "GET":
         show_archived = request.GET.get("archived", "false").lower() == "true"
         lookup_only = request.GET.get("lookup", "false").lower() == "true"
-        current_week_start = None
-        if not show_archived and not lookup_only:
-            today = timezone.localdate()
-            current_week_start = today - timedelta(days=today.weekday())
-            learners = _attendance_missing_learners_for_week(current_week_start, today)
-            _archive_stale_auto_attendance_tickets(current_week_start, today, learners)
-            _upsert_auto_attendance_tickets(
-                learners
-            )
         tickets = AttendanceTicket.objects.filter(is_archived=show_archived).annotate(
             evidence_file_count=Count("evidence_files")
         )
@@ -3202,8 +3146,30 @@ def auto_create_pr_tickets(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    body = _json_body(request)
-    learners = body.get("learners", [])
+    from .lms_academic import lms_progress_review_summary
+
+    source_response = lms_progress_review_summary(request)
+    if source_response.status_code != 200:
+        return source_response
+    source_rows = json.loads(source_response.content)
+    learners = [{
+        "email": row.get("email"), "name": row.get("fullName"),
+        "phone": row.get("phone"), "organisation": row.get("organisation"),
+        "programme": row.get("group"), "last_progress_review": row.get("lastProgressReview"),
+        "last_actually_completed_pr": row.get("lastActuallyCompletedPr"),
+        "last_pr_date": row.get("lastActuallyCompletedPr"), "next_pr_date": row.get("duePrDate"),
+        "overdue_count": row.get("overduePrCount"), "risk": "amber", "status": "new",
+        "created_by": "System",
+    } for row in source_rows if int(row.get("overduePrCount") or 0) > 0 and row.get("duePrDate")]
+
+    valid_emails = {str(row.get("email") or "").strip().lower() for row in learners}
+    stale = ProgressReviewTicket.objects.filter(
+        is_archived=False, created_by="System", status="new", assigned_owner="",
+        action="no_action", notes="",
+    ).exclude(learner_email__in=valid_emails).annotate(
+        evidence_count=Count("evidence_files")
+    ).filter(evidence_count=0)
+    archived_count = stale.update(is_archived=True, updated_at=timezone.now())
 
     created_list = []
     existing_list = []
@@ -3282,6 +3248,7 @@ def auto_create_pr_tickets(request):
         "existing": existing_list,
         "createdCount": len(created_list),
         "existingCount": len(existing_list),
+        "archivedCount": archived_count,
     }, status=201)
 
 
@@ -3651,10 +3618,12 @@ def auto_create_mcm_tickets(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    body = _json_body(request)
-    rows = body.get("rows", [])
-    if not isinstance(rows, list):
-        return JsonResponse({"error": "rows must be a list"}, status=400)
+    from .lms_academic import lms_mcr_summary
+
+    source_response = lms_mcr_summary(request)
+    if source_response.status_code != 200:
+        return source_response
+    rows = json.loads(source_response.content)
 
     resolved_reason_keys = {
         _mcm_reason_key(ticket.learner_email, ticket.next_mcm_date)
@@ -3667,6 +3636,18 @@ def auto_create_mcm_tickets(request):
     }
     created = []
     updated = []
+    valid_emails = {
+        str(row.get("email") or "").strip().lower()
+        for row in rows
+        if int(row.get("overdueMcmCount") or 0) > 0
+    }
+    stale = MCMTicket.objects.filter(
+        is_archived=False, created_by="System", status="new", assigned_owner="",
+        action="", notes="",
+    ).exclude(learner_email__in=valid_emails).annotate(
+        evidence_count=Count("evidence_files")
+    ).filter(evidence_count=0)
+    archived_count = stale.update(is_archived=True, updated_at=timezone.now())
 
     for row in rows:
         if not isinstance(row, dict):
@@ -3738,6 +3719,7 @@ def auto_create_mcm_tickets(request):
         "updated": updated,
         "createdCount": len(created),
         "updatedCount": len(updated),
+        "archivedCount": archived_count,
     }, status=201)
 
 
@@ -3959,18 +3941,35 @@ def auto_create_epa_tickets(request):
     today = date.today()
     created = []
     existing = []
+    from .lms_academic import lms_epa_summary
+
+    source_response = lms_epa_summary(request)
+    if source_response.status_code != 200:
+        return source_response
+    source_payload = json.loads(source_response.content)
+    overdue_learners = source_payload.get("epaOverdue", [])
+    valid_emails = {
+        str(learner.get("email") or "").strip().lower()
+        for learner in overdue_learners
+        if str(learner.get("email") or "").strip()
+    }
     active_by_email = {
         ticket.learner_email.strip().lower(): ticket
         for ticket in EPATicket.objects.filter(is_archived=False).exclude(status="resolved")
     }
 
-    for row in _epa_rows():
-        if not _epa_is_active(row):
+    stale = EPATicket.objects.filter(
+        is_archived=False, created_by="System", status="new",
+        assigned_owner="", action="", notes__startswith="Auto-created because EPA is overdue.",
+    ).exclude(learner_email__in=valid_emails).annotate(
+        evidence_count=Count("evidence_files")
+    ).filter(evidence_count=0)
+    archived_count = stale.update(is_archived=True, updated_at=timezone.now())
+
+    for learner in overdue_learners:
+        end_date = parse_date_safe(learner.get("endDate"))
+        if not end_date:
             continue
-        end_date = row.get("End-Date")
-        if not end_date or today <= end_date + timedelta(days=7):
-            continue
-        learner = _epa_learner_dict(row, today)
         email = learner["email"]
         if not email or not learner["fullName"]:
             continue
@@ -4014,6 +4013,7 @@ def auto_create_epa_tickets(request):
         "existing": existing,
         "createdCount": len(created),
         "existingCount": len(existing),
+        "archivedCount": archived_count,
     }, status=201)
 
 
@@ -4155,20 +4155,30 @@ def epa_ticket_file_delete(request, pk, file_pk):
 
 # ─────────────────── OTJ Ticket System ───────────────────
 
-def _otj_ticket_to_dict(ticket):
+def _otj_ticket_to_dict(ticket, live_otj=None):
+    live_otj = live_otj or {}
+    live_status = str(live_otj.get("otjHoursStatus") or ticket.otj_status or "").strip()
+    risk_by_status = {
+        "at risk": "red",
+        "need attention": "amber",
+        "on track": "green",
+    }
+    evidence_count = getattr(ticket, "evidence_count", None)
+    if evidence_count is None:
+        evidence_count = ticket.evidence_files.count()
     return {
         "id": ticket.pk,
         "ticketRef": ticket.ticket_ref,
         "learnerEmail": ticket.learner_email,
-        "learnerName": ticket.learner_name,
-        "learnerPhone": ticket.learner_phone,
-        "organisation": ticket.organisation,
-        "programme": ticket.programme,
-        "otjMinimum": ticket.otj_minimum,
-        "otjCompleted": ticket.otj_completed,
-        "otjExpected": ticket.otj_expected,
-        "otjStatus": ticket.otj_status,
-        "risk": ticket.risk,
+        "learnerName": live_otj.get("fullName") or ticket.learner_name,
+        "learnerPhone": live_otj.get("learnerPhone") or ticket.learner_phone,
+        "organisation": live_otj.get("organizationName") or ticket.organisation,
+        "programme": live_otj.get("programName") or ticket.programme,
+        "otjMinimum": live_otj.get("otjMinimum", ticket.otj_minimum),
+        "otjCompleted": live_otj.get("otjCompleted", ticket.otj_completed),
+        "otjExpected": live_otj.get("otjExpected", ticket.otj_expected),
+        "otjStatus": live_status,
+        "risk": risk_by_status.get(live_status.lower(), ticket.risk),
         "status": ticket.status,
         "assignedOwner": ticket.assigned_owner,
         "action": ticket.action,
@@ -4178,7 +4188,10 @@ def _otj_ticket_to_dict(ticket):
         "createdBy": ticket.created_by,
         "createdAt": ticket.created_at.isoformat(),
         "updatedAt": ticket.updated_at.isoformat(),
-        "evidenceCount": ticket.evidence_files.count(),
+        "evidenceCount": evidence_count,
+        "otjDataSource": "lms" if live_otj else "ticket_snapshot",
+        "otjTargetAsOfDate": live_otj.get("targetAsOfDate"),
+        "otjTargetStatus": live_otj.get("targetStatus", ""),
     }
 
 
@@ -4198,9 +4211,25 @@ def otj_tickets(request):
     from .models import OTJTicket
 
     if request.method == "GET":
+        from .lms_otjh import load_lms_otjh_by_email
+
         show_archived = request.GET.get("archived", "false").lower() == "true"
-        tickets = OTJTicket.objects.filter(is_archived=show_archived)
-        return JsonResponse([_otj_ticket_to_dict(t) for t in tickets], safe=False)
+        tickets = OTJTicket.objects.filter(is_archived=show_archived).annotate(
+            evidence_count=Count("evidence_files")
+        )
+        try:
+            live_by_email = load_lms_otjh_by_email()
+        except Exception:
+            live_by_email = {}
+        response = JsonResponse([
+            _otj_ticket_to_dict(
+                ticket,
+                live_by_email.get(str(ticket.learner_email or "").strip().lower()),
+            )
+            for ticket in tickets
+        ], safe=False)
+        response["Cache-Control"] = "private, no-store"
+        return response
 
     if request.method == "POST":
         body = _json_body(request)
@@ -4250,7 +4279,15 @@ def otj_ticket_detail(request, pk):
         return JsonResponse({"error": "Ticket not found"}, status=404)
 
     if request.method == "GET":
-        return JsonResponse(_otj_ticket_to_dict(ticket))
+        try:
+            from .lms_otjh import load_lms_otjh_by_email
+
+            live_otj = load_lms_otjh_by_email().get(
+                str(ticket.learner_email or "").strip().lower()
+            )
+        except Exception:
+            live_otj = None
+        return JsonResponse(_otj_ticket_to_dict(ticket, live_otj))
 
     if request.method == "PATCH":
         body = _json_body(request)
@@ -4355,13 +4392,125 @@ def otj_ticket_file_delete(request, pk, file_pk):
 # ── Email proxy ─────────────────────────────────────────────────────────────
 
 N8N_EMAIL_WEBHOOK = getattr(settings, "N8N_EMAIL_WEBHOOK", "https://n8n.srv943390.hstgr.cloud/webhook/email_sender")
+EMAIL_ADDRESS_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+MAX_EMAIL_RECIPIENTS = 500
+MAX_CC_RECIPIENTS = 20
+
+
+def _clean_email_address(value):
+    return re.sub(r"[\u202A-\u202E]", "", str(value or "")).strip().lower()
+
+
+def _email_values(value):
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [part for part in re.split(r"[,;\n]", value) if part.strip()]
+    if isinstance(value, list):
+        values = []
+        for item in value:
+            if isinstance(item, dict):
+                item = (item.get("emailAddress") or {}).get("address") or item.get("address") or item.get("email")
+            values.extend(_email_values(item))
+        return values
+    return [value]
+
+
+def _normalize_email_list(values, *, exclude=()):
+    excluded = {_clean_email_address(value) for value in exclude if value}
+    normalized = []
+    invalid = []
+    seen = set()
+    for value in values:
+        email = _clean_email_address(value)
+        if not email:
+            continue
+        if not EMAIL_ADDRESS_RE.fullmatch(email):
+            invalid.append(str(value).strip())
+            continue
+        if email in excluded or email in seen:
+            continue
+        seen.add(email)
+        normalized.append(email)
+    return normalized, invalid
+
+
+def _prepare_email_payload(payload):
+    if not isinstance(payload, dict):
+        raise ValueError("Email payload must be an object")
+    recipients = payload.get("recipients")
+    if not isinstance(recipients, list) or not recipients:
+        raise ValueError("Select at least one email recipient")
+    if len(recipients) > MAX_EMAIL_RECIPIENTS:
+        raise ValueError(f"A maximum of {MAX_EMAIL_RECIPIENTS} recipients can be sent at once")
+
+    common_cc_values = []
+    for key in ("cc", "ccEmails", "ccEmail", "ccRecipients", "testCcEmail"):
+        common_cc_values.extend(_email_values(payload.get(key)))
+    common_cc, invalid_common_cc = _normalize_email_list(common_cc_values)
+    if invalid_common_cc:
+        raise ValueError(f"Invalid CC email: {invalid_common_cc[0]}")
+    if len(common_cc) > MAX_CC_RECIPIENTS:
+        raise ValueError(f"A maximum of {MAX_CC_RECIPIENTS} CC recipients is allowed")
+
+    prepared_recipients = []
+    for index, recipient in enumerate(recipients, start=1):
+        if not isinstance(recipient, dict):
+            raise ValueError(f"Recipient {index} must be an object")
+        primary = _clean_email_address(recipient.get("learnerEmail") or recipient.get("email"))
+        if not EMAIL_ADDRESS_RE.fullmatch(primary):
+            raise ValueError(f"Recipient {index} has an invalid email address")
+        subject = str(recipient.get("renderedSubject") or "").strip()
+        html_body = str(recipient.get("renderedBody") or recipient.get("renderedHtmlBody") or "").strip()
+        if not subject:
+            raise ValueError(f"Recipient {index} has an empty subject")
+        if not html_body:
+            raise ValueError(f"Recipient {index} has an empty email body")
+
+        recipient_cc_values = list(common_cc)
+        for key in ("cc", "ccEmails", "ccEmail", "ccRecipients", "coachCcEmail", "testCcEmail"):
+            recipient_cc_values.extend(_email_values(recipient.get(key)))
+        cc_emails, invalid_cc = _normalize_email_list(recipient_cc_values, exclude=(primary,))
+        if invalid_cc:
+            raise ValueError(f"Recipient {index} has an invalid CC email: {invalid_cc[0]}")
+        if len(cc_emails) > MAX_CC_RECIPIENTS:
+            raise ValueError(f"Recipient {index} exceeds the {MAX_CC_RECIPIENTS} CC recipient limit")
+
+        prepared_recipients.append({
+            **recipient,
+            "learnerEmail": primary,
+            "cc": cc_emails,
+            "ccEmails": cc_emails,
+            "ccEmail": cc_emails[0] if cc_emails else "",
+            "ccRecipients": [
+                {"emailAddress": {"address": email}}
+                for email in cc_emails
+            ],
+        })
+
+    return {
+        **payload,
+        "cc": common_cc,
+        "ccEmails": common_cc,
+        "ccEmail": common_cc[0] if common_cc else "",
+        "ccRecipients": [
+            {"emailAddress": {"address": email}}
+            for email in common_cc
+        ],
+        "recipients": prepared_recipients,
+    }
 
 @csrf_exempt
 def send_email_proxy(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    if not (user.is_staff or user.is_superuser):
+        return JsonResponse({"error": "Super Admin access required"}, status=403)
     try:
-        payload = json.loads(request.body.decode("utf-8") or "{}")
+        payload = _prepare_email_payload(json.loads(request.body.decode("utf-8") or "{}"))
         resp = requests.post(
             N8N_EMAIL_WEBHOOK,
             json=payload,
@@ -4391,6 +4540,10 @@ def send_email_proxy(request):
             )
 
         return JsonResponse(data, status=resp.status_code, safe=False)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"detail": "Request body must be valid JSON"}, status=400)
+    except ValueError as e:
+        return JsonResponse({"detail": str(e)}, status=400)
     except requests.Timeout:
         return JsonResponse({"detail": "n8n email webhook timed out"}, status=504)
     except Exception as e:

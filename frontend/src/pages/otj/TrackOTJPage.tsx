@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock, Download,
-  ExternalLink, Loader2, RefreshCw, Search, Ticket,
+  ExternalLink, RefreshCw, Search, Ticket,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import BackButton from "@/components/BackButton";
@@ -55,17 +55,6 @@ const fmtHoursMin = (h: number) => {
   return `${hrs}h ${mins}m`;
 };
 
-const calcTargetNow = (startDate: string | null, endDate: string | null, otjPlanned: number): number => {
-  if (!startDate || !endDate || otjPlanned <= 0) return 0;
-  const start = new Date(startDate).getTime();
-  const end = new Date(endDate).getTime();
-  const now = new Date().getTime();
-  if (end <= start) return 0;
-  const totalMs = end - start;
-  const elapsedMs = Math.max(0, Math.min(now - start, totalMs));
-  return (otjPlanned * elapsedMs) / totalMs;
-};
-
 const parseProgressHours = (s: string): number => {
   if (!s) return 0;
   const trimmed = s.trim();
@@ -78,9 +67,11 @@ const parseProgressHours = (s: string): number => {
   return isNaN(n) ? 0 : n;
 };
 
-const otjKpi = (completed: number, targetNow: number, variancePct: number) => {
+const otjKpi = (completed: number, targetNow: number) => {
   const ahead = completed >= targetNow;
-  const barPct = Math.min(Math.max(Math.round(Math.abs(variancePct)), 0), 100);
+  const barPct = targetNow > 0
+    ? Math.min(Math.max(Math.round((completed / targetNow) * 100), 0), 100)
+    : 0;
   return { barPct, ahead };
 };
 
@@ -117,7 +108,6 @@ export default function TrackOTJPage() {
   const [otjStatusFilter, setOtjStatusFilter] = useState("at risk");
   // email to ticket id map
   const [ticketMap, setTicketMap] = useState<Record<string, number>>({});
-  const [bulkCreating, setBulkCreating] = useState(false);
 
   const buildTicketMap = (data: Array<{ id: number; learnerEmail: string }>) => {
     const map: Record<string, number> = {};
@@ -146,41 +136,6 @@ export default function TrackOTJPage() {
       setAll(learners);
       setTicketMap(map);
 
-      // Auto-create tickets for at-risk learners that don't have one yet
-      const toCreate = learners.filter((l) => statusKey(l.otjHoursStatus) === "at risk" && !map[emailKey(l.email)]);
-
-      if (toCreate.length > 0) {
-        setBulkCreating(true);
-        const newMap = { ...map };
-        for (const l of toCreate) {
-          const targetNow = calcTargetNow(l.startDate, l.endDate, l.otjPlanned);
-          const res = await fetch("/api/otj-tickets/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              learner_email: l.email,
-              learner_name: l.fullName,
-              learner_phone: l.learnerPhone || "",
-              organisation: l.organizationName || "",
-              programme: l.programName || "",
-              otj_minimum: l.otjPlanned,
-              otj_completed: l.otjCompleted,
-              otj_expected: Math.round(targetNow),
-              otj_status: l.otjHoursStatus || "at risk",
-              risk: "red",
-              assigned_owner: "",
-              created_by: "System",
-            }),
-          });
-          if (res.ok) {
-            const ticket: { id: number; learnerEmail: string } = await res.json();
-            const key = emailKey(ticket.learnerEmail || l.email);
-            if (ticket.id && key) newMap[key] = ticket.id;
-          }
-        }
-        setTicketMap(newMap);
-        setBulkCreating(false);
-      }
     } finally {
       setLoading(false);
     }
@@ -212,7 +167,7 @@ export default function TrackOTJPage() {
   const exportCsv = () => {
     const cols = ["Name", "Email", "Organisation", "Programme", "Coach", "Planned Hours", "Completed", "Target Now", "Gap", "Status"];
     const rows = filtered.map((l) => {
-      const targetNow = calcTargetNow(l.startDate, l.endDate, l.otjPlanned);
+      const targetNow = l.otjExpected;
       return [
         l.fullName, l.email, l.organizationName, l.programName, l.ownerName,
         fmtHoursMin(l.otjPlanned), fmtHoursMin(l.otjCompleted), fmtHoursMin(targetNow),
@@ -228,7 +183,7 @@ export default function TrackOTJPage() {
   };
 
   const openTicket = (l: OTJLearner) => {
-    const targetNow = calcTargetNow(l.startDate, l.endDate, l.otjPlanned);
+    const targetNow = l.otjExpected;
     const params = new URLSearchParams({
       create: "1",
       email: l.email,
@@ -298,11 +253,6 @@ export default function TrackOTJPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              {bulkCreating && (
-                <span className="flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Creating tickets...
-                </span>
-              )}
               <Button onClick={() => navigate("/otj-hours/tickets")} className="h-9 gap-1.5 rounded-lg bg-[#24557F] text-white hover:bg-[#1B466B]">
                 <Ticket className="h-4 w-4" /> OTJH Tickets
               </Button>
@@ -410,10 +360,10 @@ export default function TrackOTJPage() {
                   </thead>
                   <tbody>
                     {filtered.map((l) => {
-                      const targetNow = calcTargetNow(l.startDate, l.endDate, l.otjPlanned);
+                      const targetNow = l.otjExpected;
                       const varianceNum = parseFloat(l.progressVariance || "0") || 0;
                       const diffPct = Math.abs(Math.round(varianceNum));
-                      const { barPct, ahead } = otjKpi(l.otjCompleted, targetNow, varianceNum);
+                      const { barPct, ahead } = otjKpi(l.otjCompleted, targetNow);
                       const progressTone = ahead
                         ? "bg-green-500"
                         : barPct >= 50

@@ -5,6 +5,7 @@ type ActiveLearnerSource = {
   email?: string;
   fullName?: string;
   programStatus?: string;
+  current?: boolean;
 };
 
 const ACTIVE_LEARNERS_REFRESH_MS = 15_000;
@@ -16,7 +17,8 @@ const countActiveLearners = (learners: ActiveLearnerSource[]) => {
   const activeKeys = new Set<string>();
 
   learners.forEach((learner) => {
-    if ((learner.programStatus || "").toLowerCase().trim() !== "active") return;
+    const programmeStatus = (learner.programStatus || "").toLowerCase().trim();
+    if (!learner.current && !["active", "delivery"].includes(programmeStatus)) return;
     const key = getLearnerKey(learner);
     if (key) activeKeys.add(key);
   });
@@ -31,7 +33,7 @@ export function useActiveLearnersCount() {
   const refresh = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await fetch("/api/aptem-learners/");
+      const res = await fetch("/api/otj-at-risk/", { cache: "no-store" });
       if (!res.ok) return;
       const data: ActiveLearnerSource[] = await res.json();
       setLearners(Array.isArray(data) ? data : []);

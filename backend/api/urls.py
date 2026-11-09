@@ -2,6 +2,21 @@ from django.urls import path
 from .lms_admin import lms_admin_learners
 from .lms_calendar import lms_calendar_events
 from .marking_summary import lms_marking_summary
+from .lms_academic import (
+    lms_epa_summary,
+    lms_mcr_summary,
+    lms_learner_marking_summary,
+    lms_progress_review_booked,
+    lms_progress_review_summary,
+)
+from .engagement_admin import (
+    admin_api,
+    engagement_call_transcript,
+    engagement_calls,
+    engagement_specialist_detail,
+    engagement_team_report,
+)
+
 from .views import (
     auth_login,
     auth_logout,
@@ -57,23 +72,47 @@ from .views import (
     send_email_proxy,
 )
 
+# Operational records must never be readable or mutable without a Super Admin
+# session. Keep auth endpoints public; protect the complete write-capable API.
+for _protected_view_name in (
+    "learner_contact_actions", "dashboard_bookings", "dashboard_contact_log",
+    "attendance_tickets", "auto_create_attendance_tickets", "attendance_ticket_detail",
+    "attendance_ticket_archive", "attendance_ticket_files", "attendance_ticket_file_delete",
+    "auto_create_pr_tickets", "pr_tickets", "pr_ticket_detail", "pr_ticket_archive",
+    "pr_ticket_files", "pr_ticket_file_delete", "pr_tickets_reset_owners",
+    "otj_tickets", "otj_ticket_detail", "otj_ticket_archive", "otj_ticket_files",
+    "otj_ticket_file_delete", "auto_create_mcm_tickets", "mcm_tickets",
+    "mcm_ticket_detail", "mcm_ticket_archive", "mcm_ticket_files", "mcm_ticket_file_delete",
+    "auto_create_epa_tickets", "epa_tickets", "epa_ticket_detail", "epa_ticket_archive",
+    "epa_ticket_files", "epa_ticket_file_delete",
+):
+    globals()[_protected_view_name] = admin_api(globals()[_protected_view_name])
+
 urlpatterns = [
     path("auth/session/", auth_session, name="auth-session"),
     path("auth/login/", auth_login, name="auth-login"),
     path("auth/microsoft-login/", auth_microsoft_login, name="auth-microsoft-login"),
     path("auth/logout/", auth_logout, name="auth-logout"),
     path("communication-tickets/report/", communication_ticket_report, name="communication-ticket-report"),
+    path("engagement/team/", engagement_team_report, name="engagement-team-report"),
+    path("engagement/team/<int:agent_id>/", engagement_specialist_detail, name="engagement-specialist-detail"),
+    path("engagement/calls/", engagement_calls, name="engagement-calls"),
+    path(
+        "engagement/calls/recordings/<int:recording_id>/transcript/",
+        engagement_call_transcript,
+        name="engagement-call-transcript",
+    ),
     path("test-kbc-attendance/", test_kbc_attendance),
     path("learner-contact-actions/", learner_contact_actions),
-    path("progress-review-summary/", progress_review_summary, name="progress-review-summary"),
+    path("progress-review-summary/", lms_progress_review_summary, name="progress-review-summary"),
     path("booking-review-employer-summary/", booking_review_employer_summary, name="booking-review-employer-summary"),
     path("employer-tables-debug/", employer_tables_debug),
     path("coaches/all", fetch_all_coaches_analytics, name="fetch-all-coaches-analytics"),
-    path("progress-review-booked/", progress_review_booked_summary, name="progress-review-booked"),
+    path("progress-review-booked/", lms_progress_review_booked, name="progress-review-booked"),
     path("aptem-learners/", aptem_learners_summary, name="aptem-learners-summary"),
-    path("epa-summary/", epa_summary, name="epa-summary"),
-    path("mcr-summary/", mcr_summary, name="mcr-summary"),
-    path("require-marking/", require_marking_summary, name="require-marking-summary"),
+    path("epa-summary/", lms_epa_summary, name="epa-summary"),
+    path("mcr-summary/", lms_mcr_summary, name="mcr-summary"),
+    path("require-marking/", lms_learner_marking_summary, name="require-marking-summary"),
     path("lms-marking/", lms_marking_summary, name="lms-marking-summary"),
     path("lms-admin-learners/", lms_admin_learners, name="lms-admin-learners"),
     path("lms-calendar/", lms_calendar_events, name="lms-calendar-events"),
